@@ -17,15 +17,52 @@ class ScreenOverlayWindow: NSWindow {
         self.collectionBehavior = [.canJoinAllSpaces, .stationary]
         self.hasShadow = false
 
-        let overlayView = CrackedOverlayView(frame: screen.frame)
-        overlayView.autoresizingMask = [.width, .height]
-        self.contentView = overlayView
+        // Base view applies live desaturation filter to content behind the window
+        let filterView = DesaturateView(frame: screen.frame)
+        filterView.autoresizingMask = [.width, .height]
+
+        // Crack overlay draws on top of the desaturated background
+        let crackView = CrackDrawingView(frame: screen.frame)
+        crackView.autoresizingMask = [.width, .height]
+        filterView.addSubview(crackView)
+
+        self.contentView = filterView
     }
 }
 
-// MARK: - Cracked Overlay View
+// MARK: - Desaturation View (layer-backed, applies CIFilter to background)
 
-class CrackedOverlayView: NSView {
+class DesaturateView: NSView {
+    override init(frame: NSRect) {
+        super.init(frame: frame)
+        wantsLayer = true
+        layerUsesCoreImageFilters = true
+    }
+
+    required init?(coder: NSCoder) {
+        super.init(coder: coder)
+        wantsLayer = true
+        layerUsesCoreImageFilters = true
+    }
+
+    override var wantsUpdateLayer: Bool { true }
+
+    override func updateLayer() {
+        guard let layer = self.layer else { return }
+        if layer.backgroundFilters?.isEmpty ?? true {
+            let satFilter = CIFilter(name: "CIColorControls")!
+            satFilter.setValue(0.05, forKey: kCIInputSaturationKey)
+            satFilter.setValue(-0.15, forKey: kCIInputBrightnessKey)
+            layer.backgroundFilters = [satFilter]
+        }
+    }
+
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+}
+
+// MARK: - Crack Drawing View
+
+class CrackDrawingView: NSView {
 
     private var cracks: [CrackLine] = []
 
@@ -45,13 +82,14 @@ class CrackedOverlayView: NSView {
         generateCracks()
     }
 
+    override func hitTest(_ point: NSPoint) -> NSView? { nil }
+
     // MARK: - Crack Generation
 
     private func generateCracks() {
         cracks = []
         var rng = SeededRNG(seed: 42)
 
-        // Impact points near edges and corners
         let impacts: [CGPoint] = [
             CGPoint(x: bounds.width * 0.05, y: bounds.height * 0.35),
             CGPoint(x: bounds.width * 0.92, y: bounds.height * 0.85),
@@ -72,7 +110,6 @@ class CrackedOverlayView: NSView {
                 )
                 cracks.append(mainCrack)
 
-                // Sub-cracks branching off
                 let numBranches = 1 + Int(rng.next() * 3)
                 for _ in 0..<numBranches {
                     let branchIdx = 1 + Int(rng.next() * CGFloat(mainCrack.points.count - 2))
@@ -87,7 +124,6 @@ class CrackedOverlayView: NSView {
                     )
                     cracks.append(branch)
 
-                    // Micro-cracks
                     if rng.next() > 0.5 && branch.points.count > 2 {
                         let microIdx = 1 + Int(rng.next() * CGFloat(branch.points.count - 2))
                         let microPoint = branch.points[min(microIdx, branch.points.count - 1)]
@@ -133,19 +169,15 @@ class CrackedOverlayView: NSView {
         super.draw(dirtyRect)
         guard let context = NSGraphicsContext.current?.cgContext else { return }
 
-        // Dark desaturating overlay
-        context.setFillColor(NSColor(white: 0.0, alpha: 0.45).cgColor)
-        context.fill(bounds)
-
-        // Slight desaturation tint — cool dark blue-gray pulls color out
-        context.setFillColor(NSColor(red: 0.05, green: 0.05, blue: 0.1, alpha: 0.2).cgColor)
+        // Slight darkening on top of the desaturation
+        context.setFillColor(NSColor(white: 0.0, alpha: 0.15).cgColor)
         context.fill(bounds)
 
         // Draw cracks
         for crack in cracks {
             guard crack.points.count >= 2 else { continue }
 
-            // Color fringe — offset cyan and magenta for prismatic glass effect
+            // Color fringe
             drawCrackPath(context: context, crack: crack,
                           color: NSColor(red: 0.0, green: 0.8, blue: 1.0, alpha: crack.alpha * 0.3),
                           offset: CGSize(width: -0.5, height: 0.5),
@@ -155,7 +187,7 @@ class CrackedOverlayView: NSView {
                           offset: CGSize(width: 0.5, height: -0.5),
                           widthScale: 1.3)
 
-            // Main crack line — bright white/light
+            // Main crack line
             drawCrackPath(context: context, crack: crack,
                           color: NSColor(white: 1.0, alpha: crack.alpha),
                           offset: .zero, widthScale: 1.0)
