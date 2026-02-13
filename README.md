@@ -1,6 +1,8 @@
-# Freeboard
+# Freeboard一一the only clipboard manager with fake screen cracks and hanzi
 
-Mac menu bar clipboard manager. Retro green-on-black hacker UI.
+clipboard manager. 100% vibecoded.
+
+cmd-shift-v to open and select recent clipboard entries
 
 ## Features
 
@@ -9,7 +11,7 @@ Mac menu bar clipboard manager. Retro green-on-black hacker UI.
 - **Fuzzy search**, ctrl-n/ctrl-p navigation, click or Enter to paste
 - **Password detection** — masks entries that look like passwords (`********`), auto-expires after 60s
 - **Bitwarden support** — recognizes `org.nspasteboard.ConcealedType` pasteboard marker
-- **Bilingual UI** — English and Chinese, switchable from menu. Default: Chinese 6PM–9AM, English otherwise
+- **Bilingual UI** — English and Chinese, switchable from menu.
 - Fully local. Zero internet. Zero disk. All in-memory.
 
 ## Build & Run
