@@ -49,6 +49,13 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         mainView.layer?.borderColor = retroGreen.withAlphaComponent(0.3).cgColor
         mainView.layer?.borderWidth = 1
 
+        // Phosphor glow — soft green haze radiating from the border
+        mainView.layer?.shadowColor = retroGreen.withAlphaComponent(0.6).cgColor
+        mainView.layer?.shadowRadius = 15
+        mainView.layer?.shadowOpacity = 1.0
+        mainView.layer?.shadowOffset = .zero
+        mainView.layer?.masksToBounds = false
+
         containerView = mainView
         setupSearchField()
         setupTableView()

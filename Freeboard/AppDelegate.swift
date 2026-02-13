@@ -144,14 +144,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
         previousApp = NSWorkspace.shared.frontmostApplication
         historyVC.reloadEntries()
 
-        if let button = statusItem.button, let buttonWindow = button.window {
-            let buttonRect = button.convert(button.bounds, to: nil)
-            let screenRect = buttonWindow.convertToScreen(buttonRect)
-            let windowWidth: CGFloat = 900
-            let x = screenRect.midX - windowWidth / 2
-            let y = screenRect.minY - 760
-            popupWindow.setFrameOrigin(NSPoint(x: x, y: y))
-        }
+        let screenFrame = NSScreen.main?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1200, height: 800)
+        let windowFrame = popupWindow.frame
+        let x = screenFrame.midX - windowFrame.width / 2
+        let y = screenFrame.midY - windowFrame.height / 2
+        popupWindow.setFrameOrigin(NSPoint(x: x, y: y))
 
         popupWindow.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
