@@ -1,0 +1,109 @@
+{
+  "" : {
+    "diagnostics" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/Freeboard-primary.dia",
+    "emit-module-dependencies" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/Freeboard-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/Freeboard-primary-emit-module.dia",
+    "pch" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/Freeboard-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/Freeboard-primary.swiftdeps"
+  },
+  "/Users/mheiber/freeboard/Freeboard/AppDelegate.swift" : {
+    "const-values" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/AppDelegate.swiftconstvalues",
+    "dependencies" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/AppDelegate.d",
+    "diagnostics" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/AppDelegate.dia",
+    "index-unit-output-path" : "/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/AppDelegate.o",
+    "llvm-bc" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/AppDelegate.bc",
+    "object" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/AppDelegate.o",
+    "swift-dependencies" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/AppDelegate.swiftdeps",
+    "swiftmodule" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/AppDelegate~partial.swiftmodule"
+  },
+  "/Users/mheiber/freeboard/Freeboard/ClipboardEntry.swift" : {
+    "const-values" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/ClipboardEntry.swiftconstvalues",
+    "dependencies" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/ClipboardEntry.d",
+    "diagnostics" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/ClipboardEntry.dia",
+    "index-unit-output-path" : "/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/ClipboardEntry.o",
+    "llvm-bc" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/ClipboardEntry.bc",
+    "object" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/ClipboardEntry.o",
+    "swift-dependencies" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/ClipboardEntry.swiftdeps",
+    "swiftmodule" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/ClipboardEntry~partial.swiftmodule"
+  },
+  "/Users/mheiber/freeboard/Freeboard/ClipboardHistoryViewController.swift" : {
+    "const-values" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/ClipboardHistoryViewController.swiftconstvalues",
+    "dependencies" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/ClipboardHistoryViewController.d",
+    "diagnostics" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/ClipboardHistoryViewController.dia",
+    "index-unit-output-path" : "/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/ClipboardHistoryViewController.o",
+    "llvm-bc" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/ClipboardHistoryViewController.bc",
+    "object" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/ClipboardHistoryViewController.o",
+    "swift-dependencies" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/ClipboardHistoryViewController.swiftdeps",
+    "swiftmodule" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/ClipboardHistoryViewController~partial.swiftmodule"
+  },
+  "/Users/mheiber/freeboard/Freeboard/ClipboardManager.swift" : {
+    "const-values" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/ClipboardManager.swiftconstvalues",
+    "dependencies" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/ClipboardManager.d",
+    "diagnostics" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/ClipboardManager.dia",
+    "index-unit-output-path" : "/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/ClipboardManager.o",
+    "llvm-bc" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/ClipboardManager.bc",
+    "object" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/ClipboardManager.o",
+    "swift-dependencies" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/ClipboardManager.swiftdeps",
+    "swiftmodule" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/ClipboardManager~partial.swiftmodule"
+  },
+  "/Users/mheiber/freeboard/Freeboard/FuzzySearch.swift" : {
+    "const-values" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/FuzzySearch.swiftconstvalues",
+    "dependencies" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/FuzzySearch.d",
+    "diagnostics" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/FuzzySearch.dia",
+    "index-unit-output-path" : "/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/FuzzySearch.o",
+    "llvm-bc" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/FuzzySearch.bc",
+    "object" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/FuzzySearch.o",
+    "swift-dependencies" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/FuzzySearch.swiftdeps",
+    "swiftmodule" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/FuzzySearch~partial.swiftmodule"
+  },
+  "/Users/mheiber/freeboard/Freeboard/GlobalHotkeyManager.swift" : {
+    "const-values" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/GlobalHotkeyManager.swiftconstvalues",
+    "dependencies" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/GlobalHotkeyManager.d",
+    "diagnostics" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/GlobalHotkeyManager.dia",
+    "index-unit-output-path" : "/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/GlobalHotkeyManager.o",
+    "llvm-bc" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/GlobalHotkeyManager.bc",
+    "object" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/GlobalHotkeyManager.o",
+    "swift-dependencies" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/GlobalHotkeyManager.swiftdeps",
+    "swiftmodule" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/GlobalHotkeyManager~partial.swiftmodule"
+  },
+  "/Users/mheiber/freeboard/Freeboard/PasswordDetector.swift" : {
+    "const-values" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/PasswordDetector.swiftconstvalues",
+    "dependencies" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/PasswordDetector.d",
+    "diagnostics" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/PasswordDetector.dia",
+    "index-unit-output-path" : "/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/PasswordDetector.o",
+    "llvm-bc" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/PasswordDetector.bc",
+    "object" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/PasswordDetector.o",
+    "swift-dependencies" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/PasswordDetector.swiftdeps",
+    "swiftmodule" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/PasswordDetector~partial.swiftmodule"
+  },
+  "/Users/mheiber/freeboard/Freeboard/PopupWindow.swift" : {
+    "const-values" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/PopupWindow.swiftconstvalues",
+    "dependencies" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/PopupWindow.d",
+    "diagnostics" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/PopupWindow.dia",
+    "index-unit-output-path" : "/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/PopupWindow.o",
+    "llvm-bc" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/PopupWindow.bc",
+    "object" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/PopupWindow.o",
+    "swift-dependencies" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/PopupWindow.swiftdeps",
+    "swiftmodule" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/PopupWindow~partial.swiftmodule"
+  },
+  "/Users/mheiber/freeboard/Freeboard/RetroEffectsView.swift" : {
+    "const-values" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/RetroEffectsView.swiftconstvalues",
+    "dependencies" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/RetroEffectsView.d",
+    "diagnostics" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/RetroEffectsView.dia",
+    "index-unit-output-path" : "/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/RetroEffectsView.o",
+    "llvm-bc" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/RetroEffectsView.bc",
+    "object" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/RetroEffectsView.o",
+    "swift-dependencies" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/RetroEffectsView.swiftdeps",
+    "swiftmodule" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/RetroEffectsView~partial.swiftmodule"
+  },
+  "/Users/mheiber/freeboard/Freeboard/main.swift" : {
+    "const-values" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/main.swiftconstvalues",
+    "dependencies" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/main.d",
+    "diagnostics" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/main.dia",
+    "index-unit-output-path" : "/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/main.o",
+    "llvm-bc" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/main.bc",
+    "object" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/main.o",
+    "swift-dependencies" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/main.swiftdeps",
+    "swiftmodule" : "/Users/mheiber/freeboard/build/Freeboard.build/Debug/Freeboard.build/Objects-normal/x86_64/main~partial.swiftmodule"
+  }
+}

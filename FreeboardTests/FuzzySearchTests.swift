@@ -11,10 +11,10 @@ class FuzzySearchTests: XCTestCase {
 
     func testExactMatchScoresHigh() {
         let exact = FuzzySearch.score(query: "hello", in: "hello")
-        let partial = FuzzySearch.score(query: "hello", in: "help lo")
+        let spread = FuzzySearch.score(query: "hello", in: "hXeXlXlXo")
         XCTAssertNotNil(exact)
-        XCTAssertNotNil(partial)
-        XCTAssertGreaterThan(exact!, partial!)
+        XCTAssertNotNil(spread)
+        XCTAssertGreaterThan(exact!, spread!)
     }
 
     func testNoMatchReturnsNil() {
