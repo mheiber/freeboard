@@ -11,6 +11,10 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     weak var historyDelegate: ClipboardHistoryDelegate?
     var clipboardManager: ClipboardManager?
 
+    var hasAccessibility = false {
+        didSet { updateAccessibilityBanner() }
+    }
+
     private var scrollView: NSScrollView!
     private var tableView: NSTableView!
     private var searchField: NSTextField!
@@ -18,6 +22,9 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     private var quitButton: NSButton!
     private var containerView: NSView!
     private var effectsView: RetroEffectsView!
+    private var accessibilityBanner: NSButton!
+    private var scrollViewTopConstraint: NSLayoutConstraint!
+    private var emptyStateView: NSView!
 
     private var filteredEntries: [ClipboardEntry] = []
     private var selectedIndex: Int = 0
@@ -61,8 +68,10 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
 
         containerView = mainView
         setupSearchField()
+        setupAccessibilityBanner()
         setupTableView()
         setupHelpLabel()
+        setupEmptyState()
 
         effectsView = RetroEffectsView(frame: frame)
         effectsView.autoresizingMask = [.width, .height]
@@ -76,6 +85,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         reloadEntries()
     }
 
+    override var acceptsFirstResponder: Bool { true }
+
     override func viewDidAppear() {
         super.viewDidAppear()
         searchField.stringValue = ""
@@ -83,7 +94,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         selectedIndex = 0
         refreshLocalization()
         reloadEntries()
-        view.window?.makeFirstResponder(searchField)
+        updateAccessibilityBanner()
+        view.window?.makeFirstResponder(self)
     }
 
     func refreshLocalization() {
@@ -98,6 +110,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         helpLabel.attributedStringValue = makeHelpString()
         quitButton.title = L.quit
         quitButton.font = retroFontSmall
+        updateEmptyStateStrings()
         tableView?.reloadData()
     }
 
@@ -132,6 +145,70 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         ])
     }
 
+    private func setupAccessibilityBanner() {
+        accessibilityBanner = NSButton(frame: .zero)
+        accessibilityBanner.translatesAutoresizingMaskIntoConstraints = false
+        accessibilityBanner.isBordered = false
+        accessibilityBanner.wantsLayer = true
+        accessibilityBanner.layer?.backgroundColor = NSColor(red: 0.3, green: 0.15, blue: 0.0, alpha: 0.85).cgColor
+        accessibilityBanner.layer?.cornerRadius = 4
+        accessibilityBanner.target = self
+        accessibilityBanner.action = #selector(accessibilityBannerClicked)
+
+        let warningAttrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: NSColor(red: 1.0, green: 0.8, blue: 0.2, alpha: 1.0),
+            .font: retroFontSmall
+        ]
+        accessibilityBanner.attributedTitle = NSAttributedString(
+            string: "\u{26A0} Auto-paste needs Accessibility permission. Click to open Settings.",
+            attributes: warningAttrs
+        )
+
+        accessibilityBanner.isHidden = true
+        containerView.addSubview(accessibilityBanner)
+        NSLayoutConstraint.activate([
+            accessibilityBanner.topAnchor.constraint(equalTo: searchField.bottomAnchor, constant: 6),
+            accessibilityBanner.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
+            accessibilityBanner.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
+            accessibilityBanner.heightAnchor.constraint(equalToConstant: 28),
+        ])
+    }
+
+    @objc private func accessibilityBannerClicked() {
+        if #available(macOS 15.0, *) {
+            let granted = CGRequestPostEventAccess()
+            if granted {
+                hasAccessibility = true
+                return
+            }
+        }
+        // Fallback: open System Settings to the right pane
+        let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
+        if !NSWorkspace.shared.open(url) {
+            NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/System Settings.app"))
+        }
+    }
+
+    private func updateAccessibilityBanner() {
+        guard accessibilityBanner != nil, scrollViewTopConstraint != nil else { return }
+        // Direct AX API test: try to query the focused app
+        let systemWide = AXUIElementCreateSystemWide()
+        var value: AnyObject?
+        let axResult = AXUIElementCopyAttributeValue(systemWide, kAXFocusedApplicationAttribute as CFString, &value)
+        let showBanner = !hasAccessibility
+        let warningAttrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: NSColor(red: 1.0, green: 0.8, blue: 0.2, alpha: 1.0),
+            .font: retroFontSmall
+        ]
+        accessibilityBanner.attributedTitle = NSAttributedString(
+            string: "\u{26A0} Auto-paste needs Accessibility permission. [axResult=\(axResult.rawValue) has=\(hasAccessibility)]",
+            attributes: warningAttrs
+        )
+        accessibilityBanner.isHidden = !showBanner
+        scrollViewTopConstraint.constant = showBanner ? 88 : 54
+        containerView?.layoutSubtreeIfNeeded()
+    }
+
     private func setupTableView() {
         tableView = NSTableView()
         tableView.backgroundColor = .clear
@@ -156,8 +233,9 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         scrollView.scrollerStyle = .overlay
 
         containerView.addSubview(scrollView)
+        scrollViewTopConstraint = scrollView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 54)
         NSLayoutConstraint.activate([
-            scrollView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 54),
+            scrollViewTopConstraint,
             scrollView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -32)
@@ -198,6 +276,90 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         NSApp.terminate(nil)
     }
 
+    private func setupEmptyState() {
+        emptyStateView = NSView(frame: .zero)
+        emptyStateView.translatesAutoresizingMaskIntoConstraints = false
+        emptyStateView.isHidden = true
+
+        let ascii = """
+         _____ ____  _____ _____ ____   ___    _    ____  ____
+        |  ___|  _ \\| ____| ____| __ ) / _ \\  / \\  |  _ \\|  _ \\
+        | |_  | |_) |  _| |  _| |  _ \\| | | |/ _ \\ | |_) | | | |
+        |  _| |  _ <| |___| |___| |_) | |_| / ___ \\|  _ <| |_| |
+        |_|   |_| \\_\\_____|_____|____/ \\___/_/   \\_\\_| \\_\\____/
+        """
+
+        let asciiLabel = NSTextField(labelWithString: ascii)
+        asciiLabel.translatesAutoresizingMaskIntoConstraints = false
+        asciiLabel.font = NSFont(name: "Menlo", size: 14) ?? NSFont.monospacedSystemFont(ofSize: 14, weight: .regular)
+        asciiLabel.textColor = retroGreen.withAlphaComponent(0.4)
+        asciiLabel.backgroundColor = .clear
+        asciiLabel.isBezeled = false
+        asciiLabel.alignment = .center
+        asciiLabel.maximumNumberOfLines = 0
+        asciiLabel.lineBreakMode = .byClipping
+
+        let hintLabel = NSTextField(labelWithString: "")
+        hintLabel.translatesAutoresizingMaskIntoConstraints = false
+        hintLabel.font = retroFont
+        hintLabel.textColor = retroDimGreen.withAlphaComponent(0.5)
+        hintLabel.backgroundColor = .clear
+        hintLabel.isBezeled = false
+        hintLabel.alignment = .center
+        hintLabel.tag = 100 // tag for refreshLocalization
+
+        let hotkeyLabel = NSTextField(labelWithString: "")
+        hotkeyLabel.translatesAutoresizingMaskIntoConstraints = false
+        hotkeyLabel.font = retroFontSmall
+        hotkeyLabel.textColor = retroDimGreen.withAlphaComponent(0.35)
+        hotkeyLabel.backgroundColor = .clear
+        hotkeyLabel.isBezeled = false
+        hotkeyLabel.alignment = .center
+        hotkeyLabel.tag = 101 // tag for refreshLocalization
+
+        emptyStateView.addSubview(asciiLabel)
+        emptyStateView.addSubview(hintLabel)
+        emptyStateView.addSubview(hotkeyLabel)
+        containerView.addSubview(emptyStateView)
+
+        NSLayoutConstraint.activate([
+            emptyStateView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+            emptyStateView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            emptyStateView.topAnchor.constraint(equalTo: scrollView.topAnchor),
+            emptyStateView.bottomAnchor.constraint(equalTo: scrollView.bottomAnchor),
+
+            asciiLabel.centerXAnchor.constraint(equalTo: emptyStateView.centerXAnchor),
+            asciiLabel.bottomAnchor.constraint(equalTo: hintLabel.topAnchor, constant: -24),
+            asciiLabel.leadingAnchor.constraint(greaterThanOrEqualTo: emptyStateView.leadingAnchor, constant: 12),
+            asciiLabel.trailingAnchor.constraint(lessThanOrEqualTo: emptyStateView.trailingAnchor, constant: -12),
+
+            hintLabel.centerXAnchor.constraint(equalTo: emptyStateView.centerXAnchor),
+            hintLabel.centerYAnchor.constraint(equalTo: emptyStateView.centerYAnchor, constant: 20),
+
+            hotkeyLabel.centerXAnchor.constraint(equalTo: emptyStateView.centerXAnchor),
+            hotkeyLabel.topAnchor.constraint(equalTo: hintLabel.bottomAnchor, constant: 8),
+        ])
+
+        updateEmptyStateStrings()
+    }
+
+    private func updateEmptyStateStrings() {
+        guard let emptyView = emptyStateView else { return }
+        if let hintLabel = emptyView.viewWithTag(100) as? NSTextField {
+            hintLabel.stringValue = L.emptyHint
+            hintLabel.font = retroFont
+        }
+        if let hotkeyLabel = emptyView.viewWithTag(101) as? NSTextField {
+            hotkeyLabel.stringValue = "Cmd-Shift-C: \(L.openClose)"
+            hotkeyLabel.font = retroFontSmall
+        }
+    }
+
+    private func updateEmptyStateVisibility() {
+        emptyStateView?.isHidden = !filteredEntries.isEmpty
+        scrollView?.isHidden = filteredEntries.isEmpty
+    }
+
     private func makeHelpString() -> NSAttributedString {
         let str = NSMutableAttributedString()
         let keyAttrs: [NSAttributedString.Key: Any] = [
@@ -208,6 +370,10 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             .foregroundColor: retroDimGreen.withAlphaComponent(0.4),
             .font: retroFontSmall
         ]
+        str.append(NSAttributedString(string: "1-9 ", attributes: keyAttrs))
+        str.append(NSAttributedString(string: L.quickSelect + "  ", attributes: dimAttrs))
+        str.append(NSAttributedString(string: "/ ", attributes: keyAttrs))
+        str.append(NSAttributedString(string: L.search + "  ", attributes: dimAttrs))
         str.append(NSAttributedString(string: "^N/^P ", attributes: keyAttrs))
         str.append(NSAttributedString(string: L.navigate + "  ", attributes: dimAttrs))
         str.append(NSAttributedString(string: "Enter ", attributes: keyAttrs))
@@ -237,6 +403,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         if !filteredEntries.isEmpty {
             tableView?.scrollRowToVisible(selectedIndex)
         }
+        updateEmptyStateVisibility()
     }
 
     // MARK: - NSTableViewDataSource
@@ -266,6 +433,21 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         indicator.backgroundColor = .clear
         indicator.isBezeled = false
         cell.addSubview(indicator)
+
+        // Number label for quick-select (rows 0–8 → keys 1–9)
+        let numberLabel: NSTextField?
+        if row < 9 {
+            let nl = NSTextField(labelWithString: "[\(row + 1)]")
+            nl.translatesAutoresizingMaskIntoConstraints = false
+            nl.font = retroFontSmall
+            nl.textColor = retroGreen.withAlphaComponent(0.7)
+            nl.backgroundColor = .clear
+            nl.isBezeled = false
+            cell.addSubview(nl)
+            numberLabel = nl
+        } else {
+            numberLabel = nil
+        }
 
         let timeLabel = NSTextField(labelWithString: entry.timeAgo)
         timeLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -311,7 +493,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             cell.addSubview(scrollContainer)
 
             NSLayoutConstraint.activate([
-                indicator.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 10),
+                indicator.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 34),
                 indicator.topAnchor.constraint(equalTo: cell.topAnchor, constant: 14),
                 indicator.widthAnchor.constraint(equalToConstant: 16),
 
@@ -329,6 +511,13 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
                 deleteButton.widthAnchor.constraint(equalToConstant: 24),
                 deleteButton.heightAnchor.constraint(equalToConstant: 24)
             ])
+
+            if let nl = numberLabel {
+                NSLayoutConstraint.activate([
+                    nl.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 6),
+                    nl.centerYAnchor.constraint(equalTo: indicator.centerYAnchor),
+                ])
+            }
 
             // Focus the text view after layout
             DispatchQueue.main.async {
@@ -358,7 +547,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             cell.addSubview(contentLabel)
 
             NSLayoutConstraint.activate([
-                indicator.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 10),
+                indicator.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 34),
                 indicator.topAnchor.constraint(equalTo: cell.topAnchor, constant: 14),
                 indicator.widthAnchor.constraint(equalToConstant: 16),
 
@@ -376,6 +565,13 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
                 deleteButton.widthAnchor.constraint(equalToConstant: 24),
                 deleteButton.heightAnchor.constraint(equalToConstant: 24)
             ])
+
+            if let nl = numberLabel {
+                NSLayoutConstraint.activate([
+                    nl.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 6),
+                    nl.centerYAnchor.constraint(equalTo: indicator.centerYAnchor),
+                ])
+            }
         }
 
         return cell
@@ -470,7 +666,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         editingIndex = nil
         editTextView = nil
         reloadEntries()
-        view.window?.makeFirstResponder(searchField)
+        view.window?.makeFirstResponder(self)
     }
 
     private func deleteSelected() {
@@ -481,11 +677,24 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
 
     // MARK: - Keyboard handling
 
+    private var isSearchFieldFocused: Bool {
+        view.window?.firstResponder === searchField.currentEditor()
+    }
+
     override func keyDown(with event: NSEvent) {
         let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
 
         if event.keyCode == 53 { // Esc
-            if editingIndex != nil { exitEditMode() } else { historyDelegate?.didDismiss() }
+            if editingIndex != nil {
+                exitEditMode()
+            } else if isSearchFieldFocused {
+                searchField.stringValue = ""
+                searchQuery = ""
+                reloadEntries()
+                view.window?.makeFirstResponder(self)
+            } else {
+                historyDelegate?.didDismiss()
+            }
             return
         }
         if event.keyCode == 36 { // Enter
@@ -494,6 +703,22 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             return
         }
         if editingIndex != nil { super.keyDown(with: event); return } // Pass through when editing
+
+        // Normal mode (search field NOT focused): number keys quick select, / to search
+        if !isSearchFieldFocused {
+            if let chars = event.charactersIgnoringModifiers, flags.isEmpty || flags == .shift {
+                if chars == "/" {
+                    view.window?.makeFirstResponder(searchField)
+                    return
+                }
+                if let digit = chars.first, digit >= "1" && digit <= "9" {
+                    let index = Int(String(digit))! - 1
+                    selectCurrent(at: index)
+                    return
+                }
+            }
+        }
+
         if event.keyCode == 48 { toggleExpand(); return } // Tab
         if event.keyCode == 51 || event.keyCode == 117 { deleteSelected(); return } // Backspace / Delete
         if flags.contains(.control) && event.charactersIgnoringModifiers == "e" { enterEditMode(); return }
@@ -534,19 +759,37 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             handleEnter(); return true
         }
         if commandSelector == #selector(cancelOperation(_:)) {
-            if editingIndex != nil { exitEditMode() } else { historyDelegate?.didDismiss() }
+            if editingIndex != nil {
+                exitEditMode()
+            } else if !searchField.stringValue.isEmpty {
+                searchField.stringValue = ""
+                searchQuery = ""
+                reloadEntries()
+                view.window?.makeFirstResponder(self)
+            } else {
+                view.window?.makeFirstResponder(self)
+                historyDelegate?.didDismiss()
+            }
             return true
         }
         if editingIndex != nil { return false }
-        if commandSelector == #selector(moveDown(_:)) { moveSelection(by: 1); return true }
-        if commandSelector == #selector(moveUp(_:)) { moveSelection(by: -1); return true }
+        if commandSelector == #selector(moveDown(_:)) {
+            view.window?.makeFirstResponder(self)
+            moveSelection(by: 1)
+            return true
+        }
+        if commandSelector == #selector(moveUp(_:)) {
+            view.window?.makeFirstResponder(self)
+            moveSelection(by: -1)
+            return true
+        }
         if commandSelector == #selector(insertTab(_:)) { toggleExpand(); return true }
         if commandSelector == #selector(moveToEndOfParagraph(_:)) { enterEditMode(); return true } // ctrl-e
         if commandSelector == #selector(deleteBackward(_:)) {
-            if searchField.stringValue.isEmpty { deleteSelected(); return true }
+            if searchField.stringValue.isEmpty { return true } // no-op; exit search first to delete entries
             return false
         }
-        if commandSelector == #selector(deleteForward(_:)) { deleteSelected(); return true }
+        if commandSelector == #selector(deleteForward(_:)) { return true } // no-op; exit search first to delete entries
         return false
     }
 
