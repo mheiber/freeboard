@@ -62,7 +62,7 @@ class GlobalHotkeyManager {
             &eventHandlerRef
         )
 
-        var hotKeyID = EventHotKeyID(signature: OSType(0x46524244), id: 1)
+        let hotKeyID = EventHotKeyID(signature: OSType(0x46524244), id: 1)
         let status = RegisterEventHotKey(
             UInt32(kVK_ANSI_V),
             UInt32(cmdKey | shiftKey),
