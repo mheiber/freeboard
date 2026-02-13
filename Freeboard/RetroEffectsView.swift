@@ -20,6 +20,11 @@ class RetroEffectsView: NSView {
         setupTimers()
     }
 
+    // Let mouse events pass through to views below
+    override func hitTest(_ point: NSPoint) -> NSView? {
+        return nil
+    }
+
     private func setupTimers() {
         // Subtle flicker every 100ms
         flickerTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in

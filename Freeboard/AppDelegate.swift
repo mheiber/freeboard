@@ -30,7 +30,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
     private func setupStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
         if let button = statusItem.button {
-            button.title = "📋"
+            let attrs: [NSAttributedString.Key: Any] = [
+                .font: NSFont.monospacedSystemFont(ofSize: 13, weight: .bold),
+            ]
+            button.attributedTitle = NSAttributedString(string: "[F]", attributes: attrs)
             button.action = #selector(statusItemClicked)
             button.target = self
         }
@@ -49,6 +52,18 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
         historyVC.clipboardManager = clipboardManager
         historyVC.historyDelegate = self
         popupWindow.contentViewController = historyVC
+
+        // Close popup when it loses focus
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(windowDidResignKey(_:)),
+            name: NSWindow.didResignKeyNotification,
+            object: popupWindow
+        )
+    }
+
+    @objc private func windowDidResignKey(_ notification: Notification) {
+        hidePopup()
     }
 
     private func setupHotkey() {
