@@ -4,6 +4,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
 
     private var statusItem: NSStatusItem!
     private var popupWindow: PopupWindow!
+    private var overlayWindow: ScreenOverlayWindow!
     private var historyVC: ClipboardHistoryViewController!
     private var clipboardManager: ClipboardManager!
     private var hotkeyManager: GlobalHotkeyManager!
@@ -49,6 +50,8 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
         popupWindow = PopupWindow(contentRect: NSRect(x: x, y: y, width: windowWidth, height: windowHeight))
         popupWindow.isOpaque = false
         popupWindow.backgroundColor = .clear
+
+        overlayWindow = ScreenOverlayWindow(screen: NSScreen.main ?? NSScreen.screens[0])
 
         historyVC = ClipboardHistoryViewController()
         historyVC.clipboardManager = clipboardManager
@@ -150,12 +153,14 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
         let y = screenFrame.midY - windowFrame.height / 2
         popupWindow.setFrameOrigin(NSPoint(x: x, y: y))
 
+        overlayWindow.orderFront(nil)
         popupWindow.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
     }
 
     private func hidePopup() {
         popupWindow.orderOut(nil)
+        overlayWindow.orderOut(nil)
     }
 
     // MARK: - ClipboardManagerDelegate

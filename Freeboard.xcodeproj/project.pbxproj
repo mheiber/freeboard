@@ -18,6 +18,7 @@
 		FA0000000000000000000208 /* ClipboardHistoryViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000108 /* ClipboardHistoryViewController.swift */; };
 		FA0000000000000000000209 /* RetroEffectsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000109 /* RetroEffectsView.swift */; };
 		FA000000000000000000020A /* Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA000000000000000000010C /* Localization.swift */; };
+		FA000000000000000000020B /* ScreenOverlayWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA000000000000000000010D /* ScreenOverlayWindow.swift */; };
 		FA0000000000000000000400 /* PasswordDetectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000300 /* PasswordDetectorTests.swift */; };
 		FA0000000000000000000401 /* FuzzySearchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000301 /* FuzzySearchTests.swift */; };
 		FA0000000000000000000402 /* ClipboardManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000302 /* ClipboardManagerTests.swift */; };
@@ -53,6 +54,7 @@
 		FA0000000000000000000108 /* ClipboardHistoryViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardHistoryViewController.swift; sourceTree = "<group>"; };
 		FA0000000000000000000109 /* RetroEffectsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RetroEffectsView.swift; sourceTree = "<group>"; };
 		FA000000000000000000010C /* Localization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Localization.swift; sourceTree = "<group>"; };
+		FA000000000000000000010D /* ScreenOverlayWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenOverlayWindow.swift; sourceTree = "<group>"; };
 		FA000000000000000000010A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		FA000000000000000000010B /* Freeboard.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Freeboard.entitlements; sourceTree = "<group>"; };
 		FA0000000000000000000300 /* PasswordDetectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasswordDetectorTests.swift; sourceTree = "<group>"; };
@@ -111,6 +113,7 @@
 				FA0000000000000000000108 /* ClipboardHistoryViewController.swift */,
 				FA0000000000000000000109 /* RetroEffectsView.swift */,
 				FA000000000000000000010C /* Localization.swift */,
+				FA000000000000000000010D /* ScreenOverlayWindow.swift */,
 				FA000000000000000000010A /* Info.plist */,
 				FA000000000000000000010B /* Freeboard.entitlements */,
 			);
@@ -220,6 +223,7 @@
 				FA0000000000000000000208 /* ClipboardHistoryViewController.swift in Sources */,
 				FA0000000000000000000209 /* RetroEffectsView.swift in Sources */,
 				FA000000000000000000020A /* Localization.swift in Sources */,
+				FA000000000000000000020B /* ScreenOverlayWindow.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
