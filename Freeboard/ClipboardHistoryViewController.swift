@@ -27,8 +27,18 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     private let retroDimGreen = NSColor(red: 0.0, green: 0.6, blue: 0.15, alpha: 1.0)
     private let retroBg = NSColor(red: 0.02, green: 0.02, blue: 0.02, alpha: 0.88)
     private let retroSelectionBg = NSColor(red: 0.0, green: 0.2, blue: 0.05, alpha: 0.9)
-    private let retroFont = NSFont(name: "Menlo", size: 16) ?? NSFont.monospacedSystemFont(ofSize: 16, weight: .regular)
-    private let retroFontSmall = NSFont(name: "Menlo", size: 12) ?? NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
+    private var retroFont: NSFont {
+        if L.current == .zh {
+            return NSFont.systemFont(ofSize: 20, weight: .regular)
+        }
+        return NSFont(name: "Menlo", size: 16) ?? NSFont.monospacedSystemFont(ofSize: 16, weight: .regular)
+    }
+    private var retroFontSmall: NSFont {
+        if L.current == .zh {
+            return NSFont.systemFont(ofSize: 15, weight: .regular)
+        }
+        return NSFont(name: "Menlo", size: 12) ?? NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
+    }
 
     override func loadView() {
         let frame = NSRect(x: 0, y: 0, width: 900, height: 750)
@@ -67,6 +77,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     }
 
     func refreshLocalization() {
+        searchField.font = retroFont
         let placeholderAttrs: [NSAttributedString.Key: Any] = [
             .foregroundColor: retroDimGreen.withAlphaComponent(0.5),
             .font: retroFont
@@ -76,6 +87,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         )
         helpLabel.attributedStringValue = makeHelpString()
         quitButton.title = L.quit
+        quitButton.font = retroFontSmall
+        tableView?.reloadData()
     }
 
     // MARK: - Setup

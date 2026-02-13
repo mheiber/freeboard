@@ -5,13 +5,19 @@ Instructions for AI coding agents working on Freeboard.
 ## Build
 
 ```
-xcodebuild -project Freeboard.xcodeproj -scheme Freeboard build
+make build
+```
+
+Or directly:
+
+```
+xcodebuild -project Freeboard.xcodeproj -scheme Freeboard -configuration Debug SYMROOT=$(pwd)/build build
 ```
 
 ## Test
 
 ```
-xcodebuild -project Freeboard.xcodeproj -target FreeboardTests -configuration Debug build -destination "platform=macOS"
+xcodebuild -project Freeboard.xcodeproj -scheme Freeboard -configuration Debug SYMROOT=$(pwd)/build build-for-testing
 xcrun xctest build/Debug/FreeboardTests.xctest
 ```
 
@@ -27,10 +33,11 @@ Freeboard/
   ClipboardEntry.swift               → Data model (content, timestamp, password flag)
   PasswordDetector.swift             → Password heuristics, commit hash exclusion, Bitwarden
   FuzzySearch.swift                  → Character-order fuzzy matching with scoring
-  GlobalHotkeyManager.swift          → cmd-shift-v via CGEvent tap + NSEvent fallback
+  GlobalHotkeyManager.swift          → cmd-shift-v via Carbon RegisterEventHotKey
   PopupWindow.swift                  → Floating borderless panel
   ClipboardHistoryViewController.swift → Table view, search, keyboard nav, delete
-  RetroEffectsView.swift             → Scanlines, VCR glitch, vignette (mouse-transparent)
+  RetroEffectsView.swift             → Static scanlines and vignette (mouse-transparent)
+  Localization.swift                 → Bilingual strings (en/zh), time-based default
 ```
 
 ## Conventions
@@ -41,3 +48,4 @@ Freeboard/
 - **End-to-end tests only.** No unit tests for trivial getters. Test full flows.
 - **Xcode project.** Hand-written `project.pbxproj`. When adding files, add both a `PBXFileReference` and a `PBXBuildFile` entry. Test sources compile app source files directly (no `@testable import`).
 - **Commit style.** `wip: [description] - builds/tests pass/etc`. Never amend.
+- **Makefile.** Use `make build`, `make run`, `make prod`, `make clean`.

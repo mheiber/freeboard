@@ -3,7 +3,7 @@
 ## Setup
 
 1. Clone the repo
-2. Open in Xcode or build from command line (see [README](README.md))
+2. `make run` to build and launch, or see [README](README.md)
 3. Grant Accessibility permissions when prompted
 
 ## Making Changes
@@ -11,7 +11,7 @@
 - Read [AGENTS.md](AGENTS.md) for architecture and conventions
 - No disk, no network — keep everything in-memory and local
 - Add tests for new logic in `FreeboardTests/`
-- Run the full test suite before submitting
+- Run the full test suite before submitting: `make build` then `xcrun xctest build/Debug/FreeboardTests.xctest`
 
 ## Adding Source Files
 
