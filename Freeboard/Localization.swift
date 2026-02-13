@@ -27,6 +27,7 @@ struct L {
     static var paste: String { current == .zh ? "粘贴" : "paste" }
     static var close: String { current == .zh ? "关闭" : "close" }
     static var expand: String { current == .zh ? "展开" : "expand" }
+    static var edit: String { current == .zh ? "编辑" : "edit" }
     static var delete: String { current == .zh ? "删除" : "delete" }
     static var quit: String { current == .zh ? "退出" : "Quit" }
     static var quitFreeboard: String { current == .zh ? "退出 Freeboard" : "Quit Freeboard" }

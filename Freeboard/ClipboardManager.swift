@@ -84,6 +84,13 @@ class ClipboardManager {
         delegate?.clipboardManagerDidUpdateEntries(self)
     }
 
+    func updateEntryContent(id: UUID, newContent: String) {
+        guard let idx = entries.firstIndex(where: { $0.id == id }) else { return }
+        let old = entries[idx]
+        entries[idx] = ClipboardEntry(content: newContent, isPassword: old.isPassword, timestamp: old.timestamp, id: old.id)
+        delegate?.clipboardManagerDidUpdateEntries(self)
+    }
+
     func selectEntry(_ entry: ClipboardEntry) {
         pasteboard.clearContents()
         _ = pasteboard.setString(entry.content, forType: .string)

@@ -6,7 +6,7 @@ protocol ClipboardHistoryDelegate: AnyObject {
     func didDismiss()
 }
 
-class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, NSTableViewDelegate, NSTextFieldDelegate {
+class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, NSTableViewDelegate, NSTextFieldDelegate, NSTextViewDelegate {
 
     weak var historyDelegate: ClipboardHistoryDelegate?
     var clipboardManager: ClipboardManager?
@@ -22,6 +22,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     private var filteredEntries: [ClipboardEntry] = []
     private var selectedIndex: Int = 0
     private var expandedIndex: Int? = nil
+    private var editingIndex: Int? = nil
+    private var editTextView: NSTextView? = nil
     private var searchQuery: String = ""
 
     private let retroGreen = NSColor(red: 0.0, green: 1.0, blue: 0.25, alpha: 1.0)
@@ -248,40 +250,20 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         let entry = filteredEntries[row]
         let isSelected = row == selectedIndex
         let isExpanded = row == expandedIndex
+        let isEditing = row == editingIndex
 
         let rowHeight = self.tableView(tableView, heightOfRow: row)
         let cell = NSView(frame: NSRect(x: 0, y: 0, width: tableView.bounds.width, height: rowHeight))
         cell.wantsLayer = true
         cell.layer?.backgroundColor = isSelected ? retroSelectionBg.cgColor : NSColor.clear.cgColor
 
-        let indicator = NSTextField(labelWithString: isSelected ? ">" : " ")
+        let indicator = NSTextField(labelWithString: isEditing ? "✎" : (isSelected ? ">" : " "))
         indicator.translatesAutoresizingMaskIntoConstraints = false
         indicator.font = retroFont
         indicator.textColor = retroGreen
         indicator.backgroundColor = .clear
         indicator.isBezeled = false
         cell.addSubview(indicator)
-
-        let contentLabel = NSTextField(labelWithString: "")
-        contentLabel.translatesAutoresizingMaskIntoConstraints = false
-        contentLabel.font = retroFont
-        contentLabel.textColor = isSelected ? retroGreen : retroDimGreen
-        contentLabel.backgroundColor = .clear
-        contentLabel.isBezeled = false
-
-        if isExpanded {
-            contentLabel.lineBreakMode = .byWordWrapping
-            contentLabel.maximumNumberOfLines = 0
-            contentLabel.stringValue = entry.displayContent
-        } else {
-            contentLabel.lineBreakMode = .byTruncatingTail
-            contentLabel.maximumNumberOfLines = 1
-            let displayText = entry.displayContent
-                .replacingOccurrences(of: "\n", with: "↵ ")
-                .replacingOccurrences(of: "\t", with: "→ ")
-            contentLabel.stringValue = displayText
-        }
-        cell.addSubview(contentLabel)
 
         let timeLabel = NSTextField(labelWithString: entry.timeAgo)
         timeLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -300,33 +282,119 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         deleteButton.tag = row
         cell.addSubview(deleteButton)
 
-        NSLayoutConstraint.activate([
-            indicator.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 10),
-            indicator.topAnchor.constraint(equalTo: cell.topAnchor, constant: 14),
-            indicator.widthAnchor.constraint(equalToConstant: 16),
+        if isEditing {
+            let scrollContainer = NSScrollView(frame: .zero)
+            scrollContainer.translatesAutoresizingMaskIntoConstraints = false
+            scrollContainer.hasVerticalScroller = true
+            scrollContainer.drawsBackground = false
+            scrollContainer.scrollerStyle = .overlay
 
-            contentLabel.leadingAnchor.constraint(equalTo: indicator.trailingAnchor, constant: 6),
-            contentLabel.topAnchor.constraint(equalTo: cell.topAnchor, constant: 8),
-            contentLabel.bottomAnchor.constraint(lessThanOrEqualTo: cell.bottomAnchor, constant: -8),
-            contentLabel.trailingAnchor.constraint(equalTo: timeLabel.leadingAnchor, constant: -10),
+            let tv = NSTextView()
+            tv.font = retroFont
+            tv.textColor = retroGreen
+            tv.backgroundColor = NSColor(red: 0.05, green: 0.08, blue: 0.05, alpha: 0.9)
+            tv.insertionPointColor = retroGreen
+            tv.isEditable = true
+            tv.isSelectable = true
+            tv.isRichText = false
+            tv.string = entry.content
+            tv.delegate = self
+            tv.isAutomaticQuoteSubstitutionEnabled = false
+            tv.isAutomaticDashSubstitutionEnabled = false
+            tv.isAutomaticTextReplacementEnabled = false
+            tv.textContainerInset = NSSize(width: 4, height: 4)
+            scrollContainer.documentView = tv
+            self.editTextView = tv
 
-            timeLabel.trailingAnchor.constraint(equalTo: deleteButton.leadingAnchor, constant: -6),
-            timeLabel.topAnchor.constraint(equalTo: cell.topAnchor, constant: 14),
-            timeLabel.widthAnchor.constraint(equalToConstant: 70),
+            cell.addSubview(scrollContainer)
 
-            deleteButton.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -10),
-            deleteButton.topAnchor.constraint(equalTo: cell.topAnchor, constant: 12),
-            deleteButton.widthAnchor.constraint(equalToConstant: 24),
-            deleteButton.heightAnchor.constraint(equalToConstant: 24)
-        ])
+            NSLayoutConstraint.activate([
+                indicator.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 10),
+                indicator.topAnchor.constraint(equalTo: cell.topAnchor, constant: 14),
+                indicator.widthAnchor.constraint(equalToConstant: 16),
+
+                scrollContainer.leadingAnchor.constraint(equalTo: indicator.trailingAnchor, constant: 6),
+                scrollContainer.topAnchor.constraint(equalTo: cell.topAnchor, constant: 4),
+                scrollContainer.bottomAnchor.constraint(equalTo: cell.bottomAnchor, constant: -4),
+                scrollContainer.trailingAnchor.constraint(equalTo: timeLabel.leadingAnchor, constant: -10),
+
+                timeLabel.trailingAnchor.constraint(equalTo: deleteButton.leadingAnchor, constant: -6),
+                timeLabel.topAnchor.constraint(equalTo: cell.topAnchor, constant: 14),
+                timeLabel.widthAnchor.constraint(equalToConstant: 70),
+
+                deleteButton.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -10),
+                deleteButton.topAnchor.constraint(equalTo: cell.topAnchor, constant: 12),
+                deleteButton.widthAnchor.constraint(equalToConstant: 24),
+                deleteButton.heightAnchor.constraint(equalToConstant: 24)
+            ])
+
+            // Focus the text view after layout
+            DispatchQueue.main.async {
+                tv.window?.makeFirstResponder(tv)
+                tv.selectAll(nil)
+            }
+        } else {
+            let contentLabel = NSTextField(labelWithString: "")
+            contentLabel.translatesAutoresizingMaskIntoConstraints = false
+            contentLabel.font = retroFont
+            contentLabel.textColor = isSelected ? retroGreen : retroDimGreen
+            contentLabel.backgroundColor = .clear
+            contentLabel.isBezeled = false
+
+            if isExpanded {
+                contentLabel.lineBreakMode = .byWordWrapping
+                contentLabel.maximumNumberOfLines = 0
+                contentLabel.stringValue = entry.displayContent
+            } else {
+                contentLabel.lineBreakMode = .byTruncatingTail
+                contentLabel.maximumNumberOfLines = 1
+                let displayText = entry.displayContent
+                    .replacingOccurrences(of: "\n", with: "↵ ")
+                    .replacingOccurrences(of: "\t", with: "→ ")
+                contentLabel.stringValue = displayText
+            }
+            cell.addSubview(contentLabel)
+
+            NSLayoutConstraint.activate([
+                indicator.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 10),
+                indicator.topAnchor.constraint(equalTo: cell.topAnchor, constant: 14),
+                indicator.widthAnchor.constraint(equalToConstant: 16),
+
+                contentLabel.leadingAnchor.constraint(equalTo: indicator.trailingAnchor, constant: 6),
+                contentLabel.topAnchor.constraint(equalTo: cell.topAnchor, constant: 8),
+                contentLabel.bottomAnchor.constraint(lessThanOrEqualTo: cell.bottomAnchor, constant: -8),
+                contentLabel.trailingAnchor.constraint(equalTo: timeLabel.leadingAnchor, constant: -10),
+
+                timeLabel.trailingAnchor.constraint(equalTo: deleteButton.leadingAnchor, constant: -6),
+                timeLabel.topAnchor.constraint(equalTo: cell.topAnchor, constant: 14),
+                timeLabel.widthAnchor.constraint(equalToConstant: 70),
+
+                deleteButton.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -10),
+                deleteButton.topAnchor.constraint(equalTo: cell.topAnchor, constant: 12),
+                deleteButton.widthAnchor.constraint(equalToConstant: 24),
+                deleteButton.heightAnchor.constraint(equalToConstant: 24)
+            ])
+        }
 
         return cell
     }
 
     func tableView(_ tableView: NSTableView, heightOfRow row: Int) -> CGFloat {
-        guard row == expandedIndex, row < filteredEntries.count else { return 50 }
+        guard row < filteredEntries.count else { return 50 }
+        if row == editingIndex {
+            let entry = filteredEntries[row]
+            let maxWidth = tableView.bounds.width - 140
+            let text = entry.content as NSString
+            let boundingRect = text.boundingRect(
+                with: NSSize(width: maxWidth, height: .greatestFiniteMagnitude),
+                options: [.usesLineFragmentOrigin, .usesFontLeading],
+                attributes: [.font: retroFont]
+            )
+            return max(80, min(ceil(boundingRect.height) + 30, 300))
+        }
+        guard row == expandedIndex else { return 50 }
         let entry = filteredEntries[row]
-        let maxWidth = tableView.bounds.width - 140 // indicator + padding + time + delete
+        let maxWidth = tableView.bounds.width - 140
         let text = entry.displayContent as NSString
         let boundingRect = text.boundingRect(
             with: NSSize(width: maxWidth, height: .greatestFiniteMagnitude),
@@ -347,7 +415,13 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     @objc private func tableDoubleClicked() {
         let row = tableView.clickedRow
         guard row >= 0 && row < filteredEntries.count else { return }
-        selectCurrent(at: row)
+        selectedIndex = row
+        handleEnter()
+    }
+
+    private func handleEnter() {
+        if editingIndex != nil { return }
+        if expandedIndex == selectedIndex { enterEditMode() } else { selectCurrent() }
     }
 
     private func selectCurrent(at index: Int? = nil) {
@@ -358,6 +432,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
 
     private func toggleExpand() {
         guard !filteredEntries.isEmpty else { return }
+        if editingIndex != nil { return } // Don't toggle while editing
         if expandedIndex == selectedIndex {
             expandedIndex = nil
         } else {
@@ -368,7 +443,36 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         tableView.scrollRowToVisible(selectedIndex)
     }
 
+    private func enterEditMode() {
+        guard expandedIndex == selectedIndex else { return } // Must be expanded first
+        guard selectedIndex < filteredEntries.count else { return }
+        guard !filteredEntries[selectedIndex].isPassword else { return } // Can't edit passwords
+        editingIndex = selectedIndex
+        tableView.noteHeightOfRows(withIndexesChanged: IndexSet(integer: selectedIndex))
+        tableView.reloadData()
+        tableView.scrollRowToVisible(selectedIndex)
+    }
+
+    private func exitEditMode() {
+        guard let idx = editingIndex, idx < filteredEntries.count else {
+            editingIndex = nil
+            editTextView = nil
+            return
+        }
+        if let tv = editTextView {
+            let newContent = tv.string
+            if !newContent.isEmpty && newContent != filteredEntries[idx].content {
+                clipboardManager?.updateEntryContent(id: filteredEntries[idx].id, newContent: newContent)
+            }
+        }
+        editingIndex = nil
+        editTextView = nil
+        reloadEntries()
+        view.window?.makeFirstResponder(searchField)
+    }
+
     private func deleteSelected() {
+        guard editingIndex == nil else { return } // Don't delete while editing
         guard selectedIndex < filteredEntries.count else { return }
         historyDelegate?.didDeleteEntry(filteredEntries[selectedIndex])
     }
@@ -378,8 +482,16 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     override func keyDown(with event: NSEvent) {
         let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
 
-        if event.keyCode == 53 { historyDelegate?.didDismiss(); return }
-        if event.keyCode == 36 { selectCurrent(); return }
+        if event.keyCode == 53 { // Esc
+            if editingIndex != nil { exitEditMode() } else { historyDelegate?.didDismiss() }
+            return
+        }
+        if event.keyCode == 36 { // Enter
+            if editingIndex != nil { return } // Let text view handle it
+            handleEnter()
+            return
+        }
+        if editingIndex != nil { super.keyDown(with: event); return } // Pass through when editing
         if event.keyCode == 48 { toggleExpand(); return } // Tab
         if event.keyCode == 51 || event.keyCode == 117 { deleteSelected(); return } // Backspace / Delete
         if flags.contains(.control) && event.charactersIgnoringModifiers == "n" { moveSelection(by: 1); return }
@@ -414,8 +526,15 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     }
 
     func control(_ control: NSControl, textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
-        if commandSelector == #selector(insertNewline(_:)) { selectCurrent(); return true }
-        if commandSelector == #selector(cancelOperation(_:)) { historyDelegate?.didDismiss(); return true }
+        if commandSelector == #selector(insertNewline(_:)) {
+            if editingIndex != nil { return false } // Let text view handle newlines
+            handleEnter(); return true
+        }
+        if commandSelector == #selector(cancelOperation(_:)) {
+            if editingIndex != nil { exitEditMode() } else { historyDelegate?.didDismiss() }
+            return true
+        }
+        if editingIndex != nil { return false }
         if commandSelector == #selector(moveDown(_:)) { moveSelection(by: 1); return true }
         if commandSelector == #selector(moveUp(_:)) { moveSelection(by: -1); return true }
         if commandSelector == #selector(insertTab(_:)) { toggleExpand(); return true }
@@ -424,6 +543,16 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             return false
         }
         if commandSelector == #selector(deleteForward(_:)) { deleteSelected(); return true }
+        return false
+    }
+
+    // MARK: - NSTextViewDelegate
+
+    func textView(_ textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
+        if commandSelector == #selector(cancelOperation(_:)) {
+            exitEditMode()
+            return true
+        }
         return false
     }
 }
