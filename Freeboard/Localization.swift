@@ -5,11 +5,19 @@ enum Lang: String {
 }
 
 struct L {
-    static var current: Lang = defaultLanguage()
+    private static let langKey = "freeboard_language"
 
-    static func defaultLanguage() -> Lang {
-        let hour = Calendar.current.component(.hour, from: Date())
-        return (hour >= 18 || hour < 9) ? .zh : .en
+    static var current: Lang {
+        get {
+            if let raw = UserDefaults.standard.string(forKey: langKey),
+               let lang = Lang(rawValue: raw) {
+                return lang
+            }
+            return .en
+        }
+        set {
+            UserDefaults.standard.set(newValue.rawValue, forKey: langKey)
+        }
     }
 
     static var searchPlaceholder: String {
