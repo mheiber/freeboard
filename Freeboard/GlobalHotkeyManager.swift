@@ -62,7 +62,6 @@ class GlobalHotkeyManager {
         let flags = event.flags
 
         // cmd-shift-v: keyCode 9 = 'v', check for cmd+shift
-        let requiredFlags: CGEventFlags = [.maskCommand, .maskShift]
         let vKeyCode: Int64 = 9
 
         if keyCode == vKeyCode &&
@@ -78,7 +77,7 @@ class GlobalHotkeyManager {
     }
 
     private func promptForAccessibility() {
-        let options = [kAXTrustedCheckOptionPrompt.takeRetainedValue(): true] as CFDictionary
+        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue(): true] as CFDictionary
         AXIsProcessTrustedWithOptions(options)
     }
 }
