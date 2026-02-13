@@ -132,11 +132,8 @@ class CrackedOverlayView: NSView {
         super.draw(dirtyRect)
         guard let context = NSGraphicsContext.current?.cgContext else { return }
 
-        // Heavy gray wash — pushes all colors toward grayscale
-        // Two layers: dark base to cut brightness, then gray to flatten color
-        context.setFillColor(NSColor(white: 0.0, alpha: 0.55).cgColor)
-        context.fill(bounds)
-        context.setFillColor(NSColor(white: 0.25, alpha: 0.35).cgColor)
+        // Gray wash — mutes color without going too dark
+        context.setFillColor(NSColor(white: 0.5, alpha: 0.55).cgColor)
         context.fill(bounds)
 
         // Draw cracks
