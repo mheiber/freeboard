@@ -142,7 +142,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         tableView.dataSource = self
         tableView.delegate = self
         tableView.target = self
-        tableView.doubleAction = #selector(tableDoubleClicked)
+        tableView.action = #selector(tableClicked)
 
         let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("entry"))
         column.width = 876
@@ -414,7 +414,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         historyDelegate?.didDeleteEntry(filteredEntries[row])
     }
 
-    @objc private func tableDoubleClicked() {
+    @objc private func tableClicked() {
         let row = tableView.clickedRow
         guard row >= 0 && row < filteredEntries.count else { return }
         selectedIndex = row
