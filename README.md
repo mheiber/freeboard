@@ -1,8 +1,10 @@
-# Freeboard一一the only clipboard manager with fake screen cracks and hanzi
+# Freeboard一一the only clipboard manager with fake screen cracks and vim bindings
 
 clipboard manager. 100% vibecoded.
 
 cmd-shift-v to open and select recent clipboard entries
+
+![Freeboard screenshot](screenshot.png)
 
 ## Features
 
