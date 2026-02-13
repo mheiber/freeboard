@@ -17,52 +17,15 @@ class ScreenOverlayWindow: NSWindow {
         self.collectionBehavior = [.canJoinAllSpaces, .stationary]
         self.hasShadow = false
 
-        // Base view applies live desaturation filter to content behind the window
-        let filterView = DesaturateView(frame: screen.frame)
-        filterView.autoresizingMask = [.width, .height]
-
-        // Crack overlay draws on top of the desaturated background
-        let crackView = CrackDrawingView(frame: screen.frame)
-        crackView.autoresizingMask = [.width, .height]
-        filterView.addSubview(crackView)
-
-        self.contentView = filterView
+        let overlayView = CrackedOverlayView(frame: screen.frame)
+        overlayView.autoresizingMask = [.width, .height]
+        self.contentView = overlayView
     }
 }
 
-// MARK: - Desaturation View (layer-backed, applies CIFilter to background)
+// MARK: - Cracked Overlay View
 
-class DesaturateView: NSView {
-    override init(frame: NSRect) {
-        super.init(frame: frame)
-        wantsLayer = true
-        layerUsesCoreImageFilters = true
-    }
-
-    required init?(coder: NSCoder) {
-        super.init(coder: coder)
-        wantsLayer = true
-        layerUsesCoreImageFilters = true
-    }
-
-    override var wantsUpdateLayer: Bool { true }
-
-    override func updateLayer() {
-        guard let layer = self.layer else { return }
-        if layer.backgroundFilters?.isEmpty ?? true {
-            let satFilter = CIFilter(name: "CIColorControls")!
-            satFilter.setValue(0.05, forKey: kCIInputSaturationKey)
-            satFilter.setValue(-0.15, forKey: kCIInputBrightnessKey)
-            layer.backgroundFilters = [satFilter]
-        }
-    }
-
-    override func hitTest(_ point: NSPoint) -> NSView? { nil }
-}
-
-// MARK: - Crack Drawing View
-
-class CrackDrawingView: NSView {
+class CrackedOverlayView: NSView {
 
     private var cracks: [CrackLine] = []
 
@@ -169,8 +132,11 @@ class CrackDrawingView: NSView {
         super.draw(dirtyRect)
         guard let context = NSGraphicsContext.current?.cgContext else { return }
 
-        // Slight darkening on top of the desaturation
-        context.setFillColor(NSColor(white: 0.0, alpha: 0.15).cgColor)
+        // Heavy gray wash — pushes all colors toward grayscale
+        // Two layers: dark base to cut brightness, then gray to flatten color
+        context.setFillColor(NSColor(white: 0.0, alpha: 0.55).cgColor)
+        context.fill(bounds)
+        context.setFillColor(NSColor(white: 0.25, alpha: 0.35).cgColor)
         context.fill(bounds)
 
         // Draw cracks
