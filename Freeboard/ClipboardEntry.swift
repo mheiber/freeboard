@@ -26,10 +26,10 @@ struct ClipboardEntry: Identifiable, Equatable {
 
     var timeAgo: String {
         let interval = Date().timeIntervalSince(timestamp)
-        if interval < 60 { return "just now" }
-        if interval < 3600 { return "\(Int(interval / 60))m ago" }
-        if interval < 86400 { return "\(Int(interval / 3600))h ago" }
-        return "\(Int(interval / 86400))d ago"
+        if interval < 60 { return L.justNow }
+        if interval < 3600 { return L.minutesAgo(Int(interval / 60)) }
+        if interval < 86400 { return L.hoursAgo(Int(interval / 3600)) }
+        return L.daysAgo(Int(interval / 86400))
     }
 
     static func == (lhs: ClipboardEntry, rhs: ClipboardEntry) -> Bool {

@@ -15,6 +15,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     private var tableView: NSTableView!
     private var searchField: NSTextField!
     private var helpLabel: NSTextField!
+    private var quitButton: NSButton!
     private var containerView: NSView!
     private var effectsView: RetroEffectsView!
 
@@ -24,18 +25,18 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
 
     private let retroGreen = NSColor(red: 0.0, green: 1.0, blue: 0.25, alpha: 1.0)
     private let retroDimGreen = NSColor(red: 0.0, green: 0.6, blue: 0.15, alpha: 1.0)
-    private let retroBg = NSColor(red: 0.02, green: 0.02, blue: 0.02, alpha: 1.0)
-    private let retroSelectionBg = NSColor(red: 0.0, green: 0.2, blue: 0.05, alpha: 1.0)
+    private let retroBg = NSColor(red: 0.02, green: 0.02, blue: 0.02, alpha: 0.88)
+    private let retroSelectionBg = NSColor(red: 0.0, green: 0.2, blue: 0.05, alpha: 0.9)
     private let retroFont = NSFont(name: "Menlo", size: 16) ?? NSFont.monospacedSystemFont(ofSize: 16, weight: .regular)
     private let retroFontSmall = NSFont(name: "Menlo", size: 12) ?? NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
 
     override func loadView() {
-        let frame = NSRect(x: 0, y: 0, width: 750, height: 650)
+        let frame = NSRect(x: 0, y: 0, width: 900, height: 750)
         let mainView = NSView(frame: frame)
         mainView.wantsLayer = true
         mainView.layer?.backgroundColor = retroBg.cgColor
         mainView.layer?.cornerRadius = 8
-        mainView.layer?.borderColor = retroGreen.withAlphaComponent(0.4).cgColor
+        mainView.layer?.borderColor = retroGreen.withAlphaComponent(0.3).cgColor
         mainView.layer?.borderWidth = 1
 
         containerView = mainView
@@ -43,7 +44,6 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         setupTableView()
         setupHelpLabel()
 
-        // Effects overlay
         effectsView = RetroEffectsView(frame: frame)
         effectsView.autoresizingMask = [.width, .height]
         mainView.addSubview(effectsView)
@@ -61,8 +61,21 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         searchField.stringValue = ""
         searchQuery = ""
         selectedIndex = 0
+        refreshLocalization()
         reloadEntries()
         view.window?.makeFirstResponder(searchField)
+    }
+
+    func refreshLocalization() {
+        let placeholderAttrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: retroDimGreen.withAlphaComponent(0.5),
+            .font: retroFont
+        ]
+        searchField.placeholderAttributedString = NSAttributedString(
+            string: L.searchPlaceholder, attributes: placeholderAttrs
+        )
+        helpLabel.attributedStringValue = makeHelpString()
+        quitButton.title = L.quit
     }
 
     // MARK: - Setup
@@ -70,29 +83,29 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     private func setupSearchField() {
         searchField = NSTextField(frame: .zero)
         searchField.translatesAutoresizingMaskIntoConstraints = false
-        searchField.placeholderString = "▌ Search clipboard history..."
         searchField.font = retroFont
         searchField.textColor = retroGreen
-        searchField.backgroundColor = NSColor(red: 0.05, green: 0.05, blue: 0.05, alpha: 1.0)
+        searchField.backgroundColor = NSColor(red: 0.05, green: 0.05, blue: 0.05, alpha: 0.85)
         searchField.drawsBackground = true
         searchField.isBezeled = true
         searchField.bezelStyle = .roundedBezel
         searchField.focusRingType = .none
         searchField.delegate = self
 
-        // Style the placeholder
         let placeholderAttrs: [NSAttributedString.Key: Any] = [
             .foregroundColor: retroDimGreen.withAlphaComponent(0.5),
             .font: retroFont
         ]
-        searchField.placeholderAttributedString = NSAttributedString(string: "▌ Search clipboard history...", attributes: placeholderAttrs)
+        searchField.placeholderAttributedString = NSAttributedString(
+            string: L.searchPlaceholder, attributes: placeholderAttrs
+        )
 
         containerView.addSubview(searchField)
         NSLayoutConstraint.activate([
             searchField.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 12),
             searchField.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
             searchField.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
-            searchField.heightAnchor.constraint(equalToConstant: 32)
+            searchField.heightAnchor.constraint(equalToConstant: 34)
         ])
     }
 
@@ -101,7 +114,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         tableView.backgroundColor = .clear
         tableView.headerView = nil
         tableView.intercellSpacing = NSSize(width: 0, height: 1)
-        tableView.rowHeight = 48
+        tableView.rowHeight = 50
         tableView.selectionHighlightStyle = .none
         tableView.dataSource = self
         tableView.delegate = self
@@ -109,7 +122,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         tableView.doubleAction = #selector(tableDoubleClicked)
 
         let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("entry"))
-        column.width = 726
+        column.width = 876
         tableView.addTableColumn(column)
 
         scrollView = NSScrollView(frame: .zero)
@@ -118,14 +131,13 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         scrollView.hasVerticalScroller = true
         scrollView.drawsBackground = false
         scrollView.scrollerStyle = .overlay
-        scrollView.verticalScroller?.controlTint = .graphiteControlTint
 
         containerView.addSubview(scrollView)
         NSLayoutConstraint.activate([
-            scrollView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 52),
+            scrollView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 54),
             scrollView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -30)
+            scrollView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -32)
         ])
     }
 
@@ -140,7 +152,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         helpLabel.alignment = .left
         helpLabel.attributedStringValue = makeHelpString()
 
-        let quitButton = NSButton(title: "Quit", target: self, action: #selector(quitClicked))
+        quitButton = NSButton(title: L.quit, target: self, action: #selector(quitClicked))
         quitButton.translatesAutoresizingMaskIntoConstraints = false
         quitButton.isBordered = false
         quitButton.font = retroFontSmall
@@ -149,11 +161,11 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         containerView.addSubview(helpLabel)
         containerView.addSubview(quitButton)
         NSLayoutConstraint.activate([
-            helpLabel.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -6),
+            helpLabel.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -7),
             helpLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
             helpLabel.heightAnchor.constraint(equalToConstant: 18),
 
-            quitButton.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -4),
+            quitButton.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -5),
             quitButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
             quitButton.heightAnchor.constraint(equalToConstant: 20),
         ])
@@ -173,12 +185,12 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             .foregroundColor: retroDimGreen.withAlphaComponent(0.4),
             .font: retroFontSmall
         ]
-        str.append(NSAttributedString(string: "^N/^P", attributes: keyAttrs))
-        str.append(NSAttributedString(string: " navigate  ", attributes: dimAttrs))
-        str.append(NSAttributedString(string: "Enter", attributes: keyAttrs))
-        str.append(NSAttributedString(string: " paste  ", attributes: dimAttrs))
-        str.append(NSAttributedString(string: "Esc", attributes: keyAttrs))
-        str.append(NSAttributedString(string: " close", attributes: dimAttrs))
+        str.append(NSAttributedString(string: "^N/^P ", attributes: keyAttrs))
+        str.append(NSAttributedString(string: L.navigate + "  ", attributes: dimAttrs))
+        str.append(NSAttributedString(string: "Enter ", attributes: keyAttrs))
+        str.append(NSAttributedString(string: L.paste + "  ", attributes: dimAttrs))
+        str.append(NSAttributedString(string: "Esc ", attributes: keyAttrs))
+        str.append(NSAttributedString(string: L.close, attributes: dimAttrs))
         return str
     }
 
@@ -211,11 +223,10 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         let entry = filteredEntries[row]
         let isSelected = row == selectedIndex
 
-        let cell = NSView(frame: NSRect(x: 0, y: 0, width: tableView.bounds.width, height: 48))
+        let cell = NSView(frame: NSRect(x: 0, y: 0, width: tableView.bounds.width, height: 50))
         cell.wantsLayer = true
         cell.layer?.backgroundColor = isSelected ? retroSelectionBg.cgColor : NSColor.clear.cgColor
 
-        // Selection indicator
         let indicator = NSTextField(labelWithString: isSelected ? ">" : " ")
         indicator.translatesAutoresizingMaskIntoConstraints = false
         indicator.font = retroFont
@@ -224,7 +235,6 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         indicator.isBezeled = false
         cell.addSubview(indicator)
 
-        // Content label
         let contentLabel = NSTextField(labelWithString: "")
         contentLabel.translatesAutoresizingMaskIntoConstraints = false
         contentLabel.font = retroFont
@@ -240,7 +250,6 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         contentLabel.stringValue = displayText
         cell.addSubview(contentLabel)
 
-        // Time label
         let timeLabel = NSTextField(labelWithString: entry.timeAgo)
         timeLabel.translatesAutoresizingMaskIntoConstraints = false
         timeLabel.font = retroFontSmall
@@ -250,7 +259,6 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         timeLabel.alignment = .right
         cell.addSubview(timeLabel)
 
-        // Delete button
         let deleteButton = NSButton(title: "×", target: self, action: #selector(deleteClicked(_:)))
         deleteButton.translatesAutoresizingMaskIntoConstraints = false
         deleteButton.isBordered = false
@@ -260,19 +268,19 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         cell.addSubview(deleteButton)
 
         NSLayoutConstraint.activate([
-            indicator.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 8),
+            indicator.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 10),
             indicator.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
             indicator.widthAnchor.constraint(equalToConstant: 16),
 
-            contentLabel.leadingAnchor.constraint(equalTo: indicator.trailingAnchor, constant: 4),
+            contentLabel.leadingAnchor.constraint(equalTo: indicator.trailingAnchor, constant: 6),
             contentLabel.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
-            contentLabel.trailingAnchor.constraint(equalTo: timeLabel.leadingAnchor, constant: -8),
+            contentLabel.trailingAnchor.constraint(equalTo: timeLabel.leadingAnchor, constant: -10),
 
-            timeLabel.trailingAnchor.constraint(equalTo: deleteButton.leadingAnchor, constant: -4),
+            timeLabel.trailingAnchor.constraint(equalTo: deleteButton.leadingAnchor, constant: -6),
             timeLabel.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
-            timeLabel.widthAnchor.constraint(equalToConstant: 60),
+            timeLabel.widthAnchor.constraint(equalToConstant: 70),
 
-            deleteButton.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -8),
+            deleteButton.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -10),
             deleteButton.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
             deleteButton.widthAnchor.constraint(equalToConstant: 24),
             deleteButton.heightAnchor.constraint(equalToConstant: 24)
@@ -282,7 +290,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     }
 
     func tableView(_ tableView: NSTableView, heightOfRow row: Int) -> CGFloat {
-        48
+        50
     }
 
     // MARK: - Actions
@@ -290,8 +298,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     @objc private func deleteClicked(_ sender: NSButton) {
         let row = sender.tag
         guard row < filteredEntries.count else { return }
-        let entry = filteredEntries[row]
-        historyDelegate?.didDeleteEntry(entry)
+        historyDelegate?.didDeleteEntry(filteredEntries[row])
     }
 
     @objc private func tableDoubleClicked() {
@@ -303,8 +310,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     private func selectCurrent(at index: Int? = nil) {
         let idx = index ?? selectedIndex
         guard idx < filteredEntries.count else { return }
-        let entry = filteredEntries[idx]
-        historyDelegate?.didSelectEntry(entry)
+        historyDelegate?.didSelectEntry(filteredEntries[idx])
     }
 
     // MARK: - Keyboard handling
@@ -312,41 +318,12 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     override func keyDown(with event: NSEvent) {
         let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
 
-        // Escape closes
-        if event.keyCode == 53 {
-            historyDelegate?.didDismiss()
-            return
-        }
-
-        // Enter selects
-        if event.keyCode == 36 {
-            selectCurrent()
-            return
-        }
-
-        // Ctrl-N: move down
-        if flags.contains(.control) && event.charactersIgnoringModifiers == "n" {
-            moveSelection(by: 1)
-            return
-        }
-
-        // Ctrl-P: move up
-        if flags.contains(.control) && event.charactersIgnoringModifiers == "p" {
-            moveSelection(by: -1)
-            return
-        }
-
-        // Down arrow
-        if event.keyCode == 125 {
-            moveSelection(by: 1)
-            return
-        }
-
-        // Up arrow
-        if event.keyCode == 126 {
-            moveSelection(by: -1)
-            return
-        }
+        if event.keyCode == 53 { historyDelegate?.didDismiss(); return }
+        if event.keyCode == 36 { selectCurrent(); return }
+        if flags.contains(.control) && event.charactersIgnoringModifiers == "n" { moveSelection(by: 1); return }
+        if flags.contains(.control) && event.charactersIgnoringModifiers == "p" { moveSelection(by: -1); return }
+        if event.keyCode == 125 { moveSelection(by: 1); return }
+        if event.keyCode == 126 { moveSelection(by: -1); return }
 
         super.keyDown(with: event)
     }
@@ -367,22 +344,10 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     }
 
     func control(_ control: NSControl, textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
-        if commandSelector == #selector(insertNewline(_:)) {
-            selectCurrent()
-            return true
-        }
-        if commandSelector == #selector(cancelOperation(_:)) {
-            historyDelegate?.didDismiss()
-            return true
-        }
-        if commandSelector == #selector(moveDown(_:)) {
-            moveSelection(by: 1)
-            return true
-        }
-        if commandSelector == #selector(moveUp(_:)) {
-            moveSelection(by: -1)
-            return true
-        }
+        if commandSelector == #selector(insertNewline(_:)) { selectCurrent(); return true }
+        if commandSelector == #selector(cancelOperation(_:)) { historyDelegate?.didDismiss(); return true }
+        if commandSelector == #selector(moveDown(_:)) { moveSelection(by: 1); return true }
+        if commandSelector == #selector(moveUp(_:)) { moveSelection(by: -1); return true }
         return false
     }
 }

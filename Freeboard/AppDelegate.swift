@@ -10,7 +10,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
     private var previousApp: NSRunningApplication?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        // Hide dock icon
         NSApp.setActivationPolicy(.accessory)
 
         setupClipboardManager()
@@ -41,20 +40,21 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
     }
 
     private func setupPopupWindow() {
-        let screenFrame = NSScreen.main?.frame ?? NSRect(x: 0, y: 0, width: 800, height: 600)
-        let windowWidth: CGFloat = 750
-        let windowHeight: CGFloat = 650
+        let screenFrame = NSScreen.main?.frame ?? NSRect(x: 0, y: 0, width: 1200, height: 800)
+        let windowWidth: CGFloat = 900
+        let windowHeight: CGFloat = 750
         let x = (screenFrame.width - windowWidth) / 2
-        let y = (screenFrame.height - windowHeight) / 2 + 50
+        let y = (screenFrame.height - windowHeight) / 2
 
         popupWindow = PopupWindow(contentRect: NSRect(x: x, y: y, width: windowWidth, height: windowHeight))
+        popupWindow.isOpaque = false
+        popupWindow.backgroundColor = .clear
 
         historyVC = ClipboardHistoryViewController()
         historyVC.clipboardManager = clipboardManager
         historyVC.historyDelegate = self
         popupWindow.contentViewController = historyVC
 
-        // Close popup when it loses focus
         NotificationCenter.default.addObserver(
             self,
             selector: #selector(windowDidResignKey(_:)),
@@ -88,13 +88,44 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
 
     private func showStatusMenu() {
         let menu = NSMenu()
-        menu.addItem(NSMenuItem(title: "Quit Freeboard", action: #selector(quitApp), keyEquivalent: "q"))
+
+        // Language submenu
+        let langItem = NSMenuItem(title: L.current == .zh ? "语言" : "Language", action: nil, keyEquivalent: "")
+        let langMenu = NSMenu()
+
+        let enItem = NSMenuItem(title: L.english, action: #selector(switchToEnglish), keyEquivalent: "")
+        enItem.target = self
+        if L.current == .en { enItem.state = .on }
+        langMenu.addItem(enItem)
+
+        let zhItem = NSMenuItem(title: L.chinese, action: #selector(switchToChinese), keyEquivalent: "")
+        zhItem.target = self
+        if L.current == .zh { zhItem.state = .on }
+        langMenu.addItem(zhItem)
+
+        langItem.submenu = langMenu
+        menu.addItem(langItem)
+
+        menu.addItem(NSMenuItem.separator())
+        let quitItem = NSMenuItem(title: L.quitFreeboard, action: #selector(quitApp), keyEquivalent: "q")
+        quitItem.target = self
+        menu.addItem(quitItem)
+
         statusItem.menu = menu
         statusItem.button?.performClick(nil)
-        // Remove menu so left-click goes back to toggle behavior
         DispatchQueue.main.async { [weak self] in
             self?.statusItem.menu = nil
         }
+    }
+
+    @objc private func switchToEnglish() {
+        L.current = .en
+        historyVC.refreshLocalization()
+    }
+
+    @objc private func switchToChinese() {
+        L.current = .zh
+        historyVC.refreshLocalization()
     }
 
     @objc private func quitApp() {
@@ -110,18 +141,15 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
     }
 
     private func showPopup() {
-        // Remember the currently active app so we can paste into it later
         previousApp = NSWorkspace.shared.frontmostApplication
-
         historyVC.reloadEntries()
 
-        // Position near status item if possible
         if let button = statusItem.button, let buttonWindow = button.window {
             let buttonRect = button.convert(button.bounds, to: nil)
             let screenRect = buttonWindow.convertToScreen(buttonRect)
-            let windowWidth: CGFloat = 750
+            let windowWidth: CGFloat = 900
             let x = screenRect.midX - windowWidth / 2
-            let y = screenRect.minY - 660
+            let y = screenRect.minY - 760
             popupWindow.setFrameOrigin(NSPoint(x: x, y: y))
         }
 
@@ -147,7 +175,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
         clipboardManager.selectEntry(entry)
         hidePopup()
 
-        // Give a moment for the window to hide, then paste
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
             self?.simulatePaste()
         }
@@ -164,12 +191,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
     // MARK: - Paste simulation
 
     private func simulatePaste() {
-        // Bring previous app to front
         if let app = previousApp {
             app.activate()
         }
 
-        // Simulate Cmd-V
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
             let source = CGEventSource(stateID: .combinedSessionState)
 
