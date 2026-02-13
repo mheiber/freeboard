@@ -446,9 +446,9 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     }
 
     private func enterEditMode() {
-        guard expandedIndex == selectedIndex else { return } // Must be expanded first
         guard selectedIndex < filteredEntries.count else { return }
         guard !filteredEntries[selectedIndex].isPassword else { return } // Can't edit passwords
+        expandedIndex = selectedIndex
         editingIndex = selectedIndex
         tableView.noteHeightOfRows(withIndexesChanged: IndexSet(integer: selectedIndex))
         tableView.reloadData()
