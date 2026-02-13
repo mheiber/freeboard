@@ -1,9 +1,7 @@
 import Cocoa
 
 class RetroEffectsView: NSView {
-    private var flickerTimer: Timer?
     private var glitchTimer: Timer?
-    private var currentFlickerAlpha: CGFloat = 0.0
     private var glitchOffset: CGFloat = 0.0
     private var glitchLineY: CGFloat = 0.0
     private var showGlitch = false
@@ -26,19 +24,10 @@ class RetroEffectsView: NSView {
     }
 
     private func setupTimers() {
-        // Subtle flicker every 100ms
-        flickerTimer = Timer.scheduledTimer(withTimeInterval: 0.1, repeats: true) { [weak self] _ in
-            self?.updateFlicker()
-        }
         // Occasional glitch effect
-        glitchTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { [weak self] _ in
+        glitchTimer = Timer.scheduledTimer(withTimeInterval: 4.0, repeats: true) { [weak self] _ in
             self?.triggerGlitch()
         }
-    }
-
-    private func updateFlicker() {
-        currentFlickerAlpha = CGFloat.random(in: 0.0...0.03)
-        needsDisplay = true
     }
 
     private func triggerGlitch() {
@@ -47,7 +36,7 @@ class RetroEffectsView: NSView {
         glitchLineY = CGFloat.random(in: 0...bounds.height)
         needsDisplay = true
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.12) { [weak self] in
             self?.showGlitch = false
             self?.needsDisplay = true
         }
@@ -59,19 +48,12 @@ class RetroEffectsView: NSView {
         guard let context = NSGraphicsContext.current?.cgContext else { return }
 
         // Scanlines
-        let scanlineColor = NSColor(white: 0.0, alpha: 0.15)
+        let scanlineColor = NSColor(white: 0.0, alpha: 0.12)
         context.setFillColor(scanlineColor.cgColor)
         var y: CGFloat = 0
         while y < bounds.height {
             context.fill(CGRect(x: 0, y: y, width: bounds.width, height: 1))
             y += 3
-        }
-
-        // Flicker overlay
-        if currentFlickerAlpha > 0 {
-            let flickerColor = NSColor(red: 0.0, green: 1.0, blue: 0.0, alpha: currentFlickerAlpha)
-            context.setFillColor(flickerColor.cgColor)
-            context.fill(bounds)
         }
 
         // VCR glitch line
@@ -105,7 +87,6 @@ class RetroEffectsView: NSView {
     }
 
     deinit {
-        flickerTimer?.invalidate()
         glitchTimer?.invalidate()
     }
 }

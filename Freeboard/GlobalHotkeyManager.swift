@@ -6,8 +6,44 @@ class GlobalHotkeyManager {
 
     private var eventTap: CFMachPort?
     private var runLoopSource: CFRunLoopSource?
+    private var retryTimer: Timer?
+    private var globalMonitor: Any?
 
     func start() {
+        tryCreateEventTap()
+        setupGlobalMonitorFallback()
+
+        if eventTap == nil {
+            promptForAccessibility()
+            // Retry periodically until permissions are granted and tap succeeds
+            retryTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+                self?.retryEventTapIfNeeded()
+            }
+        }
+    }
+
+    func stop() {
+        retryTimer?.invalidate()
+        retryTimer = nil
+
+        if let tap = eventTap {
+            CGEvent.tapEnable(tap: tap, enable: false)
+        }
+        if let source = runLoopSource {
+            CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes)
+        }
+        eventTap = nil
+        runLoopSource = nil
+
+        if let monitor = globalMonitor {
+            NSEvent.removeMonitor(monitor)
+            globalMonitor = nil
+        }
+    }
+
+    private func tryCreateEventTap() {
+        guard eventTap == nil else { return }
+
         let mask: CGEventMask = (1 << CGEventType.keyDown.rawValue)
 
         guard let tap = CGEvent.tapCreate(
@@ -24,8 +60,6 @@ class GlobalHotkeyManager {
             },
             userInfo: Unmanaged.passUnretained(self).toOpaque()
         ) else {
-            print("Failed to create event tap. Accessibility permissions may be required.")
-            promptForAccessibility()
             return
         }
 
@@ -35,15 +69,38 @@ class GlobalHotkeyManager {
         CGEvent.tapEnable(tap: tap, enable: true)
     }
 
-    func stop() {
-        if let tap = eventTap {
-            CGEvent.tapEnable(tap: tap, enable: false)
+    /// NSEvent global monitor as fallback when CGEvent tap isn't available.
+    /// Can't consume the event, but at least the hotkey works.
+    private func setupGlobalMonitorFallback() {
+        globalMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self = self else { return }
+            // Only use fallback if event tap isn't active
+            guard self.eventTap == nil else { return }
+
+            if event.modifierFlags.contains(.command) &&
+                event.modifierFlags.contains(.shift) &&
+                event.keyCode == 9 {
+                DispatchQueue.main.async {
+                    self.onHotkeyPressed?()
+                }
+            }
         }
-        if let source = runLoopSource {
-            CFRunLoopRemoveSource(CFRunLoopGetMain(), source, .commonModes)
+    }
+
+    private func retryEventTapIfNeeded() {
+        guard eventTap == nil else {
+            retryTimer?.invalidate()
+            retryTimer = nil
+            return
         }
-        eventTap = nil
-        runLoopSource = nil
+
+        if AXIsProcessTrusted() {
+            tryCreateEventTap()
+            if eventTap != nil {
+                retryTimer?.invalidate()
+                retryTimer = nil
+            }
+        }
     }
 
     private func handleEvent(proxy: CGEventTapProxy, type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
@@ -61,7 +118,6 @@ class GlobalHotkeyManager {
         let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
         let flags = event.flags
 
-        // cmd-shift-v: keyCode 9 = 'v', check for cmd+shift
         let vKeyCode: Int64 = 9
 
         if keyCode == vKeyCode &&

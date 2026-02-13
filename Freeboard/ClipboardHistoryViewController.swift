@@ -26,11 +26,11 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     private let retroDimGreen = NSColor(red: 0.0, green: 0.6, blue: 0.15, alpha: 1.0)
     private let retroBg = NSColor(red: 0.02, green: 0.02, blue: 0.02, alpha: 1.0)
     private let retroSelectionBg = NSColor(red: 0.0, green: 0.2, blue: 0.05, alpha: 1.0)
-    private let retroFont = NSFont(name: "Menlo", size: 15) ?? NSFont.monospacedSystemFont(ofSize: 15, weight: .regular)
-    private let retroFontSmall = NSFont(name: "Menlo", size: 11) ?? NSFont.monospacedSystemFont(ofSize: 11, weight: .regular)
+    private let retroFont = NSFont(name: "Menlo", size: 16) ?? NSFont.monospacedSystemFont(ofSize: 16, weight: .regular)
+    private let retroFontSmall = NSFont(name: "Menlo", size: 12) ?? NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
 
     override func loadView() {
-        let frame = NSRect(x: 0, y: 0, width: 600, height: 500)
+        let frame = NSRect(x: 0, y: 0, width: 750, height: 650)
         let mainView = NSView(frame: frame)
         mainView.wantsLayer = true
         mainView.layer?.backgroundColor = retroBg.cgColor
@@ -101,7 +101,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         tableView.backgroundColor = .clear
         tableView.headerView = nil
         tableView.intercellSpacing = NSSize(width: 0, height: 1)
-        tableView.rowHeight = 44
+        tableView.rowHeight = 48
         tableView.selectionHighlightStyle = .none
         tableView.dataSource = self
         tableView.delegate = self
@@ -109,7 +109,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         tableView.doubleAction = #selector(tableDoubleClicked)
 
         let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("entry"))
-        column.width = 576
+        column.width = 726
         tableView.addTableColumn(column)
 
         scrollView = NSScrollView(frame: .zero)
@@ -137,16 +137,30 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         helpLabel.backgroundColor = .clear
         helpLabel.isEditable = false
         helpLabel.isBezeled = false
-        helpLabel.alignment = .center
+        helpLabel.alignment = .left
         helpLabel.attributedStringValue = makeHelpString()
 
+        let quitButton = NSButton(title: "Quit", target: self, action: #selector(quitClicked))
+        quitButton.translatesAutoresizingMaskIntoConstraints = false
+        quitButton.isBordered = false
+        quitButton.font = retroFontSmall
+        quitButton.contentTintColor = retroDimGreen.withAlphaComponent(0.5)
+
         containerView.addSubview(helpLabel)
+        containerView.addSubview(quitButton)
         NSLayoutConstraint.activate([
             helpLabel.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -6),
             helpLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
-            helpLabel.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
-            helpLabel.heightAnchor.constraint(equalToConstant: 18)
+            helpLabel.heightAnchor.constraint(equalToConstant: 18),
+
+            quitButton.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -4),
+            quitButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
+            quitButton.heightAnchor.constraint(equalToConstant: 20),
         ])
+    }
+
+    @objc private func quitClicked() {
+        NSApp.terminate(nil)
     }
 
     private func makeHelpString() -> NSAttributedString {
@@ -197,7 +211,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         let entry = filteredEntries[row]
         let isSelected = row == selectedIndex
 
-        let cell = NSView(frame: NSRect(x: 0, y: 0, width: tableView.bounds.width, height: 44))
+        let cell = NSView(frame: NSRect(x: 0, y: 0, width: tableView.bounds.width, height: 48))
         cell.wantsLayer = true
         cell.layer?.backgroundColor = isSelected ? retroSelectionBg.cgColor : NSColor.clear.cgColor
 
@@ -268,7 +282,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     }
 
     func tableView(_ tableView: NSTableView, heightOfRow row: Int) -> CGFloat {
-        44
+        48
     }
 
     // MARK: - Actions

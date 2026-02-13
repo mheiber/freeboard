@@ -34,17 +34,18 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
                 .font: NSFont.monospacedSystemFont(ofSize: 13, weight: .bold),
             ]
             button.attributedTitle = NSAttributedString(string: "[F]", attributes: attrs)
-            button.action = #selector(statusItemClicked)
+            button.action = #selector(statusItemClicked(_:))
             button.target = self
+            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
         }
     }
 
     private func setupPopupWindow() {
         let screenFrame = NSScreen.main?.frame ?? NSRect(x: 0, y: 0, width: 800, height: 600)
-        let windowWidth: CGFloat = 620
-        let windowHeight: CGFloat = 500
+        let windowWidth: CGFloat = 750
+        let windowHeight: CGFloat = 650
         let x = (screenFrame.width - windowWidth) / 2
-        let y = (screenFrame.height - windowHeight) / 2 + 100
+        let y = (screenFrame.height - windowHeight) / 2 + 50
 
         popupWindow = PopupWindow(contentRect: NSRect(x: x, y: y, width: windowWidth, height: windowHeight))
 
@@ -76,8 +77,28 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
 
     // MARK: - Popup
 
-    @objc private func statusItemClicked() {
-        togglePopup()
+    @objc private func statusItemClicked(_ sender: NSStatusBarButton) {
+        let event = NSApp.currentEvent!
+        if event.type == .rightMouseUp {
+            showStatusMenu()
+        } else {
+            togglePopup()
+        }
+    }
+
+    private func showStatusMenu() {
+        let menu = NSMenu()
+        menu.addItem(NSMenuItem(title: "Quit Freeboard", action: #selector(quitApp), keyEquivalent: "q"))
+        statusItem.menu = menu
+        statusItem.button?.performClick(nil)
+        // Remove menu so left-click goes back to toggle behavior
+        DispatchQueue.main.async { [weak self] in
+            self?.statusItem.menu = nil
+        }
+    }
+
+    @objc private func quitApp() {
+        NSApp.terminate(nil)
     }
 
     private func togglePopup() {
@@ -98,9 +119,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
         if let button = statusItem.button, let buttonWindow = button.window {
             let buttonRect = button.convert(button.bounds, to: nil)
             let screenRect = buttonWindow.convertToScreen(buttonRect)
-            let windowWidth: CGFloat = 620
+            let windowWidth: CGFloat = 750
             let x = screenRect.midX - windowWidth / 2
-            let y = screenRect.minY - 510
+            let y = screenRect.minY - 660
             popupWindow.setFrameOrigin(NSPoint(x: x, y: y))
         }
 
