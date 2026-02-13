@@ -132,8 +132,8 @@ class CrackedOverlayView: NSView {
         super.draw(dirtyRect)
         guard let context = NSGraphicsContext.current?.cgContext else { return }
 
-        // Gray wash — mutes color without going too dark
-        context.setFillColor(NSColor(white: 0.5, alpha: 0.55).cgColor)
+        // Subtle darkening — enough to set the popup apart without obscuring content
+        context.setFillColor(NSColor(white: 0.0, alpha: 0.2).cgColor)
         context.fill(bounds)
 
         // Draw cracks
