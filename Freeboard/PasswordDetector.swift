@@ -11,7 +11,8 @@ struct PasswordDetector {
         guard trimmed.count >= 5 else { return false }
         guard trimmed.rangeOfCharacter(from: .lowercaseLetters) != nil else { return false }
 
-        let specialCharacters = CharacterSet.alphanumerics.union(.whitespaces).inverted
+        let notSpecial = CharacterSet.alphanumerics.union(.whitespaces).union(CharacterSet(charactersIn: "/.:-_~"))
+        let specialCharacters = notSpecial.inverted
         guard trimmed.unicodeScalars.contains(where: { specialCharacters.contains($0) }) else {
             return false
         }

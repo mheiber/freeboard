@@ -82,9 +82,13 @@ class PasswordDetectorTests: XCTestCase {
         XCTAssertFalse(PasswordDetector.isPasswordLike("\n\n\n\n\n"))
     }
 
-    func testURLsCanBePasswords() {
-        // URLs have special chars but aren't passwords - however our heuristic
-        // will flag them. This is acceptable behavior.
-        XCTAssertTrue(PasswordDetector.isPasswordLike("https://example.com"))
+    func testURLsAreNotPasswords() {
+        XCTAssertFalse(PasswordDetector.isPasswordLike("https://example.com"))
+        XCTAssertFalse(PasswordDetector.isPasswordLike("/usr/local/bin/foo"))
+        XCTAssertFalse(PasswordDetector.isPasswordLike("src/components/App.tsx"))
+    }
+
+    func testSlashAloneDoesNotMakePassword() {
+        XCTAssertFalse(PasswordDetector.isPasswordLike("path/to/file"))
     }
 }
