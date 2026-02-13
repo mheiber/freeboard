@@ -46,6 +46,8 @@ All UI strings with pinyin for learners:
 | navigate | 导航 | dǎoháng |
 | paste | 粘贴 | zhāntiē |
 | close | 关闭 | guānbì |
+| expand | 展开 | zhǎnkāi |
+| delete | 删除 | shānchú |
 | Quit | 退出 | tuìchū |
 | Quit Freeboard | 退出 Freeboard | tuìchū Freeboard |
 | just now | 刚刚 | gānggāng |

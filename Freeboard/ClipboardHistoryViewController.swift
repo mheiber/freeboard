@@ -21,6 +21,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
 
     private var filteredEntries: [ClipboardEntry] = []
     private var selectedIndex: Int = 0
+    private var expandedIndex: Int? = nil
     private var searchQuery: String = ""
 
     private let retroGreen = NSColor(red: 0.0, green: 1.0, blue: 0.25, alpha: 1.0)
@@ -209,6 +210,10 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         str.append(NSAttributedString(string: L.navigate + "  ", attributes: dimAttrs))
         str.append(NSAttributedString(string: "Enter ", attributes: keyAttrs))
         str.append(NSAttributedString(string: L.paste + "  ", attributes: dimAttrs))
+        str.append(NSAttributedString(string: "Tab ", attributes: keyAttrs))
+        str.append(NSAttributedString(string: L.expand + "  ", attributes: dimAttrs))
+        str.append(NSAttributedString(string: "Del ", attributes: keyAttrs))
+        str.append(NSAttributedString(string: L.delete + "  ", attributes: dimAttrs))
         str.append(NSAttributedString(string: "Esc ", attributes: keyAttrs))
         str.append(NSAttributedString(string: L.close, attributes: dimAttrs))
         return str
@@ -242,8 +247,10 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         guard row < filteredEntries.count else { return nil }
         let entry = filteredEntries[row]
         let isSelected = row == selectedIndex
+        let isExpanded = row == expandedIndex
 
-        let cell = NSView(frame: NSRect(x: 0, y: 0, width: tableView.bounds.width, height: 50))
+        let rowHeight = self.tableView(tableView, heightOfRow: row)
+        let cell = NSView(frame: NSRect(x: 0, y: 0, width: tableView.bounds.width, height: rowHeight))
         cell.wantsLayer = true
         cell.layer?.backgroundColor = isSelected ? retroSelectionBg.cgColor : NSColor.clear.cgColor
 
@@ -261,13 +268,19 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         contentLabel.textColor = isSelected ? retroGreen : retroDimGreen
         contentLabel.backgroundColor = .clear
         contentLabel.isBezeled = false
-        contentLabel.lineBreakMode = .byTruncatingTail
-        contentLabel.maximumNumberOfLines = 1
 
-        let displayText = entry.displayContent
-            .replacingOccurrences(of: "\n", with: "↵ ")
-            .replacingOccurrences(of: "\t", with: "→ ")
-        contentLabel.stringValue = displayText
+        if isExpanded {
+            contentLabel.lineBreakMode = .byWordWrapping
+            contentLabel.maximumNumberOfLines = 0
+            contentLabel.stringValue = entry.displayContent
+        } else {
+            contentLabel.lineBreakMode = .byTruncatingTail
+            contentLabel.maximumNumberOfLines = 1
+            let displayText = entry.displayContent
+                .replacingOccurrences(of: "\n", with: "↵ ")
+                .replacingOccurrences(of: "\t", with: "→ ")
+            contentLabel.stringValue = displayText
+        }
         cell.addSubview(contentLabel)
 
         let timeLabel = NSTextField(labelWithString: entry.timeAgo)
@@ -289,19 +302,20 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
 
         NSLayoutConstraint.activate([
             indicator.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 10),
-            indicator.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
+            indicator.topAnchor.constraint(equalTo: cell.topAnchor, constant: 14),
             indicator.widthAnchor.constraint(equalToConstant: 16),
 
             contentLabel.leadingAnchor.constraint(equalTo: indicator.trailingAnchor, constant: 6),
-            contentLabel.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
+            contentLabel.topAnchor.constraint(equalTo: cell.topAnchor, constant: 8),
+            contentLabel.bottomAnchor.constraint(lessThanOrEqualTo: cell.bottomAnchor, constant: -8),
             contentLabel.trailingAnchor.constraint(equalTo: timeLabel.leadingAnchor, constant: -10),
 
             timeLabel.trailingAnchor.constraint(equalTo: deleteButton.leadingAnchor, constant: -6),
-            timeLabel.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
+            timeLabel.topAnchor.constraint(equalTo: cell.topAnchor, constant: 14),
             timeLabel.widthAnchor.constraint(equalToConstant: 70),
 
             deleteButton.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -10),
-            deleteButton.centerYAnchor.constraint(equalTo: cell.centerYAnchor),
+            deleteButton.topAnchor.constraint(equalTo: cell.topAnchor, constant: 12),
             deleteButton.widthAnchor.constraint(equalToConstant: 24),
             deleteButton.heightAnchor.constraint(equalToConstant: 24)
         ])
@@ -310,7 +324,16 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     }
 
     func tableView(_ tableView: NSTableView, heightOfRow row: Int) -> CGFloat {
-        50
+        guard row == expandedIndex, row < filteredEntries.count else { return 50 }
+        let entry = filteredEntries[row]
+        let maxWidth = tableView.bounds.width - 140 // indicator + padding + time + delete
+        let text = entry.displayContent as NSString
+        let boundingRect = text.boundingRect(
+            with: NSSize(width: maxWidth, height: .greatestFiniteMagnitude),
+            options: [.usesLineFragmentOrigin, .usesFontLeading],
+            attributes: [.font: retroFont]
+        )
+        return max(50, ceil(boundingRect.height) + 24)
     }
 
     // MARK: - Actions
@@ -333,6 +356,23 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         historyDelegate?.didSelectEntry(filteredEntries[idx])
     }
 
+    private func toggleExpand() {
+        guard !filteredEntries.isEmpty else { return }
+        if expandedIndex == selectedIndex {
+            expandedIndex = nil
+        } else {
+            expandedIndex = selectedIndex
+        }
+        tableView.noteHeightOfRows(withIndexesChanged: IndexSet(integer: selectedIndex))
+        tableView.reloadData()
+        tableView.scrollRowToVisible(selectedIndex)
+    }
+
+    private func deleteSelected() {
+        guard selectedIndex < filteredEntries.count else { return }
+        historyDelegate?.didDeleteEntry(filteredEntries[selectedIndex])
+    }
+
     // MARK: - Keyboard handling
 
     override func keyDown(with event: NSEvent) {
@@ -340,6 +380,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
 
         if event.keyCode == 53 { historyDelegate?.didDismiss(); return }
         if event.keyCode == 36 { selectCurrent(); return }
+        if event.keyCode == 48 { toggleExpand(); return } // Tab
+        if event.keyCode == 51 || event.keyCode == 117 { deleteSelected(); return } // Backspace / Delete
         if flags.contains(.control) && event.charactersIgnoringModifiers == "n" { moveSelection(by: 1); return }
         if flags.contains(.control) && event.charactersIgnoringModifiers == "p" { moveSelection(by: -1); return }
         if event.keyCode == 125 { moveSelection(by: 1); return }
@@ -350,7 +392,14 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
 
     private func moveSelection(by delta: Int) {
         guard !filteredEntries.isEmpty else { return }
+        let oldExpanded = expandedIndex
         selectedIndex = max(0, min(filteredEntries.count - 1, selectedIndex + delta))
+        if expandedIndex != nil && expandedIndex != selectedIndex {
+            expandedIndex = nil
+            if let old = oldExpanded {
+                tableView.noteHeightOfRows(withIndexesChanged: IndexSet(integer: old))
+            }
+        }
         tableView.reloadData()
         tableView.scrollRowToVisible(selectedIndex)
     }
@@ -360,6 +409,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     func controlTextDidChange(_ obj: Notification) {
         searchQuery = searchField.stringValue
         selectedIndex = 0
+        expandedIndex = nil
         reloadEntries()
     }
 
@@ -368,6 +418,12 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         if commandSelector == #selector(cancelOperation(_:)) { historyDelegate?.didDismiss(); return true }
         if commandSelector == #selector(moveDown(_:)) { moveSelection(by: 1); return true }
         if commandSelector == #selector(moveUp(_:)) { moveSelection(by: -1); return true }
+        if commandSelector == #selector(insertTab(_:)) { toggleExpand(); return true }
+        if commandSelector == #selector(deleteBackward(_:)) {
+            if searchField.stringValue.isEmpty { deleteSelected(); return true }
+            return false
+        }
+        if commandSelector == #selector(deleteForward(_:)) { deleteSelected(); return true }
         return false
     }
 }
