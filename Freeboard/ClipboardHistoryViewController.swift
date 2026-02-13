@@ -214,6 +214,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         str.append(NSAttributedString(string: L.paste + "  ", attributes: dimAttrs))
         str.append(NSAttributedString(string: "Tab ", attributes: keyAttrs))
         str.append(NSAttributedString(string: L.expand + "  ", attributes: dimAttrs))
+        str.append(NSAttributedString(string: "^E ", attributes: keyAttrs))
+        str.append(NSAttributedString(string: L.edit + "  ", attributes: dimAttrs))
         str.append(NSAttributedString(string: "Del ", attributes: keyAttrs))
         str.append(NSAttributedString(string: L.delete + "  ", attributes: dimAttrs))
         str.append(NSAttributedString(string: "Esc ", attributes: keyAttrs))
@@ -421,7 +423,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
 
     private func handleEnter() {
         if editingIndex != nil { return }
-        if expandedIndex == selectedIndex { enterEditMode() } else { selectCurrent() }
+        selectCurrent()
     }
 
     private func selectCurrent(at index: Int? = nil) {
@@ -494,6 +496,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         if editingIndex != nil { super.keyDown(with: event); return } // Pass through when editing
         if event.keyCode == 48 { toggleExpand(); return } // Tab
         if event.keyCode == 51 || event.keyCode == 117 { deleteSelected(); return } // Backspace / Delete
+        if flags.contains(.control) && event.charactersIgnoringModifiers == "e" { enterEditMode(); return }
         if flags.contains(.control) && event.charactersIgnoringModifiers == "n" { moveSelection(by: 1); return }
         if flags.contains(.control) && event.charactersIgnoringModifiers == "p" { moveSelection(by: -1); return }
         if event.keyCode == 125 { moveSelection(by: 1); return }
@@ -538,6 +541,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         if commandSelector == #selector(moveDown(_:)) { moveSelection(by: 1); return true }
         if commandSelector == #selector(moveUp(_:)) { moveSelection(by: -1); return true }
         if commandSelector == #selector(insertTab(_:)) { toggleExpand(); return true }
+        if commandSelector == #selector(moveToEndOfParagraph(_:)) { enterEditMode(); return true } // ctrl-e
         if commandSelector == #selector(deleteBackward(_:)) {
             if searchField.stringValue.isEmpty { deleteSelected(); return true }
             return false
