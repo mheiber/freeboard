@@ -67,6 +67,7 @@
     var editor = null;
     var vimEnabled = false;
     var vimModeInstance = null;
+    var originalContent = '';
     var statusEl = document.getElementById('vim-status');
     var hintsEl = document.getElementById('editor-hints');
     var editorContainerEl = document.getElementById('editor-container');
@@ -90,10 +91,30 @@
         }
     }
 
+    function hasUnsavedChanges() {
+        return editor ? editor.getValue() !== originalContent : false;
+    }
+
     function saveAndClose() {
         if (!editor) return;
-        var content = editor.getValue();
-        postMessage({ type: 'save', content: content });
+        postMessage({ type: 'save', content: editor.getValue() });
+    }
+
+    function closeWithoutSaving() {
+        postMessage({ type: 'close' });
+    }
+
+    function flashStatus(msg) {
+        var prev = statusEl.textContent;
+        statusEl.textContent = msg;
+        statusEl.style.color = '#ff6060';
+        setTimeout(function() {
+            statusEl.style.color = '';
+            // Only restore if still showing our message
+            if (statusEl.textContent === msg) {
+                statusEl.textContent = prev;
+            }
+        }, 2000);
     }
 
     require.config({ paths: { vs: 'vs' } });
@@ -148,7 +169,7 @@
             }
         });
 
-        editor.focus();
+        // Don't focus here — only focus when setContent is called
         postMessage({ type: 'editorReady' });
     }
 
@@ -173,21 +194,41 @@
         if (typeof MonacoVim !== 'undefined' && MonacoVim.initVimMode) {
             vimModeInstance = MonacoVim.initVimMode(editor, statusEl);
 
+            // :w — save and close
             MonacoVim.VimMode.Vim.defineEx('write', 'w', function() {
                 saveAndClose();
             });
-            MonacoVim.VimMode.Vim.defineEx('quit', 'q', function() {
-                postMessage({ type: 'close' });
+
+            // :q — close only if no unsaved changes
+            MonacoVim.VimMode.Vim.defineEx('quit', 'q', function(cm, params) {
+                if (params && params.argString === '!') {
+                    // :q! — force close without saving
+                    closeWithoutSaving();
+                } else if (hasUnsavedChanges()) {
+                    flashStatus('E37: No write since last change (add ! to override)');
+                } else {
+                    closeWithoutSaving();
+                }
             });
+
+            // :wq — save and close
             MonacoVim.VimMode.Vim.defineEx('wquit', 'wq', function() {
                 saveAndClose();
             });
+
+            // :x — save and close (only writes if changed, like vim)
             MonacoVim.VimMode.Vim.defineEx('x', 'x', function() {
-                saveAndClose();
+                if (hasUnsavedChanges()) {
+                    saveAndClose();
+                } else {
+                    closeWithoutSaving();
+                }
             });
 
+            // jk to exit insert mode
             MonacoVim.VimMode.Vim.map('jk', '<Esc>', 'insert');
 
+            // Esc in normal mode to save and close
             MonacoVim.VimMode.Vim.mapCommand('<Esc>', '', '', function() {
                 saveAndClose();
             }, { context: 'normal' });
@@ -213,6 +254,7 @@
         var model = editor.getModel();
         monaco.editor.setModelLanguage(model, language);
         editor.setValue(text);
+        originalContent = text;
         vimEnabled = isVimEnabled;
         if (vimEnabled) {
             enableVim();
