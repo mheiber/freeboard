@@ -378,6 +378,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         str.append(NSAttributedString(string: L.expand + "  ", attributes: dimAttrs))
         str.append(NSAttributedString(string: "^E ", attributes: keyAttrs))
         str.append(NSAttributedString(string: L.edit + "  ", attributes: dimAttrs))
+        str.append(NSAttributedString(string: "⌘S ", attributes: keyAttrs))
+        str.append(NSAttributedString(string: L.star + "  ", attributes: dimAttrs))
         str.append(NSAttributedString(string: "Esc ", attributes: keyAttrs))
         str.append(NSAttributedString(string: L.close, attributes: dimAttrs))
         return str
@@ -388,9 +390,9 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     func reloadEntries() {
         guard let manager = clipboardManager else { return }
         if searchQuery.isEmpty {
-            let favorites = manager.entries.filter { $0.isFavorite }
-            let nonFavorites = manager.entries.filter { !$0.isFavorite }
-            filteredEntries = favorites + nonFavorites
+            let starred = manager.entries.filter { $0.isStarred }
+            let unstarred = manager.entries.filter { !$0.isStarred }
+            filteredEntries = starred + unstarred
         } else {
             filteredEntries = FuzzySearch.filter(entries: manager.entries, query: searchQuery)
         }
@@ -423,7 +425,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         cell.layer?.backgroundColor = isSelected ? retroSelectionBg.cgColor : NSColor.clear.cgColor
 
         let indicatorTitle: String
-        if entry.isFavorite {
+        if entry.isStarred {
             indicatorTitle = "★"
         } else if row == hoveredRow && mouseInIndicatorZone {
             indicatorTitle = "☆"
@@ -435,7 +437,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             indicatorTitle = " "
         }
 
-        let indicator = NSButton(title: indicatorTitle, target: self, action: #selector(favoriteClicked(_:)))
+        let indicator = NSButton(title: indicatorTitle, target: self, action: #selector(starClicked(_:)))
         indicator.translatesAutoresizingMaskIntoConstraints = false
         indicator.isBordered = false
         indicator.font = retroFont
@@ -619,10 +621,15 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         historyDelegate?.didDeleteEntry(filteredEntries[row])
     }
 
-    @objc private func favoriteClicked(_ sender: NSButton) {
+    @objc private func starClicked(_ sender: NSButton) {
         let row = sender.tag
         guard row < filteredEntries.count else { return }
-        clipboardManager?.toggleFavorite(id: filteredEntries[row].id)
+        clipboardManager?.toggleStar(id: filteredEntries[row].id)
+    }
+
+    private func toggleStarOnSelected() {
+        guard selectedIndex < filteredEntries.count else { return }
+        clipboardManager?.toggleStar(id: filteredEntries[selectedIndex].id)
     }
 
     override func mouseMoved(with event: NSEvent) {
@@ -717,6 +724,17 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
 
     private var isSearchFieldFocused: Bool {
         view.window?.firstResponder === searchField.currentEditor()
+    }
+
+    override func performKeyEquivalent(with event: NSEvent) -> Bool {
+        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+        if flags == .command && event.charactersIgnoringModifiers == "s" {
+            if editingIndex == nil {
+                toggleStarOnSelected()
+                return true
+            }
+        }
+        return super.performKeyEquivalent(with: event)
     }
 
     override func keyDown(with event: NSEvent) {

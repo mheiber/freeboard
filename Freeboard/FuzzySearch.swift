@@ -46,7 +46,7 @@ struct FuzzySearch {
         return score
     }
 
-    /// Filters and sorts entries by fuzzy match score, with favorites first.
+    /// Filters and sorts entries by fuzzy match score, with starred entries first.
     static func filter(entries: [ClipboardEntry], query: String) -> [ClipboardEntry] {
         guard !query.isEmpty else { return entries }
 
@@ -57,8 +57,8 @@ struct FuzzySearch {
                 return (entry, s)
             }
 
-        let favorites = scored.filter { $0.0.isFavorite }.sorted { $0.1 > $1.1 }.map { $0.0 }
-        let nonFavorites = scored.filter { !$0.0.isFavorite }.sorted { $0.1 > $1.1 }.map { $0.0 }
-        return favorites + nonFavorites
+        let starred = scored.filter { $0.0.isStarred }.sorted { $0.1 > $1.1 }.map { $0.0 }
+        let unstarred = scored.filter { !$0.0.isStarred }.sorted { $0.1 > $1.1 }.map { $0.0 }
+        return starred + unstarred
     }
 }
