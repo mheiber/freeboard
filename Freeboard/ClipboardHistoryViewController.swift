@@ -11,10 +11,6 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     weak var historyDelegate: ClipboardHistoryDelegate?
     var clipboardManager: ClipboardManager?
 
-    var hasAccessibility = false {
-        didSet { updateAccessibilityBanner() }
-    }
-
     private var scrollView: NSScrollView!
     private var tableView: NSTableView!
     private var searchField: NSTextField!
@@ -22,10 +18,9 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     private var quitButton: NSButton!
     private var containerView: NSView!
     private var effectsView: RetroEffectsView!
-    private var accessibilityBanner: NSButton!
-    private var scrollViewTopConstraint: NSLayoutConstraint!
     private var emptyStateView: NSView!
     private var clearSearchButton: NSButton!
+    private var accessibilityHintButton: NSButton!
 
     private var filteredEntries: [ClipboardEntry] = []
     private var selectedIndex: Int = 0
@@ -72,7 +67,6 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
 
         containerView = mainView
         setupSearchField()
-        setupAccessibilityBanner()
         setupTableView()
         setupHelpLabel()
         setupEmptyState()
@@ -98,7 +92,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         selectedIndex = 0
         refreshLocalization()
         reloadEntries()
-        updateAccessibilityBanner()
+        updateAccessibilityHint()
         view.window?.makeFirstResponder(self)
 
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
@@ -167,57 +161,6 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         ])
     }
 
-    private func setupAccessibilityBanner() {
-        accessibilityBanner = NSButton(frame: .zero)
-        accessibilityBanner.translatesAutoresizingMaskIntoConstraints = false
-        accessibilityBanner.isBordered = false
-        accessibilityBanner.wantsLayer = true
-        accessibilityBanner.layer?.backgroundColor = NSColor(red: 0.3, green: 0.15, blue: 0.0, alpha: 0.85).cgColor
-        accessibilityBanner.layer?.cornerRadius = 4
-        accessibilityBanner.target = self
-        accessibilityBanner.action = #selector(accessibilityBannerClicked)
-
-        let warningAttrs: [NSAttributedString.Key: Any] = [
-            .foregroundColor: NSColor(red: 1.0, green: 0.8, blue: 0.2, alpha: 1.0),
-            .font: retroFontSmall
-        ]
-        accessibilityBanner.attributedTitle = NSAttributedString(
-            string: "\u{26A0} Auto-paste needs Accessibility permission. Click to open Settings.",
-            attributes: warningAttrs
-        )
-
-        accessibilityBanner.isHidden = true
-        containerView.addSubview(accessibilityBanner)
-        NSLayoutConstraint.activate([
-            accessibilityBanner.topAnchor.constraint(equalTo: searchField.bottomAnchor, constant: 6),
-            accessibilityBanner.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
-            accessibilityBanner.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
-            accessibilityBanner.heightAnchor.constraint(equalToConstant: 28),
-        ])
-    }
-
-    @objc private func accessibilityBannerClicked() {
-        // Prompt for accessibility permission, then open System Settings
-        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
-        let trusted = AXIsProcessTrustedWithOptions(options as CFDictionary)
-        if trusted {
-            hasAccessibility = true
-            return
-        }
-        let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
-        if !NSWorkspace.shared.open(url) {
-            NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/System Settings.app"))
-        }
-    }
-
-    private func updateAccessibilityBanner() {
-        guard accessibilityBanner != nil, scrollViewTopConstraint != nil else { return }
-        let showBanner = !hasAccessibility
-        accessibilityBanner.isHidden = !showBanner
-        scrollViewTopConstraint.constant = showBanner ? 88 : 54
-        containerView?.layoutSubtreeIfNeeded()
-    }
-
     private func setupTableView() {
         tableView = NSTableView()
         tableView.backgroundColor = .clear
@@ -242,9 +185,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         scrollView.scrollerStyle = .overlay
 
         containerView.addSubview(scrollView)
-        scrollViewTopConstraint = scrollView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 54)
         NSLayoutConstraint.activate([
-            scrollViewTopConstraint,
+            scrollView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 54),
             scrollView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
             scrollView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -32)
@@ -279,6 +221,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
 
         containerView.addSubview(helpLabel)
         containerView.addSubview(quitButton)
+
         NSLayoutConstraint.activate([
             helpLabel.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -7),
             helpLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
@@ -299,6 +242,22 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         searchQuery = ""
         reloadEntries()
         view.window?.makeFirstResponder(self)
+    }
+
+    @objc private func accessibilityHintClicked() {
+        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+        if AXIsProcessTrustedWithOptions(options) {
+            updateAccessibilityHint()
+            return
+        }
+        let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
+        if !NSWorkspace.shared.open(url) {
+            NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/System Settings.app"))
+        }
+    }
+
+    private func updateAccessibilityHint() {
+        accessibilityHintButton?.isHidden = AXIsProcessTrusted()
     }
 
     private func setupEmptyState() {
@@ -354,10 +313,31 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         clearSearchButton.contentTintColor = retroGreen
         clearSearchButton.isHidden = true
 
+        accessibilityHintButton = NSButton(title: "", target: self, action: #selector(accessibilityHintClicked))
+        accessibilityHintButton.translatesAutoresizingMaskIntoConstraints = false
+        accessibilityHintButton.isBordered = false
+        accessibilityHintButton.wantsLayer = true
+        let hintAttrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: retroDimGreen.withAlphaComponent(0.5),
+            .font: retroFontSmall
+        ]
+        let linkAttrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: retroDimGreen.withAlphaComponent(0.7),
+            .font: retroFontSmall,
+            .underlineStyle: NSUnderlineStyle.single.rawValue
+        ]
+        let hintStr = NSMutableAttributedString()
+        hintStr.append(NSAttributedString(string: "Auto-paste needs ", attributes: hintAttrs))
+        hintStr.append(NSAttributedString(string: "Accessibility Permission", attributes: linkAttrs))
+        hintStr.append(NSAttributedString(string: " to paste", attributes: hintAttrs))
+        accessibilityHintButton.attributedTitle = hintStr
+        accessibilityHintButton.isHidden = true
+
         emptyStateView.addSubview(asciiLabel)
         emptyStateView.addSubview(hintLabel)
         emptyStateView.addSubview(hotkeyLabel)
         emptyStateView.addSubview(clearSearchButton)
+        emptyStateView.addSubview(accessibilityHintButton)
         containerView.addSubview(emptyStateView)
 
         NSLayoutConstraint.activate([
@@ -379,6 +359,9 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
 
             clearSearchButton.centerXAnchor.constraint(equalTo: emptyStateView.centerXAnchor),
             clearSearchButton.topAnchor.constraint(equalTo: hintLabel.bottomAnchor, constant: 16),
+
+            accessibilityHintButton.centerXAnchor.constraint(equalTo: emptyStateView.centerXAnchor),
+            accessibilityHintButton.topAnchor.constraint(equalTo: hotkeyLabel.bottomAnchor, constant: 16),
         ])
 
         updateEmptyStateStrings()
@@ -421,6 +404,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
                 hotkeyLabel.isHidden = false
             }
             clearSearchButton?.isHidden = true
+            updateAccessibilityHint()
         case .noSearchResults:
             emptyStateView?.isHidden = false
             scrollView?.isHidden = true
@@ -441,6 +425,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             clearSearchButton?.title = L.clearSearch
             clearSearchButton?.font = retroFont
             clearSearchButton?.isHidden = false
+            accessibilityHintButton?.isHidden = true
         }
     }
 

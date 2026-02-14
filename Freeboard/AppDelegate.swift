@@ -9,9 +9,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
     private var clipboardManager: ClipboardManager!
     private var hotkeyManager: GlobalHotkeyManager!
     private var previousApp: NSRunningApplication?
-    private var accessibilityTimer: Timer?
-
-    var hasAccessibility = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -20,30 +17,6 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
         setupStatusItem()
         setupPopupWindow()
         setupHotkey()
-        checkAccessibilityAndPrompt()
-    }
-
-    // MARK: - Accessibility
-
-    private func checkAccessibilityAndPrompt() {
-        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
-        let trusted = AXIsProcessTrustedWithOptions(options as CFDictionary)
-
-        hasAccessibility = trusted
-        historyVC.hasAccessibility = trusted
-
-        // Poll periodically — the user grants permission externally in System Settings
-        accessibilityTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
-            self?.recheckAccessibility()
-        }
-    }
-
-    private func recheckAccessibility() {
-        let trusted = AXIsProcessTrusted()
-        if trusted != hasAccessibility {
-            hasAccessibility = trusted
-            historyVC.hasAccessibility = trusted
-        }
     }
 
     // MARK: - Setup
@@ -233,14 +206,29 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
 
     func didSelectEntry(_ entry: ClipboardEntry) {
         clipboardManager.selectEntry(entry)
+
+        // Check accessibility while app is still frontmost so the prompt is visible
+        let canPaste = AXIsProcessTrusted()
+        if !canPaste {
+            let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+            if !AXIsProcessTrustedWithOptions(options) {
+                let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
+                if !NSWorkspace.shared.open(url) {
+                    NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/System Settings.app"))
+                }
+            }
+        }
+
         hidePopup()
 
         if let app = previousApp {
             app.activate()
         }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
-            self?.simulatePaste()
+        if canPaste {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
+                self?.simulatePaste()
+            }
         }
     }
 
