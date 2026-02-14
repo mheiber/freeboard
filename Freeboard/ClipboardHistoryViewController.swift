@@ -76,6 +76,12 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         }
         return NSFont(name: "Menlo", size: 16) ?? NSFont.monospacedSystemFont(ofSize: 16, weight: .regular)
     }
+    private var retroFontStar: NSFont {
+        if L.current.usesSystemFont {
+            return NSFont.systemFont(ofSize: 26, weight: .regular)
+        }
+        return NSFont(name: "Menlo", size: 22) ?? NSFont.monospacedSystemFont(ofSize: 22, weight: .regular)
+    }
     private var retroFontSmall: NSFont {
         if L.current.usesSystemFont {
             return NSFont.systemFont(ofSize: 15, weight: .regular)
@@ -1293,7 +1299,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         let indicator = NSButton(title: indicatorTitle, target: self, action: #selector(starClicked(_:)))
         indicator.translatesAutoresizingMaskIntoConstraints = false
         indicator.isBordered = false
-        indicator.font = retroFont
+        indicator.font = retroFontStar
         indicator.contentTintColor = retroGreen
         indicator.tag = row
         indicator.setAccessibilityLabel(entry.isStarred ? L.accessibilityStarred : L.accessibilityStar)
@@ -1363,7 +1369,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             NSLayoutConstraint.activate([
                 indicator.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 34),
                 indicator.topAnchor.constraint(equalTo: cell.topAnchor, constant: 14),
-                indicator.widthAnchor.constraint(equalToConstant: 16),
+                indicator.widthAnchor.constraint(equalToConstant: 24),
 
                 scrollContainer.leadingAnchor.constraint(equalTo: indicator.trailingAnchor, constant: 6),
                 scrollContainer.topAnchor.constraint(equalTo: cell.topAnchor, constant: 4),
@@ -1460,7 +1466,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
                     NSLayoutConstraint.activate([
                         indicator.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 34),
                         indicator.topAnchor.constraint(equalTo: cell.topAnchor, constant: 14),
-                        indicator.widthAnchor.constraint(equalToConstant: 16),
+                        indicator.widthAnchor.constraint(equalToConstant: 24),
 
                         iv.centerXAnchor.constraint(equalTo: cell.centerXAnchor),
                         iv.topAnchor.constraint(equalTo: cell.topAnchor, constant: 8),
@@ -1486,7 +1492,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
                     NSLayoutConstraint.activate([
                         indicator.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 34),
                         indicator.topAnchor.constraint(equalTo: cell.topAnchor, constant: 14),
-                        indicator.widthAnchor.constraint(equalToConstant: 16),
+                        indicator.widthAnchor.constraint(equalToConstant: 24),
 
                         iv.leadingAnchor.constraint(equalTo: indicator.trailingAnchor, constant: 6),
                         iv.topAnchor.constraint(equalTo: cell.topAnchor, constant: 7),
@@ -1512,7 +1518,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
                 NSLayoutConstraint.activate([
                     indicator.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 34),
                     indicator.topAnchor.constraint(equalTo: cell.topAnchor, constant: 14),
-                    indicator.widthAnchor.constraint(equalToConstant: 16),
+                    indicator.widthAnchor.constraint(equalToConstant: 24),
 
                     contentLabel.leadingAnchor.constraint(equalTo: indicator.trailingAnchor, constant: 6),
                     contentLabel.topAnchor.constraint(equalTo: cell.topAnchor, constant: 8),
