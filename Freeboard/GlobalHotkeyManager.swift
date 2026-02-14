@@ -11,7 +11,7 @@ class GlobalHotkeyManager {
 
     func start() {
         GlobalHotkeyManager.activeInstance = self
-        registerCarbonHotKey()
+        register(keyCode: HotkeyChoice.current.keyCode)
     }
 
     func stop() {
@@ -26,7 +26,33 @@ class GlobalHotkeyManager {
         GlobalHotkeyManager.activeInstance = nil
     }
 
-    private func registerCarbonHotKey() {
+    func register(keyCode: Int) {
+        // Unregister existing hotkey if any
+        if let ref = hotKeyRef {
+            UnregisterEventHotKey(ref)
+            hotKeyRef = nil
+        }
+
+        // Install event handler if not already installed
+        if eventHandlerRef == nil {
+            installEventHandler()
+        }
+
+        let hotKeyID = EventHotKeyID(signature: OSType(0x46524244), id: 1)
+        let status = RegisterEventHotKey(
+            UInt32(keyCode),
+            UInt32(cmdKey | shiftKey),
+            hotKeyID,
+            GetApplicationEventTarget(),
+            0,
+            &hotKeyRef
+        )
+        if status != noErr {
+            print("Failed to register hotkey: \(status)")
+        }
+    }
+
+    private func installEventHandler() {
         var eventType = EventTypeSpec(
             eventClass: OSType(kEventClassKeyboard),
             eventKind: UInt32(kEventHotKeyPressed)
@@ -61,18 +87,5 @@ class GlobalHotkeyManager {
             nil,
             &eventHandlerRef
         )
-
-        let hotKeyID = EventHotKeyID(signature: OSType(0x46524244), id: 1)
-        let status = RegisterEventHotKey(
-            UInt32(kVK_ANSI_C),
-            UInt32(cmdKey | shiftKey),
-            hotKeyID,
-            GetApplicationEventTarget(),
-            0,
-            &hotKeyRef
-        )
-        if status != noErr {
-            print("Failed to register hotkey: \(status)")
-        }
     }
 }

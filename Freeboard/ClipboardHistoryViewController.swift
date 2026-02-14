@@ -337,7 +337,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             hintLabel.font = retroFont
         }
         if let hotkeyLabel = emptyView.viewWithTag(101) as? NSTextField {
-            hotkeyLabel.stringValue = "Cmd-Shift-C: \(L.openClose)"
+            hotkeyLabel.stringValue = "\(HotkeyChoice.current.displayName): \(L.openClose)"
             hotkeyLabel.font = retroFontSmall
         }
     }

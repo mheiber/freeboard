@@ -136,6 +136,19 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
         langItem.submenu = langMenu
         menu.addItem(langItem)
 
+        // Shortcut submenu
+        let shortcutItem = NSMenuItem(title: L.shortcut, action: nil, keyEquivalent: "")
+        let shortcutMenu = NSMenu()
+        for choice in HotkeyChoice.allCases {
+            let item = NSMenuItem(title: choice.displayName, action: #selector(switchHotkey(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = choice
+            if choice == HotkeyChoice.current { item.state = .on }
+            shortcutMenu.addItem(item)
+        }
+        shortcutItem.submenu = shortcutMenu
+        menu.addItem(shortcutItem)
+
         menu.addItem(NSMenuItem.separator())
         let quitItem = NSMenuItem(title: L.quitFreeboard, action: #selector(quitApp), keyEquivalent: "q")
         quitItem.target = self
@@ -155,6 +168,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
 
     @objc private func switchToChinese() {
         L.current = .zh
+        historyVC.refreshLocalization()
+    }
+
+    @objc private func switchHotkey(_ sender: NSMenuItem) {
+        guard let choice = sender.representedObject as? HotkeyChoice else { return }
+        HotkeyChoice.current = choice
+        hotkeyManager.register(keyCode: choice.keyCode)
         historyVC.refreshLocalization()
     }
 

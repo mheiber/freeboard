@@ -1,7 +1,43 @@
 import Foundation
+import Carbon
 
 enum Lang: String {
     case en, zh
+}
+
+enum HotkeyChoice: String, CaseIterable {
+    case c, x, v
+
+    var keyCode: Int {
+        switch self {
+        case .c: return kVK_ANSI_C
+        case .x: return kVK_ANSI_X
+        case .v: return kVK_ANSI_V
+        }
+    }
+
+    var displayName: String {
+        switch self {
+        case .c: return "Cmd-Shift-C"
+        case .x: return "Cmd-Shift-X"
+        case .v: return "Cmd-Shift-V"
+        }
+    }
+
+    private static let hotkeyKey = "freeboard_hotkey"
+
+    static var current: HotkeyChoice {
+        get {
+            if let raw = UserDefaults.standard.string(forKey: hotkeyKey),
+               let choice = HotkeyChoice(rawValue: raw) {
+                return choice
+            }
+            return .c
+        }
+        set {
+            UserDefaults.standard.set(newValue.rawValue, forKey: hotkeyKey)
+        }
+    }
 }
 
 struct L {
@@ -19,6 +55,8 @@ struct L {
             UserDefaults.standard.set(newValue.rawValue, forKey: langKey)
         }
     }
+
+    static var shortcut: String { current == .zh ? "快捷键" : "Shortcut" }
 
     static var searchPlaceholder: String {
         current == .zh ? "▌ 搜索剪贴板历史..." : "▌ Search clipboard history..."
