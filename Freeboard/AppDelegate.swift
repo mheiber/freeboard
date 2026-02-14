@@ -213,16 +213,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
     func didSelectEntry(_ entry: ClipboardEntry) {
         clipboardManager.selectEntry(entry)
 
-        // Check accessibility while app is still frontmost so the prompt is visible
         let canPaste = AXIsProcessTrusted()
         if !canPaste {
             let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
-            if !AXIsProcessTrustedWithOptions(options) {
-                let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
-                if !NSWorkspace.shared.open(url) {
-                    NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/System Settings.app"))
-                }
-            }
+            _ = AXIsProcessTrustedWithOptions(options)
         }
 
         hidePopup()
