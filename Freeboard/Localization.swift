@@ -145,6 +145,26 @@ struct L {
     static var accessibilityRichText: String { tr("accessibilityRichText") }
     static var accessibilityMarkdownText: String { tr("accessibilityMarkdownText") }
     static var accessibilityRichMarkdown: String { tr("accessibilityRichMarkdown") }
+    static var markdownSupport: String { tr("markdownSupport") }
+    static var helpDismissEsc: String { tr("helpDismissEsc") }
+    static var helpPowerFeatures: String { tr("helpPowerFeatures") }
+    static var helpMarkdownLink: String { tr("helpMarkdownLink") }
+    static var markdownHelpBack: String { tr("markdownHelpBack") }
+    static var markdownHelpBindings: String { tr("markdownHelpBindings") }
+    static var markdownHelpShiftEnterRich: String { tr("markdownHelpShiftEnterRich") }
+    static var markdownHelpShiftEnterPlain: String { tr("markdownHelpShiftEnterPlain") }
+    static var markdownHelpShiftEnterMd: String { tr("markdownHelpShiftEnterMd") }
+    static var markdownHelpCheatSheet: String { tr("markdownHelpCheatSheet") }
+    static var markdownHelpHeadings: String { tr("markdownHelpHeadings") }
+    static var markdownHelpBold: String { tr("markdownHelpBold") }
+    static var markdownHelpItalic: String { tr("markdownHelpItalic") }
+    static var markdownHelpCode: String { tr("markdownHelpCode") }
+    static var markdownHelpCodeBlock: String { tr("markdownHelpCodeBlock") }
+    static var markdownHelpLink: String { tr("markdownHelpLink") }
+    static var markdownHelpList: String { tr("markdownHelpList") }
+    static var markdownHelpOrderedList: String { tr("markdownHelpOrderedList") }
+    static var markdownHelpBlockquote: String { tr("markdownHelpBlockquote") }
+    static var markdownHelpHr: String { tr("markdownHelpHr") }
 
     static func accessibleMinutesAgo(_ n: Int) -> String {
         String(format: tr("accessibleMinutesAgo"), n)
@@ -538,6 +558,146 @@ struct L {
             .pt: "Markdown formatado, Shift Enter para colar como fonte Markdown",
             .ru: "Форматированный Markdown, Shift Enter для вставки как исходный Markdown",
             .ja: "書式付きMarkdown、Shift EnterでMarkdownソースとして貼り付け"
+        ],
+        "markdownSupport": [
+            .en: "Markdown Support", .zh: "Markdown 支持", .hi: "Markdown सहायता",
+            .es: "Soporte Markdown", .fr: "Support Markdown",
+            .ar: "دعم Markdown", .bn: "Markdown সমর্থন",
+            .pt: "Suporte Markdown", .ru: "Поддержка Markdown", .ja: "Markdown サポート"
+        ],
+        "helpDismissEsc": [
+            .en: "Esc to close help", .zh: "Esc 关闭帮助", .hi: "Esc सहायता बंद करें",
+            .es: "Esc para cerrar ayuda", .fr: "Esc pour fermer l'aide",
+            .ar: "Esc لإغلاق المساعدة", .bn: "Esc সাহায্য বন্ধ করুন",
+            .pt: "Esc para fechar ajuda", .ru: "Esc закрыть справку", .ja: "Esc でヘルプを閉じる"
+        ],
+        "helpPowerFeatures": [
+            .en: "POWER FEATURES", .zh: "高级功能", .hi: "पावर सुविधाएं",
+            .es: "FUNCIONES AVANZADAS", .fr: "FONCTIONS AVANCÉES",
+            .ar: "ميزات متقدمة", .bn: "পাওয়ার ফিচার",
+            .pt: "RECURSOS AVANÇADOS", .ru: "РАСШИРЕННЫЕ ФУНКЦИИ", .ja: "パワー機能"
+        ],
+        "helpMarkdownLink": [
+            .en: "Markdown Support →", .zh: "Markdown 支持 →", .hi: "Markdown सहायता →",
+            .es: "Soporte Markdown →", .fr: "Support Markdown →",
+            .ar: "→ دعم Markdown", .bn: "Markdown সমর্থন →",
+            .pt: "Suporte Markdown →", .ru: "Поддержка Markdown →", .ja: "Markdown サポート →"
+        ],
+        "markdownHelpBack": [
+            .en: "← Help", .zh: "← 帮助", .hi: "← सहायता",
+            .es: "← Ayuda", .fr: "← Aide",
+            .ar: "مساعدة ←", .bn: "← সাহায্য",
+            .pt: "← Ajuda", .ru: "← Справка", .ja: "← ヘルプ"
+        ],
+        "markdownHelpBindings": [
+            .en: "KEYBINDINGS", .zh: "快捷键", .hi: "कुंजी बाइंडिंग",
+            .es: "ATAJOS DE TECLADO", .fr: "RACCOURCIS CLAVIER",
+            .ar: "اختصارات لوحة المفاتيح", .bn: "কী বাইন্ডিং",
+            .pt: "ATALHOS DE TECLADO", .ru: "СОЧЕТАНИЯ КЛАВИШ", .ja: "キーバインド"
+        ],
+        "markdownHelpShiftEnterRich": [
+            .en: "⇧Enter on markdown text → paste as rich text",
+            .zh: "⇧Enter 在 markdown 文本上 → 粘贴为富文本",
+            .hi: "⇧Enter markdown टेक्स्ट पर → रिच टेक्स्ट के रूप में पेस्ट करें",
+            .es: "⇧Enter en texto markdown → pegar como texto enriquecido",
+            .fr: "⇧Enter sur texte markdown → coller en texte enrichi",
+            .ar: "⇧Enter على نص markdown → لصق كنص منسق",
+            .bn: "⇧Enter markdown টেক্সটে → রিচ টেক্সট হিসেবে পেস্ট করুন",
+            .pt: "⇧Enter em texto markdown → colar como texto formatado",
+            .ru: "⇧Enter на тексте markdown → вставить как форматированный текст",
+            .ja: "⇧Enter markdownテキスト → リッチテキストとして貼り付け"
+        ],
+        "markdownHelpShiftEnterPlain": [
+            .en: "⇧Enter on formatted text → paste as plain text",
+            .zh: "⇧Enter 在格式化文本上 → 粘贴为纯文本",
+            .hi: "⇧Enter स्वरूपित टेक्स्ट पर → सादा टेक्स्ट के रूप में पेस्ट करें",
+            .es: "⇧Enter en texto formateado → pegar como texto plano",
+            .fr: "⇧Enter sur texte formaté → coller en texte brut",
+            .ar: "⇧Enter على نص منسق → لصق كنص عادي",
+            .bn: "⇧Enter ফরম্যাটেড টেক্সটে → সাধারণ টেক্সট হিসেবে পেস্ট করুন",
+            .pt: "⇧Enter em texto formatado → colar como texto simples",
+            .ru: "⇧Enter на форматированном тексте → вставить как обычный текст",
+            .ja: "⇧Enter 書式付きテキスト → テキストとして貼り付け"
+        ],
+        "markdownHelpShiftEnterMd": [
+            .en: "⇧Enter on rich markdown → paste as markdown source",
+            .zh: "⇧Enter 在富 markdown 上 → 粘贴为 markdown 源文本",
+            .hi: "⇧Enter रिच markdown पर → markdown स्रोत के रूप में पेस्ट करें",
+            .es: "⇧Enter en markdown enriquecido → pegar como fuente markdown",
+            .fr: "⇧Enter sur markdown enrichi → coller en source markdown",
+            .ar: "⇧Enter على markdown منسق → لصق كنص markdown",
+            .bn: "⇧Enter রিচ markdown-এ → markdown সোর্স হিসেবে পেস্ট করুন",
+            .pt: "⇧Enter em markdown formatado → colar como fonte markdown",
+            .ru: "⇧Enter на форматированном markdown → вставить как исходный markdown",
+            .ja: "⇧Enter リッチmarkdown → markdownソースとして貼り付け"
+        ],
+        "markdownHelpCheatSheet": [
+            .en: "CHEAT SHEET", .zh: "速查表", .hi: "चीट शीट",
+            .es: "HOJA DE REFERENCIA", .fr: "AIDE-MÉMOIRE",
+            .ar: "ورقة مرجعية", .bn: "চিট শিট",
+            .pt: "FOLHA DE REFERÊNCIA", .ru: "ШПАРГАЛКА", .ja: "チートシート"
+        ],
+        "markdownHelpHeadings": [
+            .en: "# Heading 1  ## Heading 2  ### Heading 3",
+            .zh: "# Heading 1  ## Heading 2  ### Heading 3",
+            .hi: "# Heading 1  ## Heading 2  ### Heading 3",
+            .es: "# Heading 1  ## Heading 2  ### Heading 3",
+            .fr: "# Heading 1  ## Heading 2  ### Heading 3",
+            .ar: "# Heading 1  ## Heading 2  ### Heading 3",
+            .bn: "# Heading 1  ## Heading 2  ### Heading 3",
+            .pt: "# Heading 1  ## Heading 2  ### Heading 3",
+            .ru: "# Heading 1  ## Heading 2  ### Heading 3",
+            .ja: "# Heading 1  ## Heading 2  ### Heading 3"
+        ],
+        "markdownHelpBold": [
+            .en: "**bold**", .zh: "**bold**", .hi: "**bold**", .es: "**bold**",
+            .fr: "**bold**", .ar: "**bold**", .bn: "**bold**", .pt: "**bold**",
+            .ru: "**bold**", .ja: "**bold**"
+        ],
+        "markdownHelpItalic": [
+            .en: "*italic*", .zh: "*italic*", .hi: "*italic*", .es: "*italic*",
+            .fr: "*italic*", .ar: "*italic*", .bn: "*italic*", .pt: "*italic*",
+            .ru: "*italic*", .ja: "*italic*"
+        ],
+        "markdownHelpCode": [
+            .en: "`inline code`", .zh: "`inline code`", .hi: "`inline code`", .es: "`inline code`",
+            .fr: "`inline code`", .ar: "`inline code`", .bn: "`inline code`", .pt: "`inline code`",
+            .ru: "`inline code`", .ja: "`inline code`"
+        ],
+        "markdownHelpCodeBlock": [
+            .en: "```code block```", .zh: "```code block```", .hi: "```code block```",
+            .es: "```code block```", .fr: "```code block```", .ar: "```code block```",
+            .bn: "```code block```", .pt: "```code block```",
+            .ru: "```code block```", .ja: "```code block```"
+        ],
+        "markdownHelpLink": [
+            .en: "[text](url)", .zh: "[text](url)", .hi: "[text](url)", .es: "[text](url)",
+            .fr: "[text](url)", .ar: "[text](url)", .bn: "[text](url)", .pt: "[text](url)",
+            .ru: "[text](url)", .ja: "[text](url)"
+        ],
+        "markdownHelpList": [
+            .en: "- unordered list", .zh: "- unordered list", .hi: "- unordered list",
+            .es: "- unordered list", .fr: "- unordered list", .ar: "- unordered list",
+            .bn: "- unordered list", .pt: "- unordered list",
+            .ru: "- unordered list", .ja: "- unordered list"
+        ],
+        "markdownHelpOrderedList": [
+            .en: "1. ordered list", .zh: "1. ordered list", .hi: "1. ordered list",
+            .es: "1. ordered list", .fr: "1. ordered list", .ar: "1. ordered list",
+            .bn: "1. ordered list", .pt: "1. ordered list",
+            .ru: "1. ordered list", .ja: "1. ordered list"
+        ],
+        "markdownHelpBlockquote": [
+            .en: "> blockquote", .zh: "> blockquote", .hi: "> blockquote",
+            .es: "> blockquote", .fr: "> blockquote", .ar: "> blockquote",
+            .bn: "> blockquote", .pt: "> blockquote",
+            .ru: "> blockquote", .ja: "> blockquote"
+        ],
+        "markdownHelpHr": [
+            .en: "--- horizontal rule", .zh: "--- 水平分割线", .hi: "--- क्षैतिज रेखा",
+            .es: "--- línea horizontal", .fr: "--- ligne horizontale",
+            .ar: "--- خط أفقي", .bn: "--- অনুভূমিক রেখা",
+            .pt: "--- linha horizontal", .ru: "--- горизонтальная линия", .ja: "--- 水平線"
         ],
     ]
 }

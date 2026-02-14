@@ -145,6 +145,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
         helpItem.target = self
         menu.addItem(helpItem)
 
+        let markdownItem = NSMenuItem(title: L.markdownSupport, action: #selector(showMarkdownSupport), keyEquivalent: "")
+        markdownItem.target = self
+        menu.addItem(markdownItem)
+
         menu.addItem(NSMenuItem.separator())
         let quitItem = NSMenuItem(title: L.quitFreeboard, action: #selector(quitApp), keyEquivalent: "q")
         quitItem.target = self
@@ -179,6 +183,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
             showPopup()
         }
         historyVC.toggleHelp()
+    }
+
+    @objc private func showMarkdownSupport() {
+        if !popupWindow.isVisible {
+            showPopup()
+        }
+        historyVC.showMarkdownHelpScreen()
     }
 
     @objc private func quitApp() {

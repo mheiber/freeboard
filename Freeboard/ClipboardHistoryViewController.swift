@@ -344,6 +344,34 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         helpContent.alignment = .center
         helpContent.attributedStringValue = makeHelpContent()
 
+        // Power Features section
+        let sectionFont = L.current.usesSystemFont
+            ? NSFont.systemFont(ofSize: 14, weight: .bold)
+            : NSFont(name: "Menlo-Bold", size: 12) ?? NSFont.monospacedSystemFont(ofSize: 12, weight: .bold)
+
+        let sectionLabel = NSTextField(labelWithString: L.helpPowerFeatures)
+        sectionLabel.translatesAutoresizingMaskIntoConstraints = false
+        sectionLabel.backgroundColor = .clear
+        sectionLabel.isBezeled = false
+        sectionLabel.isEditable = false
+        sectionLabel.font = sectionFont
+        sectionLabel.textColor = retroDimGreen.withAlphaComponent(0.5)
+        sectionLabel.alignment = .center
+
+        let markdownLinkButton = NSButton(title: "", target: self, action: #selector(markdownLinkClicked))
+        markdownLinkButton.translatesAutoresizingMaskIntoConstraints = false
+        markdownLinkButton.isBordered = false
+        let linkFont = L.current.usesSystemFont
+            ? NSFont.systemFont(ofSize: 16, weight: .regular)
+            : NSFont(name: "Menlo", size: 14) ?? NSFont.monospacedSystemFont(ofSize: 14, weight: .regular)
+        let linkAttrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: retroGreen.withAlphaComponent(0.8),
+            .font: linkFont,
+            .underlineStyle: NSUnderlineStyle.single.rawValue
+        ]
+        markdownLinkButton.attributedTitle = NSAttributedString(string: L.helpMarkdownLink, attributes: linkAttrs)
+        markdownLinkButton.setAccessibilityLabel(L.markdownSupport)
+
         let dismissLabel = NSTextField(labelWithString: "")
         dismissLabel.translatesAutoresizingMaskIntoConstraints = false
         dismissLabel.backgroundColor = .clear
@@ -353,6 +381,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         dismissLabel.attributedStringValue = makeDismissString()
 
         overlay.addSubview(helpContent)
+        overlay.addSubview(sectionLabel)
+        overlay.addSubview(markdownLinkButton)
         overlay.addSubview(dismissLabel)
 
         if !AXIsProcessTrusted() {
@@ -366,14 +396,14 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
                 .foregroundColor: retroDimGreen.withAlphaComponent(0.6),
                 .font: dimFont
             ]
-            let linkAttrs: [NSAttributedString.Key: Any] = [
+            let accLinkAttrs: [NSAttributedString.Key: Any] = [
                 .foregroundColor: retroGreen.withAlphaComponent(0.8),
                 .font: dimFont,
                 .underlineStyle: NSUnderlineStyle.single.rawValue
             ]
             let attrStr = NSMutableAttributedString()
             attrStr.append(NSAttributedString(string: L.helpAccessibility + " ", attributes: hintAttrs))
-            attrStr.append(NSAttributedString(string: L.helpAccessibilityLink, attributes: linkAttrs))
+            attrStr.append(NSAttributedString(string: L.helpAccessibilityLink, attributes: accLinkAttrs))
             attrStr.append(NSAttributedString(string: ",\n" + L.helpAccessibilitySteps, attributes: hintAttrs))
             accessibilityButton.attributedTitle = attrStr
             overlay.addSubview(accessibilityButton)
@@ -384,6 +414,22 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
                 accessibilityButton.leadingAnchor.constraint(greaterThanOrEqualTo: overlay.leadingAnchor, constant: 60),
                 accessibilityButton.trailingAnchor.constraint(lessThanOrEqualTo: overlay.trailingAnchor, constant: -60),
             ])
+
+            NSLayoutConstraint.activate([
+                sectionLabel.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
+                sectionLabel.topAnchor.constraint(equalTo: accessibilityButton.bottomAnchor, constant: 24),
+
+                markdownLinkButton.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
+                markdownLinkButton.topAnchor.constraint(equalTo: sectionLabel.bottomAnchor, constant: 8),
+            ])
+        } else {
+            NSLayoutConstraint.activate([
+                sectionLabel.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
+                sectionLabel.topAnchor.constraint(equalTo: helpContent.bottomAnchor, constant: 32),
+
+                markdownLinkButton.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
+                markdownLinkButton.topAnchor.constraint(equalTo: sectionLabel.bottomAnchor, constant: 8),
+            ])
         }
 
         // Insert below effectsView so CRT effects still show on top
@@ -393,7 +439,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
 
         NSLayoutConstraint.activate([
             helpContent.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
-            helpContent.centerYAnchor.constraint(equalTo: overlay.centerYAnchor, constant: -40),
+            helpContent.centerYAnchor.constraint(equalTo: overlay.centerYAnchor, constant: -60),
             helpContent.leadingAnchor.constraint(greaterThanOrEqualTo: overlay.leadingAnchor, constant: 60),
             helpContent.trailingAnchor.constraint(lessThanOrEqualTo: overlay.trailingAnchor, constant: -60),
 
@@ -432,6 +478,181 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         if !NSWorkspace.shared.open(url) {
             NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/System Settings.app"))
         }
+    }
+
+    @objc private func markdownLinkClicked() {
+        dismissHelp()
+        showMarkdownHelp()
+    }
+
+    @objc private func markdownBackClicked() {
+        dismissHelp()
+        showHelp()
+    }
+
+    func showMarkdownHelpScreen() {
+        dismissHelp()
+        showMarkdownHelp()
+    }
+
+    private func showMarkdownHelp() {
+        let overlay = NSView(frame: containerView.bounds)
+        overlay.autoresizingMask = [.width, .height]
+        overlay.wantsLayer = true
+        overlay.layer?.backgroundColor = NSColor(red: 0.01, green: 0.01, blue: 0.01, alpha: 0.95).cgColor
+
+        let titleFont = L.current.usesSystemFont
+            ? NSFont.systemFont(ofSize: 22, weight: .bold)
+            : NSFont(name: "Menlo-Bold", size: 18) ?? NSFont.monospacedSystemFont(ofSize: 18, weight: .bold)
+        let sectionFont = L.current.usesSystemFont
+            ? NSFont.systemFont(ofSize: 14, weight: .bold)
+            : NSFont(name: "Menlo-Bold", size: 12) ?? NSFont.monospacedSystemFont(ofSize: 12, weight: .bold)
+        let bodyFont = L.current.usesSystemFont
+            ? NSFont.systemFont(ofSize: 14, weight: .regular)
+            : NSFont(name: "Menlo", size: 12) ?? NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
+
+        // Back button
+        let backButton = NSButton(title: "", target: self, action: #selector(markdownBackClicked))
+        backButton.translatesAutoresizingMaskIntoConstraints = false
+        backButton.isBordered = false
+        let backAttrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: retroGreen.withAlphaComponent(0.8),
+            .font: bodyFont,
+            .underlineStyle: NSUnderlineStyle.single.rawValue
+        ]
+        backButton.attributedTitle = NSAttributedString(string: L.markdownHelpBack, attributes: backAttrs)
+        backButton.setAccessibilityLabel(L.help)
+        overlay.addSubview(backButton)
+
+        // Content - left aligned reference material
+        let contentView = NSView()
+        contentView.translatesAutoresizingMaskIntoConstraints = false
+
+        let leftPara = NSMutableParagraphStyle()
+        leftPara.alignment = .left
+        leftPara.lineSpacing = 4
+
+        let sectionPara = NSMutableParagraphStyle()
+        sectionPara.alignment = .left
+        sectionPara.paragraphSpacingBefore = 16
+
+        let titleAttrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: retroGreen,
+            .font: titleFont,
+            .paragraphStyle: leftPara
+        ]
+        let sectionAttrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: retroDimGreen.withAlphaComponent(0.5),
+            .font: sectionFont,
+            .paragraphStyle: sectionPara
+        ]
+        let bodyAttrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: retroDimGreen,
+            .font: bodyFont,
+            .paragraphStyle: leftPara
+        ]
+        let syntaxAttrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: retroGreen,
+            .font: bodyFont,
+            .paragraphStyle: leftPara
+        ]
+
+        let str = NSMutableAttributedString()
+
+        // Title
+        str.append(NSAttributedString(string: L.markdownSupport.uppercased(), attributes: titleAttrs))
+
+        // Keybindings section
+        str.append(NSAttributedString(string: "\n\n", attributes: bodyAttrs))
+        str.append(NSAttributedString(string: L.markdownHelpBindings, attributes: sectionAttrs))
+        str.append(NSAttributedString(string: "\n\n", attributes: bodyAttrs))
+        str.append(NSAttributedString(string: L.markdownHelpShiftEnterRich, attributes: bodyAttrs))
+        str.append(NSAttributedString(string: "\n", attributes: bodyAttrs))
+        str.append(NSAttributedString(string: L.markdownHelpShiftEnterPlain, attributes: bodyAttrs))
+        str.append(NSAttributedString(string: "\n", attributes: bodyAttrs))
+        str.append(NSAttributedString(string: L.markdownHelpShiftEnterMd, attributes: bodyAttrs))
+
+        // Cheat sheet section
+        str.append(NSAttributedString(string: "\n\n", attributes: bodyAttrs))
+        str.append(NSAttributedString(string: L.markdownHelpCheatSheet, attributes: sectionAttrs))
+        str.append(NSAttributedString(string: "\n\n", attributes: bodyAttrs))
+        str.append(NSAttributedString(string: L.markdownHelpHeadings, attributes: syntaxAttrs))
+        str.append(NSAttributedString(string: "\n", attributes: syntaxAttrs))
+        str.append(NSAttributedString(string: L.markdownHelpBold, attributes: syntaxAttrs))
+        str.append(NSAttributedString(string: "\n", attributes: syntaxAttrs))
+        str.append(NSAttributedString(string: L.markdownHelpItalic, attributes: syntaxAttrs))
+        str.append(NSAttributedString(string: "\n", attributes: syntaxAttrs))
+        str.append(NSAttributedString(string: L.markdownHelpCode, attributes: syntaxAttrs))
+        str.append(NSAttributedString(string: "\n", attributes: syntaxAttrs))
+        str.append(NSAttributedString(string: L.markdownHelpCodeBlock, attributes: syntaxAttrs))
+        str.append(NSAttributedString(string: "\n", attributes: syntaxAttrs))
+        str.append(NSAttributedString(string: L.markdownHelpLink, attributes: syntaxAttrs))
+        str.append(NSAttributedString(string: "\n", attributes: syntaxAttrs))
+        str.append(NSAttributedString(string: L.markdownHelpList, attributes: syntaxAttrs))
+        str.append(NSAttributedString(string: "\n", attributes: syntaxAttrs))
+        str.append(NSAttributedString(string: L.markdownHelpOrderedList, attributes: syntaxAttrs))
+        str.append(NSAttributedString(string: "\n", attributes: syntaxAttrs))
+        str.append(NSAttributedString(string: L.markdownHelpBlockquote, attributes: syntaxAttrs))
+        str.append(NSAttributedString(string: "\n", attributes: syntaxAttrs))
+        str.append(NSAttributedString(string: L.markdownHelpHr, attributes: syntaxAttrs))
+
+        let helpContent = NSTextField(labelWithString: "")
+        helpContent.translatesAutoresizingMaskIntoConstraints = false
+        helpContent.backgroundColor = .clear
+        helpContent.isBezeled = false
+        helpContent.isEditable = false
+        helpContent.maximumNumberOfLines = 0
+        helpContent.lineBreakMode = .byWordWrapping
+        helpContent.alignment = .left
+        helpContent.attributedStringValue = str
+
+        // Scroll view in case content is too tall
+        let scrollContainer = NSScrollView()
+        scrollContainer.translatesAutoresizingMaskIntoConstraints = false
+        scrollContainer.hasVerticalScroller = true
+        scrollContainer.drawsBackground = false
+        scrollContainer.scrollerStyle = .overlay
+        scrollContainer.documentView = helpContent
+
+        // Allow helpContent to expand in scrollContainer
+        helpContent.setContentHuggingPriority(.defaultLow, for: .vertical)
+
+        let dismissLabel = NSTextField(labelWithString: "")
+        dismissLabel.translatesAutoresizingMaskIntoConstraints = false
+        dismissLabel.backgroundColor = .clear
+        dismissLabel.isBezeled = false
+        dismissLabel.isEditable = false
+        dismissLabel.alignment = .center
+        dismissLabel.attributedStringValue = makeDismissString()
+
+        overlay.addSubview(scrollContainer)
+        overlay.addSubview(dismissLabel)
+
+        // Insert below effectsView so CRT effects still show on top
+        containerView.addSubview(overlay, positioned: .below, relativeTo: effectsView)
+
+        NSLayoutConstraint.activate([
+            backButton.topAnchor.constraint(equalTo: overlay.topAnchor, constant: 16),
+            backButton.leadingAnchor.constraint(equalTo: overlay.leadingAnchor, constant: 24),
+
+            scrollContainer.topAnchor.constraint(equalTo: backButton.bottomAnchor, constant: 12),
+            scrollContainer.leadingAnchor.constraint(equalTo: overlay.leadingAnchor, constant: 60),
+            scrollContainer.trailingAnchor.constraint(equalTo: overlay.trailingAnchor, constant: -60),
+            scrollContainer.bottomAnchor.constraint(equalTo: dismissLabel.topAnchor, constant: -16),
+
+            helpContent.topAnchor.constraint(equalTo: scrollContainer.contentView.topAnchor),
+            helpContent.leadingAnchor.constraint(equalTo: scrollContainer.contentView.leadingAnchor),
+            helpContent.trailingAnchor.constraint(equalTo: scrollContainer.contentView.trailingAnchor),
+
+            dismissLabel.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
+            dismissLabel.bottomAnchor.constraint(equalTo: overlay.bottomAnchor, constant: -24),
+        ])
+
+        let clickGesture = NSClickGestureRecognizer(target: self, action: #selector(helpOverlayClicked))
+        clickGesture.delegate = self
+        overlay.addGestureRecognizer(clickGesture)
+
+        helpOverlay = overlay
     }
 
     private func makeHelpContent() -> NSAttributedString {
@@ -505,7 +726,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             .font: font,
             .paragraphStyle: centered
         ]
-        return NSAttributedString(string: L.helpDismiss, attributes: attrs)
+        return NSAttributedString(string: L.helpDismissEsc, attributes: attrs)
     }
 
     @objc private func clearSearchClicked() {
