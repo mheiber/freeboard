@@ -18,7 +18,6 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     private var tableView: NSTableView!
     private var searchField: NSTextField!
     private var helpLabel: NSTextField!
-    private var quitButton: NSButton!
     private var containerView: NSView!
     private var effectsView: RetroEffectsView!
     private var emptyStateView: NSView!
@@ -181,11 +180,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             string: L.searchPlaceholder, attributes: placeholderAttrs
         )
         helpLabel.attributedStringValue = makeHelpString()
-        helpButton.title = "[\(L.help)]"
+        helpButton.attributedTitle = makeHelpButtonTitle()
         helpButton.setAccessibilityLabel(L.help)
-        helpButton.font = retroFontSmall
-        quitButton.title = L.quit
-        quitButton.font = retroFontSmall
         let warningAttrs: [NSAttributedString.Key: Any] = [
             .foregroundColor: NSColor.orange,
             .font: retroFontSmall
@@ -290,18 +286,11 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         helpLabel.alignment = .left
         helpLabel.attributedStringValue = makeHelpString()
 
-        helpButton = NSButton(title: "[\(L.help)]", target: self, action: #selector(helpButtonClicked))
+        helpButton = NSButton(title: "", target: self, action: #selector(helpButtonClicked))
         helpButton.translatesAutoresizingMaskIntoConstraints = false
         helpButton.isBordered = false
-        helpButton.font = retroFontSmall
-        helpButton.contentTintColor = retroDimGreen.withAlphaComponent(0.5)
+        helpButton.attributedTitle = makeHelpButtonTitle()
         helpButton.setAccessibilityLabel(L.help)
-
-        quitButton = NSButton(title: L.quit, target: self, action: #selector(quitClicked))
-        quitButton.translatesAutoresizingMaskIntoConstraints = false
-        quitButton.isBordered = false
-        quitButton.font = retroFontSmall
-        quitButton.contentTintColor = retroDimGreen.withAlphaComponent(0.5)
 
         permissionWarningButton = NSButton(title: "", target: self, action: #selector(permissionWarningClicked))
         permissionWarningButton.translatesAutoresizingMaskIntoConstraints = false
@@ -311,7 +300,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             .font: retroFontSmall
         ]
         permissionWarningButton.attributedTitle = NSAttributedString(
-            string: "⚠ \(L.permissionWarningButtonTitle)",
+            string: "\u{26A0} \(L.permissionWarningButtonTitle)",
             attributes: warningAttrs
         )
         permissionWarningButton.setAccessibilityLabel(L.permissionWarningLabel)
@@ -328,11 +317,11 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         containerView.addSubview(helpLabel)
         containerView.addSubview(permissionWarningButton)
         containerView.addSubview(helpButton)
-        containerView.addSubview(quitButton)
 
         NSLayoutConstraint.activate([
             helpLabel.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -7),
             helpLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
+            helpLabel.trailingAnchor.constraint(lessThanOrEqualTo: permissionWarningButton.leadingAnchor, constant: -6),
             helpLabel.heightAnchor.constraint(equalToConstant: 18),
 
             permissionWarningButton.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -5),
@@ -340,17 +329,9 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             permissionWarningButton.heightAnchor.constraint(equalToConstant: 20),
 
             helpButton.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -5),
-            helpButton.trailingAnchor.constraint(equalTo: quitButton.leadingAnchor, constant: -8),
+            helpButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
             helpButton.heightAnchor.constraint(equalToConstant: 20),
-
-            quitButton.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -5),
-            quitButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
-            quitButton.heightAnchor.constraint(equalToConstant: 20),
         ])
-    }
-
-    @objc private func quitClicked() {
-        NSApp.terminate(nil)
     }
 
     @objc private func helpButtonClicked() {
@@ -1263,7 +1244,17 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         if let entry = entry, entry.entryType == .text {
             switch entry.formatCategory {
             case .markdown:
-                str.append(NSAttributedString(string: "Shift+Enter ", attributes: keyAttrs))
+                // Use ⇧ symbol at a larger size for visibility
+                let shiftFont = L.current.usesSystemFont
+                    ? NSFont.systemFont(ofSize: 18, weight: .medium)
+                    : NSFont(name: "Menlo-Bold", size: 15) ?? NSFont.monospacedSystemFont(ofSize: 15, weight: .bold)
+                let shiftAttrs: [NSAttributedString.Key: Any] = [
+                    .foregroundColor: retroGreen.withAlphaComponent(0.6),
+                    .font: shiftFont,
+                    .baselineOffset: -1
+                ]
+                str.append(NSAttributedString(string: "\u{21E7}", attributes: shiftAttrs))
+                str.append(NSAttributedString(string: "Enter ", attributes: keyAttrs))
                 str.append(NSAttributedString(string: L.richPaste + "  ", attributes: dimAttrs))
             case .other:
                 break
@@ -1276,10 +1267,25 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         str.append(NSAttributedString(string: L.expand + "  ", attributes: dimAttrs))
         str.append(NSAttributedString(string: "^E ", attributes: keyAttrs))
         str.append(NSAttributedString(string: L.edit + "  ", attributes: dimAttrs))
-        str.append(NSAttributedString(string: "⌘S ", attributes: keyAttrs))
+        str.append(NSAttributedString(string: "\u{2318}S ", attributes: keyAttrs))
         str.append(NSAttributedString(string: L.star + "  ", attributes: dimAttrs))
-        str.append(NSAttributedString(string: "⌘D ", attributes: keyAttrs))
-        str.append(NSAttributedString(string: L.delete + "  ", attributes: dimAttrs))
+        str.append(NSAttributedString(string: "\u{2318}D ", attributes: keyAttrs))
+        str.append(NSAttributedString(string: L.delete, attributes: dimAttrs))
+        return str
+    }
+
+    private func makeHelpButtonTitle() -> NSAttributedString {
+        let str = NSMutableAttributedString()
+        let keyAttrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: retroGreen.withAlphaComponent(0.6),
+            .font: retroFontSmall
+        ]
+        let dimAttrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: retroDimGreen.withAlphaComponent(0.6),
+            .font: retroFontSmall
+        ]
+        str.append(NSAttributedString(string: "? ", attributes: keyAttrs))
+        str.append(NSAttributedString(string: L.help + "  ", attributes: dimAttrs))
         str.append(NSAttributedString(string: "Esc ", attributes: keyAttrs))
         str.append(NSAttributedString(string: L.close, attributes: dimAttrs))
         return str
@@ -1998,7 +2004,6 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         searchField.isHidden = true
         helpLabel.isHidden = true
         helpButton.isHidden = true
-        quitButton.isHidden = true
         permissionWarningButton.isHidden = true
         dismissPermissionTooltip()
         emptyStateView?.isHidden = true
@@ -2033,7 +2038,6 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             searchField.isHidden = false
             helpLabel.isHidden = false
             helpButton.isHidden = false
-            quitButton.isHidden = false
             updateEmptyStateVisibility()
             updatePermissionWarning()
 
