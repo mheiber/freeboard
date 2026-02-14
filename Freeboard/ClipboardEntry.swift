@@ -10,10 +10,8 @@ enum EntryType: Equatable {
 /// Classification for markdown/rich text paste conversion.
 /// Determines what Shift+Enter does for a given entry.
 enum FormatCategory {
-    case richText       // Has rich data, not markdown → Shift pastes plain text
-    case plainMarkdown  // No rich data, is markdown → Shift pastes as rich text
-    case richMarkdown   // Has rich data AND is markdown → Shift pastes markdown source
-    case plainText      // No rich data, not markdown → Shift is no-op
+    case markdown   // Content is markdown → Shift+Enter pastes as rich text
+    case other      // Everything else → Shift+Enter pastes as plain text (no-op for plain text)
 }
 
 struct ClipboardEntry: Identifiable, Equatable {
@@ -102,13 +100,9 @@ struct ClipboardEntry: Identifiable, Equatable {
 
     /// Classify this entry for paste conversion behavior.
     var formatCategory: FormatCategory {
-        guard entryType == .text else { return .plainText }
-        let rich = hasRichData
-        let md = isMarkdownContent
-        if rich && md { return .richMarkdown }
-        if rich { return .richText }
-        if md { return .plainMarkdown }
-        return .plainText
+        guard entryType == .text else { return .other }
+        if isMarkdownContent { return .markdown }
+        return .other
     }
 
     /// Score text for markdown-likeness. Higher score = more likely markdown.

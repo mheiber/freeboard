@@ -569,8 +569,6 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         str.append(NSAttributedString(string: L.markdownHelpShiftEnterRich, attributes: bodyAttrs))
         str.append(NSAttributedString(string: "\n", attributes: bodyAttrs))
         str.append(NSAttributedString(string: L.markdownHelpShiftEnterPlain, attributes: bodyAttrs))
-        str.append(NSAttributedString(string: "\n", attributes: bodyAttrs))
-        str.append(NSAttributedString(string: L.markdownHelpShiftEnterMd, attributes: bodyAttrs))
 
         // Cheat sheet section
         str.append(NSAttributedString(string: "\n\n", attributes: bodyAttrs))
@@ -957,17 +955,11 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         // Dynamic shift hint based on selected entry's format category
         if let entry = entry, entry.entryType == .text {
             switch entry.formatCategory {
-            case .richText:
-                str.append(NSAttributedString(string: "Shift+Enter ", attributes: keyAttrs))
-                str.append(NSAttributedString(string: L.plainPaste + "  ", attributes: dimAttrs))
-            case .plainMarkdown:
+            case .markdown:
                 str.append(NSAttributedString(string: "Shift+Enter ", attributes: keyAttrs))
                 str.append(NSAttributedString(string: L.richPaste + "  ", attributes: dimAttrs))
-            case .richMarkdown:
-                str.append(NSAttributedString(string: "Shift+Enter ", attributes: keyAttrs))
-                str.append(NSAttributedString(string: L.markdownPaste + "  ", attributes: dimAttrs))
-            case .plainText:
-                break // No shift hint for plain text
+            case .other:
+                break
             }
         }
 
@@ -993,13 +985,9 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         // Update VoiceOver label for the help bar
         if let entry = entry, entry.entryType == .text {
             switch entry.formatCategory {
-            case .richText:
-                helpLabel.setAccessibilityLabel(L.accessibilityRichText)
-            case .plainMarkdown:
+            case .markdown:
                 helpLabel.setAccessibilityLabel(L.accessibilityMarkdownText)
-            case .richMarkdown:
-                helpLabel.setAccessibilityLabel(L.accessibilityRichMarkdown)
-            case .plainText:
+            case .other:
                 helpLabel.setAccessibilityLabel(nil)
             }
         } else {
@@ -1051,14 +1039,10 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         // Communicate format category to VoiceOver
         if entry.entryType == .text {
             switch entry.formatCategory {
-            case .richText:
-                cell.setAccessibilityHelp(L.accessibilityRichText)
-            case .plainMarkdown:
+            case .markdown:
                 cell.setAccessibilityHelp(L.accessibilityMarkdownText)
-            case .richMarkdown:
-                cell.setAccessibilityHelp(L.accessibilityRichMarkdown)
-            case .plainText:
-                break // No extra hint needed
+            case .other:
+                break
             }
         }
 
@@ -1489,9 +1473,9 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         guard idx < filteredEntries.count else { return }
         let entry = filteredEntries[idx]
         switch entry.formatCategory {
-        case .plainMarkdown:
+        case .markdown:
             historyDelegate?.didSelectEntryAsRenderedMarkdown(entry)
-        case .richText, .richMarkdown, .plainText:
+        case .other:
             historyDelegate?.didSelectEntryAsPlainText(entry)
         }
     }

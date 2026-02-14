@@ -68,10 +68,10 @@ class MarkdownConversionTests: XCTestCase {
 
     func testPlainTextCategory() {
         let entry = ClipboardEntry(content: "Hello world")
-        XCTAssertEqual(entry.formatCategory, .plainText)
+        XCTAssertEqual(entry.formatCategory, .other)
     }
 
-    func testPlainMarkdownCategory() {
+    func testMarkdownCategory() {
         let md = """
         # Title
         ## Subtitle
@@ -79,19 +79,19 @@ class MarkdownConversionTests: XCTestCase {
         - item 2
         """
         let entry = ClipboardEntry(content: md)
-        XCTAssertEqual(entry.formatCategory, .plainMarkdown)
+        XCTAssertEqual(entry.formatCategory, .markdown)
     }
 
-    func testRichTextCategory() {
+    func testRichTextIsOther() {
         let rtfData = "{\\rtf1 Hello}".data(using: .utf8)!
         let entry = ClipboardEntry(
             content: "Hello",
             pasteboardData: [.rtf: rtfData, .string: "Hello".data(using: .utf8)!]
         )
-        XCTAssertEqual(entry.formatCategory, .richText)
+        XCTAssertEqual(entry.formatCategory, .other)
     }
 
-    func testRichMarkdownCategory() {
+    func testRichMarkdownIsStillMarkdown() {
         let htmlData = "<h1>Title</h1><ul><li>item</li></ul>".data(using: .utf8)!
         let md = """
         # Title
@@ -103,17 +103,17 @@ class MarkdownConversionTests: XCTestCase {
             content: md,
             pasteboardData: [.html: htmlData, .string: md.data(using: .utf8)!]
         )
-        XCTAssertEqual(entry.formatCategory, .richMarkdown)
+        XCTAssertEqual(entry.formatCategory, .markdown)
     }
 
-    func testImageEntryIsPlainText() {
+    func testImageEntryIsOther() {
         let entry = ClipboardEntry(content: "", entryType: .image, imageData: Data())
-        XCTAssertEqual(entry.formatCategory, .plainText)
+        XCTAssertEqual(entry.formatCategory, .other)
     }
 
-    func testFileURLEntryIsPlainText() {
+    func testFileURLEntryIsOther() {
         let entry = ClipboardEntry(content: "file.txt", entryType: .fileURL, fileURL: URL(fileURLWithPath: "/tmp/file.txt"))
-        XCTAssertEqual(entry.formatCategory, .plainText)
+        XCTAssertEqual(entry.formatCategory, .other)
     }
 
     // MARK: - hasRichData
@@ -291,7 +291,7 @@ class MarkdownConversionTests: XCTestCase {
     func testEmptyStringIsNotMarkdown() {
         let entry = ClipboardEntry(content: "")
         XCTAssertFalse(entry.isMarkdownContent)
-        XCTAssertEqual(entry.formatCategory, .plainText)
+        XCTAssertEqual(entry.formatCategory, .other)
     }
 
     func testSingleHashNotMarkdown() {

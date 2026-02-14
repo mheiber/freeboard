@@ -139,12 +139,8 @@ struct L {
     static var vimNormalMode: String { tr("vimNormalMode") }
     static var vimGoBack: String { tr("vimGoBack") }
     static var move: String { tr("move") }
-    static var plainPaste: String { tr("plainPaste") }
     static var richPaste: String { tr("richPaste") }
-    static var markdownPaste: String { tr("markdownPaste") }
-    static var accessibilityRichText: String { tr("accessibilityRichText") }
     static var accessibilityMarkdownText: String { tr("accessibilityMarkdownText") }
-    static var accessibilityRichMarkdown: String { tr("accessibilityRichMarkdown") }
     static var markdownSupport: String { tr("markdownSupport") }
     static var helpDismissEsc: String { tr("helpDismissEsc") }
     static var helpPowerFeatures: String { tr("helpPowerFeatures") }
@@ -153,7 +149,6 @@ struct L {
     static var markdownHelpBindings: String { tr("markdownHelpBindings") }
     static var markdownHelpShiftEnterRich: String { tr("markdownHelpShiftEnterRich") }
     static var markdownHelpShiftEnterPlain: String { tr("markdownHelpShiftEnterPlain") }
-    static var markdownHelpShiftEnterMd: String { tr("markdownHelpShiftEnterMd") }
     static var markdownHelpCheatSheet: String { tr("markdownHelpCheatSheet") }
     static var markdownHelpHeadings: String { tr("markdownHelpHeadings") }
     static var markdownHelpBold: String { tr("markdownHelpBold") }
@@ -505,35 +500,11 @@ struct L {
             .ar: "تحريك", .bn: "সরান",
             .pt: "mover", .ru: "двигаться", .ja: "移動"
         ],
-        "plainPaste": [
-            .en: "plain paste", .zh: "纯文本粘贴", .hi: "सादा पेस्ट",
-            .es: "pegar plano", .fr: "coller brut",
-            .ar: "لصق عادي", .bn: "সাধারণ পেস্ট",
-            .pt: "colar simples", .ru: "вставить текст", .ja: "テキスト貼り付け"
-        ],
         "richPaste": [
             .en: "rich paste", .zh: "富文本粘贴", .hi: "रिच पेस्ट",
             .es: "pegar formato", .fr: "coller riche",
             .ar: "لصق منسق", .bn: "রিচ পেস্ট",
             .pt: "colar formatado", .ru: "вставить формат", .ja: "リッチ貼り付け"
-        ],
-        "markdownPaste": [
-            .en: "markdown paste", .zh: "markdown 粘贴", .hi: "markdown पेस्ट",
-            .es: "pegar markdown", .fr: "coller markdown",
-            .ar: "لصق markdown", .bn: "markdown পেস্ট",
-            .pt: "colar markdown", .ru: "вставить markdown", .ja: "markdown貼り付け"
-        ],
-        "accessibilityRichText": [
-            .en: "Formatted text, Shift Enter to paste as plain text",
-            .zh: "格式化文本，Shift Enter 粘贴为纯文本",
-            .hi: "स्वरूपित टेक्स्ट, Shift Enter से सादा टेक्स्ट पेस्ट करें",
-            .es: "Texto formateado, Shift Enter para pegar como texto plano",
-            .fr: "Texte formaté, Shift Entrée pour coller en texte brut",
-            .ar: "نص منسق، Shift Enter للصق كنص عادي",
-            .bn: "ফরম্যাটেড টেক্সট, Shift Enter সাধারণ টেক্সট হিসেবে পেস্ট করুন",
-            .pt: "Texto formatado, Shift Enter para colar como texto simples",
-            .ru: "Форматированный текст, Shift Enter для вставки как текст",
-            .ja: "書式付きテキスト、Shift Enterでテキストとして貼り付け"
         ],
         "accessibilityMarkdownText": [
             .en: "Markdown text, Shift Enter to paste as formatted text",
@@ -546,18 +517,6 @@ struct L {
             .pt: "Texto Markdown, Shift Enter para colar como texto formatado",
             .ru: "Текст Markdown, Shift Enter для вставки с форматированием",
             .ja: "Markdownテキスト、Shift Enterで書式付きテキストとして貼り付け"
-        ],
-        "accessibilityRichMarkdown": [
-            .en: "Formatted Markdown, Shift Enter to paste as Markdown source",
-            .zh: "格式化 Markdown，Shift Enter 粘贴为 Markdown 源文本",
-            .hi: "स्वरूपित Markdown, Shift Enter से Markdown स्रोत पेस्ट करें",
-            .es: "Markdown formateado, Shift Enter para pegar como fuente Markdown",
-            .fr: "Markdown formaté, Shift Entrée pour coller en source Markdown",
-            .ar: "Markdown منسق، Shift Enter للصق كنص Markdown",
-            .bn: "ফরম্যাটেড Markdown, Shift Enter Markdown সোর্স হিসেবে পেস্ট করুন",
-            .pt: "Markdown formatado, Shift Enter para colar como fonte Markdown",
-            .ru: "Форматированный Markdown, Shift Enter для вставки как исходный Markdown",
-            .ja: "書式付きMarkdown、Shift EnterでMarkdownソースとして貼り付け"
         ],
         "markdownSupport": [
             .en: "Markdown Support", .zh: "Markdown 支持", .hi: "Markdown सहायता",
@@ -618,18 +577,6 @@ struct L {
             .pt: "Shift+Enter em texto formatado → colar como texto simples",
             .ru: "Shift+Enter на форматированном тексте → вставить как обычный текст",
             .ja: "Shift+Enter 書式付きテキスト → テキストとして貼り付け"
-        ],
-        "markdownHelpShiftEnterMd": [
-            .en: "Shift+Enter on rich markdown → paste as markdown source",
-            .zh: "Shift+Enter 在富 markdown 上 → 粘贴为 markdown 源文本",
-            .hi: "Shift+Enter रिच markdown पर → markdown स्रोत के रूप में पेस्ट करें",
-            .es: "Shift+Enter en markdown enriquecido → pegar como fuente markdown",
-            .fr: "Shift+Enter sur markdown enrichi → coller en source markdown",
-            .ar: "Shift+Enter على markdown منسق → لصق كنص markdown",
-            .bn: "Shift+Enter রিচ markdown-এ → markdown সোর্স হিসেবে পেস্ট করুন",
-            .pt: "Shift+Enter em markdown formatado → colar como fonte markdown",
-            .ru: "Shift+Enter на форматированном markdown → вставить как исходный markdown",
-            .ja: "Shift+Enter リッチmarkdown → markdownソースとして貼り付け"
         ],
         "markdownHelpCheatSheet": [
             .en: "CHEAT SHEET", .zh: "速查表", .hi: "चीट शीट",
