@@ -560,14 +560,139 @@
         updateHints();
     }
 
+    // Language detection heuristics — analyzes text content to determine
+    // the programming language for syntax highlighting.
+    // Markdown has HIGHER priority than code detection because the TextMate
+    // grammar was specifically set up for markdown rendering.
+    // Only detects languages with tokenizers in vs/basic-languages/:
+    //   javascript, json, markdown, python, shell, sql, swift, typescript, xml
+    function detectLanguage(text) {
+        var trimmed = text.replace(/^\s+|\s+$/g, '');
+        if (!trimmed) return 'plaintext';
+
+        // --- JSON: starts with { or [ and looks like JSON ---
+        var firstChar = trimmed.charAt(0);
+        if (firstChar === '{' || firstChar === '[') {
+            try {
+                JSON.parse(trimmed);
+                return 'json';
+            } catch (e) {
+                // Might still be JSON-like but malformed, or could be code
+                // Check if it looks like a JS/TS object literal instead
+                if (firstChar === '{' && /^\{[\s\S]*"[^"]*"\s*:/.test(trimmed)) {
+                    return 'json';
+                }
+            }
+        }
+
+        // --- XML/HTML: starts with < and looks like markup ---
+        if (/^<[?!a-zA-Z]/.test(trimmed)) return 'xml';
+
+        // --- SQL: starts with SQL keywords ---
+        var upper = trimmed.toUpperCase();
+        var sqlStarts = ['SELECT ', 'INSERT ', 'UPDATE ', 'DELETE ', 'CREATE TABLE',
+                         'ALTER TABLE', 'DROP TABLE', 'CREATE INDEX', 'SELECT\n',
+                         'INSERT\n', 'WITH '];
+        for (var s = 0; s < sqlStarts.length; s++) {
+            if (upper.indexOf(sqlStarts[s]) === 0) return 'sql';
+        }
+        // Also check for multi-line SQL (e.g., comments then SELECT)
+        if (/^--.*\n\s*(SELECT|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP)\b/i.test(trimmed)) {
+            return 'sql';
+        }
+
+        // --- Shell: shebang or shell-specific patterns ---
+        if (/^#!\/bin\//.test(trimmed) || /^#!\/usr\/bin\/env\s/.test(trimmed)) return 'shell';
+
+        // --- Markdown detection (HIGHER priority than code) ---
+        var lines = trimmed.split('\n');
+        var mdScore = 0;
+        var totalLines = Math.min(lines.length, 100); // sample first 100 lines
+        for (var i = 0; i < totalLines; i++) {
+            var ln = lines[i].replace(/^\s+/, '');
+            if (/^#{1,6}\s/.test(ln)) mdScore += 3;              // headings
+            if (/^[-+*]\s/.test(ln)) mdScore += 1;                // unordered lists
+            if (/^\d+\.\s/.test(ln)) mdScore += 1;                // ordered lists
+            if (/^```/.test(ln) || /^~~~/.test(ln)) mdScore += 3; // code fences
+            if (/^>\s/.test(ln)) mdScore += 1;                    // blockquotes
+            if (/\[.*?\]\(.*?\)/.test(ln)) mdScore += 2;          // links
+            if (/\*\*.*?\*\*/.test(ln) || /__.*?__/.test(ln)) mdScore += 1; // bold
+            if (/^\|.*\|/.test(ln)) mdScore += 1;                 // tables
+            if (/^---+$/.test(ln) || /^===+$/.test(ln)) mdScore += 1; // hr / setext heading
+        }
+        // If there's meaningful markdown structure, use markdown
+        if (mdScore >= 3) return 'markdown';
+
+        // --- Swift ---
+        // Strong indicators: Swift-specific imports
+        if (/\bimport\s+(Foundation|UIKit|SwiftUI|Cocoa|AppKit|Combine|CoreData)\b/.test(trimmed)) return 'swift';
+        // Swift-specific syntax patterns
+        if (/\bfunc\s+\w+\s*\(/.test(trimmed) && (/\b(let|var)\s+\w+\s*[=:]/.test(trimmed) || /\s*->\s*/.test(trimmed))) return 'swift';
+        if (/\bstruct\s+\w+\s*:\s*\w+/.test(trimmed) || /\benum\s+\w+\s*:\s*\w+/.test(trimmed)) return 'swift';
+        if (/\bguard\s+let\b/.test(trimmed) || /\bif\s+let\b/.test(trimmed)) return 'swift';
+        if (/@objc\b/.test(trimmed) || /@IBOutlet\b/.test(trimmed) || /@IBAction\b/.test(trimmed)) return 'swift';
+        if (/\bprotocol\s+\w+\s*:\s*\w+/.test(trimmed) && /\bfunc\b/.test(trimmed)) return 'swift';
+
+        // --- Python ---
+        if (/^(from|import)\s+\w+/.test(trimmed) && !/\bfunction\b/.test(trimmed) && !/\bconst\b/.test(trimmed)) return 'python';
+        if (/\bdef\s+\w+\s*\(/.test(trimmed) && /:\s*$/.test(trimmed.split('\n')[0])) return 'python';
+        if (/\bif\s+__name__\s*==/.test(trimmed)) return 'python';
+        if (/\bclass\s+\w+\s*(\(.*\))?\s*:/.test(trimmed) && !/\{/.test(trimmed)) return 'python';
+        // Python-style function defs (multiple)
+        var pyDefCount = (trimmed.match(/\bdef\s+\w+\s*\(/g) || []).length;
+        if (pyDefCount >= 2) return 'python';
+
+        // --- TypeScript (check before JavaScript since TS is a superset) ---
+        if (/\binterface\s+\w+\s*\{/.test(trimmed)) return 'typescript';
+        if (/\btype\s+\w+\s*=/.test(trimmed) && (/\bconst\b/.test(trimmed) || /\blet\b/.test(trimmed))) return 'typescript';
+        if (/:\s*(string|number|boolean|void|any|never|unknown)\b/.test(trimmed) && /\b(const|let|function|class)\b/.test(trimmed)) return 'typescript';
+        if (/\bas\s+(string|number|boolean|any)\b/.test(trimmed)) return 'typescript';
+        if (/\b(export|import)\s+.*\bfrom\s+['"]/.test(trimmed) && /:\s*\w+/.test(trimmed)) return 'typescript';
+
+        // --- JavaScript ---
+        if (/\bfunction\s+\w+\s*\(/.test(trimmed) || /\bfunction\s*\(/.test(trimmed)) return 'javascript';
+        if (/\b(const|let|var)\s+\w+\s*=/.test(trimmed) && (/=>/.test(trimmed) || /\bfunction\b/.test(trimmed) || /\brequire\s*\(/.test(trimmed))) return 'javascript';
+        if (/\bmodule\.exports\b/.test(trimmed) || /\brequire\s*\(['"]/.test(trimmed)) return 'javascript';
+        if (/\b(export|import)\s+.*\bfrom\s+['"]/.test(trimmed)) return 'javascript';
+        if (/\bconsole\.\w+\s*\(/.test(trimmed)) return 'javascript';
+        if (/\basync\s+(function|\()/.test(trimmed) || /\bawait\s+/.test(trimmed)) return 'javascript';
+
+        // --- Shell (broader patterns, after shebang check above) ---
+        if (/^(export|alias|source|eval)\s+/.test(trimmed)) return 'shell';
+        if (/\|\s*(grep|awk|sed|sort|uniq|cut|tr|wc|head|tail)\b/.test(trimmed)) return 'shell';
+        if (/\$\(.*\)/.test(trimmed) && !/\b(const|let|var|function)\b/.test(trimmed)) return 'shell';
+        if (/\bif\s+\[\[?\s/.test(trimmed) && /\bthen\b/.test(trimmed)) return 'shell';
+        if (/\bfor\s+\w+\s+in\b/.test(trimmed) && /\bdo\b/.test(trimmed)) return 'shell';
+
+        // --- SQL (broader patterns) ---
+        var sqlKeywords = (upper.match(/\b(SELECT|FROM|WHERE|JOIN|INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|TABLE|INDEX|ORDER BY|GROUP BY|HAVING)\b/g) || []);
+        if (sqlKeywords.length >= 3) return 'sql';
+
+        // --- Weak Swift detection (after stronger language checks) ---
+        if (/\bfunc\s+\w+\s*\(/.test(trimmed) && /\b(let|var)\s/.test(trimmed)) return 'swift';
+        if (/\bprint\s*\("/.test(trimmed) && /\b(let|var|func)\b/.test(trimmed)) return 'swift';
+
+        // --- Weak Python detection ---
+        if (/\bprint\s*\(/.test(trimmed) && /\bdef\s+/.test(trimmed)) return 'python';
+
+        // --- Weak JS detection ---
+        if (/\b(const|let)\s+\w+\s*=/.test(trimmed)) return 'javascript';
+
+        // Nothing detected — use what Swift sent, or plaintext
+        return null;
+    }
+
     // Public API called from Swift
     window.setContent = function(text, language, isVimEnabled) {
         if (!editor) {
             setTimeout(function() { window.setContent(text, language, isVimEnabled); }, 100);
             return;
         }
+        // Run JS-side language detection; fall back to Swift-provided language
+        var detected = detectLanguage(text);
+        var finalLang = detected || language || 'plaintext';
         var model = editor.getModel();
-        monaco.editor.setModelLanguage(model, language);
+        monaco.editor.setModelLanguage(model, finalLang);
         editor.setValue(text);
         originalContent = text;
         vimEnabled = isVimEnabled;

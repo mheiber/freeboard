@@ -220,48 +220,89 @@ class MonacoEditorView: NSView, WKScriptMessageHandler, WKNavigationDelegate {
 
     // MARK: - Syntax Detection
 
+    /// Heuristic language detection based on text content.
+    /// This serves as a fallback hint for the JS-side detection in editor.html,
+    /// which is the primary/authoritative detection engine.
     static func detectLanguage(_ text: String) -> String {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return "plaintext" }
 
-        if let first = trimmed.first, first == "{" || first == "[" { return "json" }
-        if trimmed.hasPrefix("<") { return "xml" }
+        // JSON: starts with { or [
+        if let first = trimmed.first, first == "{" || first == "[" {
+            // Quick validation: try to see if it parses
+            if let data = trimmed.data(using: .utf8),
+               (try? JSONSerialization.jsonObject(with: data)) != nil {
+                return "json"
+            }
+            // Still looks JSON-ish with "key": patterns
+            if first == "{" && trimmed.range(of: #""[^"]*"\s*:"#, options: .regularExpression) != nil {
+                return "json"
+            }
+        }
 
+        // XML/HTML: starts with < and a tag-like pattern
+        if trimmed.range(of: #"^<[?!a-zA-Z]"#, options: .regularExpression) != nil { return "xml" }
+
+        // SQL: starts with SQL keywords
         let upper = trimmed.uppercased()
-        let sqlKeywords = ["SELECT ", "INSERT ", "UPDATE ", "DELETE ", "CREATE TABLE", "ALTER TABLE",
-                           "DROP TABLE", "CREATE INDEX", "SELECT\n", "INSERT\n"]
-        for kw in sqlKeywords {
-            if upper.hasPrefix(kw) || upper.contains("\n\(kw)") { return "sql" }
+        let sqlStarts = ["SELECT ", "INSERT ", "UPDATE ", "DELETE ", "CREATE TABLE",
+                         "ALTER TABLE", "DROP TABLE", "CREATE INDEX", "WITH "]
+        for kw in sqlStarts {
+            if upper.hasPrefix(kw) { return "sql" }
         }
 
+        // Shell: shebang
         if trimmed.hasPrefix("#!/bin/") || trimmed.hasPrefix("#!/usr/bin/env") { return "shell" }
-        if trimmed.hasPrefix("export ") || trimmed.hasPrefix("alias ") ||
-           trimmed.contains("| grep") || trimmed.contains("$(") { return "shell" }
 
+        // Markdown detection (HIGHER priority than code)
         let lines = trimmed.components(separatedBy: "\n")
-        var markdownScore = 0
-        for line in lines {
-            let ln = line.trimmingCharacters(in: .whitespaces)
-            if ln.range(of: "^#{1,6} ", options: .regularExpression) != nil { markdownScore += 2 }
-            if ln.hasPrefix("- ") || ln.hasPrefix("+ ") || (ln.hasPrefix("* ") && ln.count > 2) { markdownScore += 1 }
-            if ln.range(of: "^\\d+\\. ", options: .regularExpression) != nil { markdownScore += 1 }
-            if ln.hasPrefix("```") || ln.hasPrefix("~~~") { markdownScore += 2 }
-            if ln.hasPrefix("> ") { markdownScore += 1 }
-            if ln.contains("](") && ln.contains("[") { markdownScore += 2 }
-            if ln.contains("**") || ln.contains("__") { markdownScore += 1 }
+        let sampleCount = min(lines.count, 100)
+        var mdScore = 0
+        for i in 0..<sampleCount {
+            let ln = lines[i].trimmingCharacters(in: .whitespaces)
+            if ln.range(of: #"^#{1,6}\s"#, options: .regularExpression) != nil { mdScore += 3 }
+            if ln.hasPrefix("- ") || ln.hasPrefix("+ ") || (ln.hasPrefix("* ") && ln.count > 2) { mdScore += 1 }
+            if ln.range(of: #"^\d+\.\s"#, options: .regularExpression) != nil { mdScore += 1 }
+            if ln.hasPrefix("```") || ln.hasPrefix("~~~") { mdScore += 3 }
+            if ln.hasPrefix("> ") { mdScore += 1 }
+            if ln.contains("](") && ln.contains("[") { mdScore += 2 }
+            if ln.contains("**") || ln.contains("__") { mdScore += 1 }
         }
-        if markdownScore >= 2 { return "markdown" }
+        if mdScore >= 3 { return "markdown" }
 
-        let pythonPatterns = ["def ", "import ", "from ", "class ", "if __name__", "print("]
-        for pat in pythonPatterns { if trimmed.contains(pat) { return "python" } }
-
+        // Swift: specific imports
+        let swiftImports = ["import Foundation", "import UIKit", "import SwiftUI",
+                            "import Cocoa", "import AppKit", "import Combine", "import CoreData"]
+        for imp in swiftImports {
+            if trimmed.contains(imp) { return "swift" }
+        }
+        // Swift: guard let, if let, @objc, @IBOutlet
+        if trimmed.contains("guard let ") || trimmed.contains("if let ") { return "swift" }
+        if trimmed.contains("@objc") || trimmed.contains("@IBOutlet") || trimmed.contains("@IBAction") { return "swift" }
+        // Swift: func + (let/var or ->)
         if trimmed.contains("func ") && (trimmed.contains("-> ") || trimmed.contains("let ") || trimmed.contains("var ")) { return "swift" }
-        if trimmed.contains("import Foundation") || trimmed.contains("import UIKit") ||
-           trimmed.contains("import SwiftUI") || trimmed.contains("import Cocoa") { return "swift" }
 
-        let jsPatterns = ["function ", "const ", "=> ", "require(", "module.exports", "async "]
-        for pat in jsPatterns { if trimmed.contains(pat) { return "javascript" } }
-        if trimmed.contains("interface ") && trimmed.contains(": ") { return "typescript" }
+        // Python: def/class with colon, if __name__
+        if trimmed.contains("if __name__") { return "python" }
+        if trimmed.range(of: #"\bdef\s+\w+\s*\("#, options: .regularExpression) != nil &&
+           trimmed.contains(":") { return "python" }
+        // Python-style imports (but not JS-style "import X from")
+        if trimmed.range(of: #"^(from|import)\s+\w+"#, options: .regularExpression) != nil &&
+           !trimmed.contains("function ") && !trimmed.contains("const ") { return "python" }
+
+        // TypeScript: interface/type declarations with type annotations
+        if trimmed.contains("interface ") && trimmed.contains("{") { return "typescript" }
+
+        // JavaScript: function, const/let with =>, require, module.exports
+        if trimmed.contains("function ") || trimmed.contains("=> ") { return "javascript" }
+        if trimmed.contains("module.exports") || trimmed.contains("require(") { return "javascript" }
+        if trimmed.contains("const ") || trimmed.contains("let ") {
+            if trimmed.contains("= ") { return "javascript" }
+        }
+
+        // Shell: broader patterns
+        if trimmed.hasPrefix("export ") || trimmed.hasPrefix("alias ") { return "shell" }
+        if trimmed.contains("| grep") || trimmed.contains("| awk") { return "shell" }
 
         return "plaintext"
     }
