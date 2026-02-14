@@ -38,3 +38,12 @@ Freeboard is a single popup. No preferences window, no floating palettes, no sec
 ## 7. Accessible to everyone
 
 VoiceOver works. Increase Contrast works. Reduce Transparency works. Keyboard navigation works. Localization works in 10 languages. Accessibility is not an afterthought bolted on -- it is a constraint that shapes every UI decision from the start.
+
+### i18n and a11y in practice
+
+Every user-facing string lives in `Localization.swift` with translations in all 10 languages. No hardcoded English in the UI layer. When adding a new feature:
+
+- Add a localization key with translations for all 10 `Lang` cases (en, zh, hi, es, fr, ar, bn, pt, ru, ja).
+- Add an `accessibilityLabel` or `accessibilityHelp` for any new interactive or informational element so VoiceOver users know what Shift+Enter (or any alternate action) will do.
+- If the feature changes behavior based on content type (markdown, code, rich text), communicate that state to VoiceOver via `setAccessibilityHelp` on the row cell and `setAccessibilityLabel` on the hint bar.
+- Context menu items should mirror keyboard shortcuts with localized labels.

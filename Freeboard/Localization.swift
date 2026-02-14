@@ -181,6 +181,9 @@ struct L {
     static var contextPasteAsPlainText: String { tr("contextPasteAsPlainText") }
     static var contextPasteAsRichText: String { tr("contextPasteAsRichText") }
     static var contextPasteAsMarkdown: String { tr("contextPasteAsMarkdown") }
+    static var formattedPaste: String { tr("formattedPaste") }
+    static var accessibilityCodeText: String { tr("accessibilityCodeText") }
+    static var contextPasteFormatted: String { tr("contextPasteFormatted") }
     static var contextEdit: String { tr("contextEdit") }
     static var contextView: String { tr("contextView") }
     static var contextExpand: String { tr("contextExpand") }
@@ -880,6 +883,30 @@ struct L {
             .es: "Mostrar en Finder", .fr: "Afficher dans le Finder",
             .ar: "عرض في Finder", .bn: "Finder-এ দেখান",
             .pt: "Mostrar no Finder", .ru: "Показать в Finder", .ja: "Finderで表示"
+        ],
+        "formattedPaste": [
+            .en: "formatted", .zh: "格式化", .hi: "स्वरूपित",
+            .es: "formateado", .fr: "formaté",
+            .ar: "منسق", .bn: "ফরম্যাটেড",
+            .pt: "formatado", .ru: "формат", .ja: "整形"
+        ],
+        "accessibilityCodeText": [
+            .en: "Code text, Shift Enter to paste with syntax highlighting",
+            .zh: "代码文本，Shift Enter 粘贴并语法高亮",
+            .hi: "कोड टेक्स्ट, Shift Enter सिंटैक्स हाइलाइटिंग के साथ पेस्ट करें",
+            .es: "Texto de código, Shift Enter para pegar con resaltado de sintaxis",
+            .fr: "Texte de code, Shift Entrée pour coller avec coloration syntaxique",
+            .ar: "نص برمجي، Shift Enter للصق مع تلوين بناء الجملة",
+            .bn: "কোড টেক্সট, Shift Enter সিনট্যাক্স হাইলাইটিং সহ পেস্ট করুন",
+            .pt: "Texto de código, Shift Enter para colar com destaque de sintaxe",
+            .ru: "Текст кода, Shift Enter для вставки с подсветкой синтаксиса",
+            .ja: "コードテキスト、Shift Enterでシンタックスハイライト付きで貼り付け"
+        ],
+        "contextPasteFormatted": [
+            .en: "Paste Formatted", .zh: "粘贴为格式化文本", .hi: "स्वरूपित पेस्ट करें",
+            .es: "Pegar formateado", .fr: "Coller formaté",
+            .ar: "لصق منسق", .bn: "ফরম্যাটেড পেস্ট",
+            .pt: "Colar formatado", .ru: "Вставить с форматированием", .ja: "整形して貼り付け"
         ],
     ]
 }

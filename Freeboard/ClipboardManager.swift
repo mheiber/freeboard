@@ -203,6 +203,18 @@ class ClipboardManager {
         lastChangeCount = pasteboard.changeCount
     }
 
+    /// Convert code content to syntax-highlighted HTML and write to pasteboard.
+    /// Used when Shift+Enter is pressed on a detected code entry.
+    func selectEntryAsSyntaxHighlightedCode(_ entry: ClipboardEntry, language: String) {
+        let html = Self.codeToHighlightedHTML(entry.content, language: language)
+        pasteboard.clearContents()
+        _ = pasteboard.setString(entry.content, forType: .string)
+        if let htmlData = html.data(using: .utf8) {
+            _ = pasteboard.setData(htmlData, forType: .html)
+        }
+        lastChangeCount = pasteboard.changeCount
+    }
+
     /// Minimal markdown-to-HTML converter. Handles the most common markdown
     /// constructs: headings, bold, italic, code blocks, inline code, links,
     /// blockquotes, unordered/ordered lists, and horizontal rules.
@@ -356,6 +368,194 @@ class ClipboardManager {
         if inList {
             html.append(ordered ? "</ol>" : "</ul>")
             inList = false
+        }
+    }
+
+    // MARK: - Syntax Highlighting
+
+    /// Generate syntax-highlighted HTML from code text.
+    /// Uses a simple regex-based tokenizer for common languages.
+    /// Colors use a dark-on-light scheme that works well when pasted into
+    /// rich text editors like Pages, Google Docs, Word, etc.
+    static func codeToHighlightedHTML(_ code: String, language: String) -> String {
+        let escaped = escapeHTML(code)
+        let highlighted = highlightTokens(escaped, language: language)
+        return """
+        <pre style="font-family: Menlo, Monaco, 'Courier New', monospace; font-size: 13px; \
+        background-color: #f8f8f8; padding: 12px; border-radius: 6px; \
+        line-height: 1.4; color: #24292e; white-space: pre-wrap;">\(highlighted)</pre>
+        """
+    }
+
+    /// Tokenize and colorize HTML-escaped source code.
+    /// Order matters: comments and strings are matched first so keywords
+    /// inside them are not colorized.
+    private static func highlightTokens(_ escaped: String, language: String) -> String {
+        // Build patterns in priority order
+        var patterns: [(pattern: String, color: String)] = []
+
+        // 1. Multi-line comments  /* ... */
+        patterns.append((#"\/\*[\s\S]*?\*\/"#, "#6a737d"))
+
+        // 2. Single-line comments
+        if language == "python" || language == "shell" || language == "ruby" {
+            patterns.append((#"#[^\n]*"#, "#6a737d"))
+        } else {
+            patterns.append((#"\/\/[^\n]*"#, "#6a737d"))
+        }
+        // SQL also uses -- comments
+        if language == "sql" {
+            patterns.append((#"--[^\n]*"#, "#6a737d"))
+        }
+
+        // 3. Strings (double-quoted and single-quoted)
+        patterns.append((#"&quot;(?:[^&]|&(?!quot;))*?&quot;"#, "#032f62"))
+        patterns.append((#"&#39;(?:[^&]|&(?!#39;))*?&#39;"#, "#032f62"))
+        // Backtick template literals for JS/TS (escaped as `)
+        if language == "javascript" || language == "typescript" {
+            patterns.append((#"`[^`]*`"#, "#032f62"))
+        }
+
+        // 4. Numbers (integers, floats, hex)
+        patterns.append((#"\b0x[0-9a-fA-F]+\b"#, "#005cc5"))
+        patterns.append((#"\b\d+\.?\d*\b"#, "#005cc5"))
+
+        // 5. Language-specific keywords
+        let keywords = Self.keywordsForLanguage(language)
+        if !keywords.isEmpty {
+            let joined = keywords.joined(separator: "|")
+            patterns.append((#"\b(?:"# + joined + #")\b"#, "#d73a49"))
+        }
+
+        // 6. Type/class names (capitalized identifiers)
+        let builtinTypes = Self.builtinTypesForLanguage(language)
+        if !builtinTypes.isEmpty {
+            let joined = builtinTypes.joined(separator: "|")
+            patterns.append((#"\b(?:"# + joined + #")\b"#, "#6f42c1"))
+        }
+
+        // 7. Decorators/attributes (@something)
+        if language == "swift" || language == "python" || language == "java" || language == "typescript" {
+            patterns.append((#"@\w+"#, "#e36209"))
+        }
+
+        // Combine all patterns into one regex with named groups
+        // We process matches left-to-right, applying the first match at each position
+        var result = escaped
+        var combinedPattern = patterns.map { "(\($0.pattern))" }.joined(separator: "|")
+
+        guard let regex = try? NSRegularExpression(pattern: combinedPattern, options: [.dotMatchesLineSeparators]) else {
+            return escaped
+        }
+
+        let nsString = escaped as NSString
+        let matches = regex.matches(in: escaped, range: NSRange(location: 0, length: nsString.length))
+
+        // Build result by replacing matches in reverse order to preserve indices
+        var mutableResult = escaped
+        for match in matches.reversed() {
+            let fullRange = match.range
+            let matchedText = nsString.substring(with: fullRange)
+
+            // Find which group matched to determine color
+            var color = "#24292e"
+            for i in 0..<patterns.count {
+                let groupRange = match.range(at: i + 1)
+                if groupRange.location != NSNotFound {
+                    color = patterns[i].color
+                    break
+                }
+            }
+
+            let startIndex = mutableResult.index(mutableResult.startIndex, offsetBy: fullRange.location)
+            let endIndex = mutableResult.index(startIndex, offsetBy: fullRange.length)
+            mutableResult.replaceSubrange(startIndex..<endIndex,
+                with: "<span style=\"color: \(color)\">\(matchedText)</span>")
+        }
+
+        return mutableResult
+    }
+
+    /// Return keyword list for a given language.
+    private static func keywordsForLanguage(_ language: String) -> [String] {
+        switch language {
+        case "swift":
+            return ["func", "var", "let", "if", "else", "guard", "return", "import", "class", "struct",
+                    "enum", "protocol", "extension", "switch", "case", "default", "for", "while", "repeat",
+                    "break", "continue", "throw", "throws", "try", "catch", "do", "in", "where",
+                    "self", "super", "init", "deinit", "nil", "true", "false", "static", "private",
+                    "public", "internal", "fileprivate", "open", "override", "mutating", "weak",
+                    "unowned", "lazy", "typealias", "associatedtype", "async", "await"]
+        case "python":
+            return ["def", "class", "if", "elif", "else", "for", "while", "return", "import", "from",
+                    "as", "try", "except", "finally", "raise", "with", "yield", "lambda", "pass",
+                    "break", "continue", "and", "or", "not", "in", "is", "None", "True", "False",
+                    "self", "async", "await", "global", "nonlocal"]
+        case "javascript":
+            return ["function", "var", "let", "const", "if", "else", "return", "for", "while", "do",
+                    "switch", "case", "default", "break", "continue", "throw", "try", "catch",
+                    "finally", "new", "this", "class", "extends", "import", "export", "from",
+                    "async", "await", "yield", "typeof", "instanceof", "in", "of",
+                    "true", "false", "null", "undefined"]
+        case "typescript":
+            return ["function", "var", "let", "const", "if", "else", "return", "for", "while", "do",
+                    "switch", "case", "default", "break", "continue", "throw", "try", "catch",
+                    "finally", "new", "this", "class", "extends", "implements", "import", "export",
+                    "from", "async", "await", "yield", "typeof", "instanceof", "in", "of",
+                    "true", "false", "null", "undefined", "type", "interface", "enum", "namespace",
+                    "abstract", "private", "public", "protected", "readonly", "static", "as",
+                    "keyof", "declare"]
+        case "json":
+            return ["true", "false", "null"]
+        case "sql":
+            return ["SELECT", "FROM", "WHERE", "INSERT", "INTO", "UPDATE", "DELETE", "CREATE",
+                    "TABLE", "ALTER", "DROP", "INDEX", "JOIN", "LEFT", "RIGHT", "INNER", "OUTER",
+                    "ON", "AND", "OR", "NOT", "IN", "IS", "NULL", "AS", "ORDER", "BY", "GROUP",
+                    "HAVING", "LIMIT", "OFFSET", "UNION", "ALL", "DISTINCT", "SET", "VALUES",
+                    "WITH", "EXISTS", "BETWEEN", "LIKE", "CASE", "WHEN", "THEN", "ELSE", "END",
+                    "ASC", "DESC", "COUNT", "SUM", "AVG", "MIN", "MAX",
+                    // lowercase variants
+                    "select", "from", "where", "insert", "into", "update", "delete", "create",
+                    "table", "alter", "drop", "index", "join", "left", "right", "inner", "outer",
+                    "on", "and", "or", "not", "in", "is", "null", "as", "order", "by", "group",
+                    "having", "limit", "offset", "union", "all", "distinct", "set", "values",
+                    "with", "exists", "between", "like", "case", "when", "then", "else", "end"]
+        case "shell":
+            return ["if", "then", "else", "elif", "fi", "for", "while", "do", "done", "case",
+                    "esac", "function", "return", "exit", "echo", "export", "local", "readonly",
+                    "source", "alias", "unalias", "set", "unset", "in", "true", "false"]
+        case "xml":
+            return []  // XML doesn't have keywords in the traditional sense
+        default:
+            // Fallback: common C-family keywords
+            return ["if", "else", "for", "while", "return", "class", "struct", "enum",
+                    "switch", "case", "default", "break", "continue", "true", "false", "null",
+                    "void", "int", "float", "double", "bool", "string", "import", "include",
+                    "new", "this", "public", "private", "static", "const", "var", "let", "func",
+                    "function", "def", "try", "catch", "throw", "finally"]
+        }
+    }
+
+    /// Return built-in type names for a given language.
+    private static func builtinTypesForLanguage(_ language: String) -> [String] {
+        switch language {
+        case "swift":
+            return ["String", "Int", "Double", "Float", "Bool", "Array", "Dictionary", "Set",
+                    "Optional", "Any", "AnyObject", "Void", "Error", "Result", "Data", "URL",
+                    "Date", "NSObject", "NSView", "NSWindow", "NSImage", "NSColor",
+                    "UIView", "UIViewController", "CGFloat", "CGRect", "CGPoint", "CGSize"]
+        case "python":
+            return ["str", "int", "float", "bool", "list", "dict", "set", "tuple",
+                    "bytes", "bytearray", "range", "type", "object", "Exception"]
+        case "javascript", "typescript":
+            return ["String", "Number", "Boolean", "Array", "Object", "Map", "Set",
+                    "Promise", "Date", "RegExp", "Error", "Symbol", "BigInt",
+                    "HTMLElement", "Document", "Window", "Event", "Response", "Request"]
+        case "sql":
+            return ["INT", "INTEGER", "VARCHAR", "TEXT", "BOOLEAN", "DATE", "TIMESTAMP",
+                    "FLOAT", "DECIMAL", "CHAR", "BLOB", "SERIAL", "BIGINT"]
+        default:
+            return []
         }
     }
 

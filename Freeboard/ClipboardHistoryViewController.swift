@@ -5,6 +5,7 @@ protocol ClipboardHistoryDelegate: AnyObject {
     func didSelectEntry(_ entry: ClipboardEntry)
     func didSelectEntryAsPlainText(_ entry: ClipboardEntry)
     func didSelectEntryAsRenderedMarkdown(_ entry: ClipboardEntry)
+    func didSelectEntryAsSyntaxHighlightedCode(_ entry: ClipboardEntry, language: String)
     func didDeleteEntry(_ entry: ClipboardEntry)
     func didDismiss()
 }
@@ -1642,6 +1643,35 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
                 rpBtn.setAccessibilityLabel("Shift+Enter \(L.richPaste)")
                 helpLabel.addArrangedSubview(rpBtn)
                 helpLabel.addArrangedSubview(makeHintSpacer())
+            case .code:
+                let shiftFont = L.current.usesSystemFont
+                    ? NSFont.systemFont(ofSize: 18, weight: .medium)
+                    : NSFont(name: "Menlo-Bold", size: 15) ?? NSFont.monospacedSystemFont(ofSize: 15, weight: .bold)
+                let shiftAttrs: [NSAttributedString.Key: Any] = [
+                    .foregroundColor: retroGreen.withAlphaComponent(0.6),
+                    .font: shiftFont,
+                    .baselineOffset: -1
+                ]
+                let keyAttrs: [NSAttributedString.Key: Any] = [
+                    .foregroundColor: retroGreen.withAlphaComponent(0.6),
+                    .font: retroFontSmall
+                ]
+                let dimAttrs: [NSAttributedString.Key: Any] = [
+                    .foregroundColor: retroDimGreen.withAlphaComponent(0.6),
+                    .font: retroFontSmall
+                ]
+                let rpTitle = NSMutableAttributedString()
+                rpTitle.append(NSAttributedString(string: "\u{21E7}", attributes: shiftAttrs))
+                rpTitle.append(NSAttributedString(string: "Enter ", attributes: keyAttrs))
+                rpTitle.append(NSAttributedString(string: L.formattedPaste, attributes: dimAttrs))
+                let rpBtn = HoverUnderlineButton(title: "", target: self, action: #selector(helpHintClicked(_:)))
+                rpBtn.translatesAutoresizingMaskIntoConstraints = false
+                rpBtn.isBordered = false
+                rpBtn.attributedTitle = rpTitle
+                rpBtn.tag = Self.hintTagRichPaste
+                rpBtn.setAccessibilityLabel("Shift+Enter \(L.formattedPaste)")
+                helpLabel.addArrangedSubview(rpBtn)
+                helpLabel.addArrangedSubview(makeHintSpacer())
             case .other:
                 break
             }
@@ -1737,6 +1767,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             switch entry.formatCategory {
             case .markdown:
                 helpLabel.setAccessibilityLabel(L.accessibilityMarkdownText)
+            case .code:
+                helpLabel.setAccessibilityLabel(L.accessibilityCodeText)
             case .other:
                 helpLabel.setAccessibilityLabel(nil)
             }
@@ -1791,6 +1823,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             switch entry.formatCategory {
             case .markdown:
                 cell.setAccessibilityHelp(L.accessibilityMarkdownText)
+            case .code:
+                cell.setAccessibilityHelp(L.accessibilityCodeText)
             case .other:
                 break
             }
@@ -1834,10 +1868,19 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             numberLabel = nil
         }
 
-        // Markdown format indicator — subtle "md" tag for markdown entries
+        // Format indicator — subtle tag for markdown/code entries
         let mdLabel: NSTextField?
-        if entry.formatCategory == .markdown {
-            let ml = NSTextField(labelWithString: "md")
+        let formatTag: String?
+        switch entry.formatCategory {
+        case .markdown:
+            formatTag = "md"
+        case .code(let lang):
+            formatTag = lang
+        case .other:
+            formatTag = nil
+        }
+        if let tag = formatTag {
+            let ml = NSTextField(labelWithString: tag)
             ml.translatesAutoresizingMaskIntoConstraints = false
             ml.font = retroFontSmall
             ml.textColor = retroDimGreen.withAlphaComponent(0.35)
@@ -2317,6 +2360,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             switch entry.formatCategory {
             case .markdown:
                 addItem(L.contextPasteAsRichText, hint: "⇧Enter", action: #selector(contextMenuPasteAlternate(_:)))
+            case .code:
+                addItem(L.contextPasteFormatted, hint: "⇧Enter", action: #selector(contextMenuPasteAlternate(_:)))
             case .other:
                 if entry.hasRichData {
                     addItem(L.contextPasteAsPlainText, hint: "⇧Enter", action: #selector(contextMenuPasteAlternate(_:)))
@@ -2367,6 +2412,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
 
     /// Shift+Enter / Shift+N: paste in the "alternative" format.
     /// For rich text → plain, for plain markdown → rich, for rich markdown → markdown source.
+    /// For code → syntax-highlighted rich text.
     private func selectCurrentAlternateFormat(at index: Int? = nil) {
         let idx = index ?? selectedIndex
         guard idx < filteredEntries.count else { return }
@@ -2374,6 +2420,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         switch entry.formatCategory {
         case .markdown:
             historyDelegate?.didSelectEntryAsRenderedMarkdown(entry)
+        case .code(let language):
+            historyDelegate?.didSelectEntryAsSyntaxHighlightedCode(entry, language: language)
         case .other:
             historyDelegate?.didSelectEntryAsPlainText(entry)
         }

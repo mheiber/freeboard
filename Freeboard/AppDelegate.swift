@@ -306,6 +306,28 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
         }
     }
 
+    func didSelectEntryAsSyntaxHighlightedCode(_ entry: ClipboardEntry, language: String) {
+        clipboardManager.selectEntryAsSyntaxHighlightedCode(entry, language: language)
+
+        let canPaste = AXIsProcessTrusted()
+        if !canPaste {
+            let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+            _ = AXIsProcessTrustedWithOptions(options)
+        }
+
+        hidePopup()
+
+        if let app = previousApp {
+            app.activate()
+        }
+
+        if canPaste {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
+                self?.simulatePaste()
+            }
+        }
+    }
+
     func didDeleteEntry(_ entry: ClipboardEntry) {
         clipboardManager.deleteEntry(id: entry.id)
     }

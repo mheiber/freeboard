@@ -9,8 +9,9 @@ enum EntryType: Equatable {
 
 /// Classification for markdown/rich text paste conversion.
 /// Determines what Shift+Enter does for a given entry.
-enum FormatCategory {
+enum FormatCategory: Equatable {
     case markdown   // Content is markdown → Shift+Enter pastes as rich text
+    case code(String) // Content is code in the given language → Shift+Enter pastes with syntax highlighting
     case other      // Everything else → Shift+Enter pastes as plain text (no-op for plain text)
 }
 
@@ -102,6 +103,10 @@ struct ClipboardEntry: Identifiable, Equatable {
     var formatCategory: FormatCategory {
         guard entryType == .text else { return .other }
         if isMarkdownContent { return .markdown }
+        let lang = MonacoEditorView.detectLanguage(content)
+        if lang != "plaintext" && lang != "markdown" {
+            return .code(lang)
+        }
         return .other
     }
 
