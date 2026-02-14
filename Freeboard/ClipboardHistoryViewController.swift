@@ -38,6 +38,9 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     private var hoveredRow: Int? = nil
     private var mouseInIndicatorZone: Bool = false
     private var keyMonitor: Any?
+    private var imageEditSource: DispatchSourceFileSystemObject?
+    private var imageEditFileDescriptor: Int32 = -1
+    private var imageEditEntryId: UUID?
 
     private let retroGreen = NSColor(red: 0.0, green: 1.0, blue: 0.25, alpha: 1.0)
     private let retroDimGreen = NSColor(red: 0.0, green: 0.75, blue: 0.19, alpha: 1.0)
@@ -142,6 +145,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     override func viewWillDisappear() {
         super.viewWillDisappear()
         dismissHelp()
+        stopWatchingImageFile()
         if let monitor = keyMonitor {
             NSEvent.removeMonitor(monitor)
             keyMonitor = nil
@@ -944,32 +948,65 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             cell.addSubview(contentLabel)
 
             if let iv = imageView {
-                let thumbSize: CGFloat = isExpanded ? min(200, tableView.bounds.width - 200) : 36
+                if isExpanded && entry.entryType == .image, let data = entry.imageData, let img = NSImage(data: data) {
+                    // Large Quick Look-style display for expanded images
+                    let maxW: CGFloat = tableView.bounds.width - 80
+                    let maxH: CGFloat = 600
+                    let ratio = min(maxW / img.size.width, maxH / img.size.height, 1.0)
+                    let imgW = img.size.width * ratio
+                    let imgH = img.size.height * ratio
 
-                NSLayoutConstraint.activate([
-                    indicator.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 34),
-                    indicator.topAnchor.constraint(equalTo: cell.topAnchor, constant: 14),
-                    indicator.widthAnchor.constraint(equalToConstant: 16),
+                    NSLayoutConstraint.activate([
+                        indicator.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 34),
+                        indicator.topAnchor.constraint(equalTo: cell.topAnchor, constant: 14),
+                        indicator.widthAnchor.constraint(equalToConstant: 16),
 
-                    iv.leadingAnchor.constraint(equalTo: indicator.trailingAnchor, constant: 6),
-                    iv.topAnchor.constraint(equalTo: cell.topAnchor, constant: 7),
-                    iv.widthAnchor.constraint(equalToConstant: thumbSize),
-                    iv.heightAnchor.constraint(equalToConstant: thumbSize),
+                        iv.centerXAnchor.constraint(equalTo: cell.centerXAnchor),
+                        iv.topAnchor.constraint(equalTo: cell.topAnchor, constant: 8),
+                        iv.widthAnchor.constraint(equalToConstant: imgW),
+                        iv.heightAnchor.constraint(equalToConstant: imgH),
 
-                    contentLabel.leadingAnchor.constraint(equalTo: iv.trailingAnchor, constant: 8),
-                    contentLabel.topAnchor.constraint(equalTo: cell.topAnchor, constant: 8),
-                    contentLabel.bottomAnchor.constraint(lessThanOrEqualTo: cell.bottomAnchor, constant: -8),
-                    contentLabel.trailingAnchor.constraint(equalTo: timeLabel.leadingAnchor, constant: -10),
+                        contentLabel.leadingAnchor.constraint(equalTo: indicator.trailingAnchor, constant: 6),
+                        contentLabel.topAnchor.constraint(equalTo: iv.bottomAnchor, constant: 4),
+                        contentLabel.trailingAnchor.constraint(equalTo: timeLabel.leadingAnchor, constant: -10),
 
-                    timeLabel.trailingAnchor.constraint(equalTo: deleteButton.leadingAnchor, constant: -6),
-                    timeLabel.topAnchor.constraint(equalTo: cell.topAnchor, constant: 14),
-                    timeLabel.widthAnchor.constraint(equalToConstant: 70),
+                        timeLabel.trailingAnchor.constraint(equalTo: deleteButton.leadingAnchor, constant: -6),
+                        timeLabel.topAnchor.constraint(equalTo: cell.topAnchor, constant: 14),
+                        timeLabel.widthAnchor.constraint(equalToConstant: 70),
 
-                    deleteButton.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -10),
-                    deleteButton.topAnchor.constraint(equalTo: cell.topAnchor, constant: 12),
-                    deleteButton.widthAnchor.constraint(equalToConstant: 24),
-                    deleteButton.heightAnchor.constraint(equalToConstant: 24)
-                ])
+                        deleteButton.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -10),
+                        deleteButton.topAnchor.constraint(equalTo: cell.topAnchor, constant: 12),
+                        deleteButton.widthAnchor.constraint(equalToConstant: 24),
+                        deleteButton.heightAnchor.constraint(equalToConstant: 24)
+                    ])
+                } else {
+                    let thumbSize: CGFloat = 36
+
+                    NSLayoutConstraint.activate([
+                        indicator.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 34),
+                        indicator.topAnchor.constraint(equalTo: cell.topAnchor, constant: 14),
+                        indicator.widthAnchor.constraint(equalToConstant: 16),
+
+                        iv.leadingAnchor.constraint(equalTo: indicator.trailingAnchor, constant: 6),
+                        iv.topAnchor.constraint(equalTo: cell.topAnchor, constant: 7),
+                        iv.widthAnchor.constraint(equalToConstant: thumbSize),
+                        iv.heightAnchor.constraint(equalToConstant: thumbSize),
+
+                        contentLabel.leadingAnchor.constraint(equalTo: iv.trailingAnchor, constant: 8),
+                        contentLabel.topAnchor.constraint(equalTo: cell.topAnchor, constant: 8),
+                        contentLabel.bottomAnchor.constraint(lessThanOrEqualTo: cell.bottomAnchor, constant: -8),
+                        contentLabel.trailingAnchor.constraint(equalTo: timeLabel.leadingAnchor, constant: -10),
+
+                        timeLabel.trailingAnchor.constraint(equalTo: deleteButton.leadingAnchor, constant: -6),
+                        timeLabel.topAnchor.constraint(equalTo: cell.topAnchor, constant: 14),
+                        timeLabel.widthAnchor.constraint(equalToConstant: 70),
+
+                        deleteButton.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -10),
+                        deleteButton.topAnchor.constraint(equalTo: cell.topAnchor, constant: 12),
+                        deleteButton.widthAnchor.constraint(equalToConstant: 24),
+                        deleteButton.heightAnchor.constraint(equalToConstant: 24)
+                    ])
+                }
             } else {
                 NSLayoutConstraint.activate([
                     indicator.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 34),
@@ -1069,7 +1106,14 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         guard row == expandedIndex else { return 50 }
         let entry = filteredEntries[row]
         if entry.entryType == .image {
-            return 220  // Room for larger image preview
+            if let data = entry.imageData, let image = NSImage(data: data) {
+                let maxW: CGFloat = tableView.bounds.width - 80
+                let maxH: CGFloat = 600
+                let ratio = min(maxW / image.size.width, maxH / image.size.height, 1.0)
+                let imgH = image.size.height * ratio
+                return max(50, imgH + 40)  // 40 for padding
+            }
+            return 220
         }
         let maxWidth = tableView.bounds.width - 140
         let text = entry.displayContent as NSString
@@ -1224,9 +1268,47 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         do {
             try data.write(to: tempFile)
             NSWorkspace.shared.open(tempFile)
+            watchImageFile(at: tempFile, entryId: entry.id)
         } catch {
             NSSound.beep()
         }
+    }
+
+    private func watchImageFile(at url: URL, entryId: UUID) {
+        // Clean up any existing watcher
+        stopWatchingImageFile()
+
+        let fd = open(url.path, O_EVTONLY)
+        guard fd >= 0 else { return }
+        imageEditFileDescriptor = fd
+        imageEditEntryId = entryId
+
+        let source = DispatchSource.makeFileSystemObjectSource(
+            fileDescriptor: fd,
+            eventMask: [.write, .rename, .delete],
+            queue: .main
+        )
+        source.setEventHandler { [weak self] in
+            guard let self = self, let eid = self.imageEditEntryId else { return }
+            // Small delay: Preview may write in stages
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+                guard let self = self else { return }
+                guard let newData = try? Data(contentsOf: url), !newData.isEmpty else { return }
+                self.clipboardManager?.updateEntryImageData(id: eid, newData: newData)
+            }
+        }
+        source.setCancelHandler { [fd] in
+            close(fd)
+        }
+        source.resume()
+        imageEditSource = source
+    }
+
+    private func stopWatchingImageFile() {
+        imageEditSource?.cancel()
+        imageEditSource = nil
+        imageEditFileDescriptor = -1
+        imageEditEntryId = nil
     }
 
     private func openFileInEditor(_ entry: ClipboardEntry) {

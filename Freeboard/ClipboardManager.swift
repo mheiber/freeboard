@@ -151,6 +151,13 @@ class ClipboardManager {
         delegate?.clipboardManagerDidUpdateEntries(self)
     }
 
+    func updateEntryImageData(id: UUID, newData: Data) {
+        guard let idx = entries.firstIndex(where: { $0.id == id }) else { return }
+        let old = entries[idx]
+        entries[idx] = ClipboardEntry(content: old.content, isPassword: false, isStarred: old.isStarred, timestamp: old.timestamp, id: old.id, entryType: .image, imageData: newData)
+        delegate?.clipboardManagerDidUpdateEntries(self)
+    }
+
     func toggleStar(id: UUID) {
         guard let idx = entries.firstIndex(where: { $0.id == id }) else { return }
         let old = entries[idx]
