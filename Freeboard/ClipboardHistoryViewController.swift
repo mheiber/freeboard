@@ -768,6 +768,22 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     private func updateHelpLabel() {
         let entry = filteredEntries.indices.contains(selectedIndex) ? filteredEntries[selectedIndex] : nil
         helpLabel.attributedStringValue = makeHelpString(for: entry)
+
+        // Update VoiceOver label for the help bar
+        if let entry = entry, entry.entryType == .text {
+            switch entry.formatCategory {
+            case .richText:
+                helpLabel.setAccessibilityLabel(L.accessibilityRichText)
+            case .plainMarkdown:
+                helpLabel.setAccessibilityLabel(L.accessibilityMarkdownText)
+            case .richMarkdown:
+                helpLabel.setAccessibilityLabel(L.accessibilityRichMarkdown)
+            case .plainText:
+                helpLabel.setAccessibilityLabel(nil)
+            }
+        } else {
+            helpLabel.setAccessibilityLabel(nil)
+        }
     }
 
     // MARK: - Data
@@ -810,6 +826,20 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         cell.layer?.backgroundColor = isSelected ? retroSelectionBg.cgColor : NSColor.clear.cgColor
         cell.setAccessibilityRole(.row)
         cell.setAccessibilityRoleDescription("clipboard entry")
+
+        // Communicate format category to VoiceOver
+        if entry.entryType == .text {
+            switch entry.formatCategory {
+            case .richText:
+                cell.setAccessibilityHelp(L.accessibilityRichText)
+            case .plainMarkdown:
+                cell.setAccessibilityHelp(L.accessibilityMarkdownText)
+            case .richMarkdown:
+                cell.setAccessibilityHelp(L.accessibilityRichMarkdown)
+            case .plainText:
+                break // No extra hint needed
+            }
+        }
 
         let indicatorTitle: String
         if entry.isStarred {

@@ -142,6 +142,9 @@ struct L {
     static var plain: String { tr("plain") }
     static var rich: String { tr("rich") }
     static var markdownFormat: String { tr("markdownFormat") }
+    static var accessibilityRichText: String { tr("accessibilityRichText") }
+    static var accessibilityMarkdownText: String { tr("accessibilityMarkdownText") }
+    static var accessibilityRichMarkdown: String { tr("accessibilityRichMarkdown") }
 
     static func accessibleMinutesAgo(_ n: Int) -> String {
         String(format: tr("accessibleMinutesAgo"), n)
@@ -499,6 +502,42 @@ struct L {
             .es: "markdown", .fr: "markdown",
             .ar: "markdown", .bn: "markdown",
             .pt: "markdown", .ru: "markdown", .ja: "markdown"
+        ],
+        "accessibilityRichText": [
+            .en: "Formatted text, Shift Enter to paste as plain text",
+            .zh: "格式化文本，Shift Enter 粘贴为纯文本",
+            .hi: "स्वरूपित टेक्स्ट, Shift Enter से सादा टेक्स्ट पेस्ट करें",
+            .es: "Texto formateado, Shift Enter para pegar como texto plano",
+            .fr: "Texte formaté, Shift Entrée pour coller en texte brut",
+            .ar: "نص منسق، Shift Enter للصق كنص عادي",
+            .bn: "ফরম্যাটেড টেক্সট, Shift Enter সাধারণ টেক্সট হিসেবে পেস্ট করুন",
+            .pt: "Texto formatado, Shift Enter para colar como texto simples",
+            .ru: "Форматированный текст, Shift Enter для вставки как текст",
+            .ja: "書式付きテキスト、Shift Enterでテキストとして貼り付け"
+        ],
+        "accessibilityMarkdownText": [
+            .en: "Markdown text, Shift Enter to paste as formatted text",
+            .zh: "Markdown 文本，Shift Enter 粘贴为格式化文本",
+            .hi: "Markdown टेक्स्ट, Shift Enter से स्वरूपित टेक्स्ट पेस्ट करें",
+            .es: "Texto Markdown, Shift Enter para pegar como texto formateado",
+            .fr: "Texte Markdown, Shift Entrée pour coller en texte formaté",
+            .ar: "نص Markdown، Shift Enter للصق كنص منسق",
+            .bn: "Markdown টেক্সট, Shift Enter ফরম্যাটেড টেক্সট হিসেবে পেস্ট করুন",
+            .pt: "Texto Markdown, Shift Enter para colar como texto formatado",
+            .ru: "Текст Markdown, Shift Enter для вставки с форматированием",
+            .ja: "Markdownテキスト、Shift Enterで書式付きテキストとして貼り付け"
+        ],
+        "accessibilityRichMarkdown": [
+            .en: "Formatted Markdown, Shift Enter to paste as Markdown source",
+            .zh: "格式化 Markdown，Shift Enter 粘贴为 Markdown 源文本",
+            .hi: "स्वरूपित Markdown, Shift Enter से Markdown स्रोत पेस्ट करें",
+            .es: "Markdown formateado, Shift Enter para pegar como fuente Markdown",
+            .fr: "Markdown formaté, Shift Entrée pour coller en source Markdown",
+            .ar: "Markdown منسق، Shift Enter للصق كنص Markdown",
+            .bn: "ফরম্যাটেড Markdown, Shift Enter Markdown সোর্স হিসেবে পেস্ট করুন",
+            .pt: "Markdown formatado, Shift Enter para colar como fonte Markdown",
+            .ru: "Форматированный Markdown, Shift Enter для вставки как исходный Markdown",
+            .ja: "書式付きMarkdown、Shift EnterでMarkdownソースとして貼り付け"
         ],
     ]
 }
