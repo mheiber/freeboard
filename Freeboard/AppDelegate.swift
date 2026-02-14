@@ -25,27 +25,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
 
     // MARK: - Accessibility
 
-    /// Directly test if the AX API is functional. This is more reliable than
-    /// AXIsProcessTrusted() which can return stale results after rebuilds.
-    /// Only .apiDisabled means permission is denied.
-    private func checkAccessibility() -> Bool {
-        let systemWide = AXUIElementCreateSystemWide()
-        var value: AnyObject?
-        let result = AXUIElementCopyAttributeValue(
-            systemWide,
-            kAXFocusedApplicationAttribute as CFString,
-            &value
-        )
-        return result != .apiDisabled
-    }
-
     private func checkAccessibilityAndPrompt() {
-        // Trigger the system prompt to request accessibility permission
         let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
-        AXIsProcessTrustedWithOptions(options as CFDictionary)
+        let trusted = AXIsProcessTrustedWithOptions(options as CFDictionary)
 
-        hasAccessibility = checkAccessibility()
-        historyVC.hasAccessibility = hasAccessibility
+        hasAccessibility = trusted
+        historyVC.hasAccessibility = trusted
 
         // Poll periodically — the user grants permission externally in System Settings
         accessibilityTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
@@ -54,7 +39,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
     }
 
     private func recheckAccessibility() {
-        let trusted = checkAccessibility()
+        let trusted = AXIsProcessTrusted()
         if trusted != hasAccessibility {
             hasAccessibility = trusted
             historyVC.hasAccessibility = trusted
