@@ -106,6 +106,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         mainView.layer?.masksToBounds = false
 
         containerView = mainView
+        containerView.setAccessibilityIdentifier("FreeboardContainer")
         setupSearchField()
         setupTableView()
         setupHelpLabel()
@@ -222,6 +223,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             string: L.searchPlaceholder, attributes: placeholderAttrs
         )
 
+        searchField.setAccessibilityIdentifier("SearchField")
+
         containerView.addSubview(searchField)
         NSLayoutConstraint.activate([
             searchField.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 12),
@@ -242,6 +245,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         tableView.delegate = self
         tableView.target = self
         tableView.action = #selector(tableClicked)
+        tableView.setAccessibilityIdentifier("ClipboardHistoryTable")
 
         let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("entry"))
         column.width = 876
@@ -1869,6 +1873,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             editorView.wantsLayer = true
             editorView.layer?.cornerRadius = 4
             editorView.isHidden = false
+            editorView.setAccessibilityIdentifier("MonacoEditor")
 
             containerView.addSubview(editorView, positioned: .above, relativeTo: effectsView)
             effectsView.isHidden = true

@@ -35,10 +35,18 @@
 		FA0000000000000000000506 /* FuzzySearch.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000106 /* FuzzySearch.swift */; };
 		FA0000000000000000000507 /* Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA000000000000000000010C /* Localization.swift */; };
 		FA0000000000000000000508 /* EmptyStateMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000110 /* EmptyStateMode.swift */; };
+		FA0000000000000000000601 /* FreeboardUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000600 /* FreeboardUITests.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
 		FA0000000000000000000051 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = FA0000000000000000000001 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = FA0000000000000000000020;
+			remoteInfo = Freeboard;
+		};
+		FA0000000000000000000052 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = FA0000000000000000000001 /* Project object */;
 			proxyType = 1;
@@ -50,6 +58,7 @@
 /* Begin PBXFileReference section */
 		FA0000000000000000000040 /* Freeboard.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Freeboard.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		FA0000000000000000000041 /* FreeboardTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FreeboardTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		FA0000000000000000000042 /* FreeboardUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FreeboardUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		FA0000000000000000000100 /* main.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = main.swift; sourceTree = "<group>"; };
 		FA0000000000000000000101 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
 		FA0000000000000000000102 /* ClipboardEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardEntry.swift; sourceTree = "<group>"; };
@@ -75,6 +84,7 @@
 		FA0000000000000000000303 /* IntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntegrationTests.swift; sourceTree = "<group>"; };
 		FA0000000000000000000304 /* EmptyStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStateTests.swift; sourceTree = "<group>"; };
 		FA0000000000000000000305 /* MarkdownConversionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownConversionTests.swift; sourceTree = "<group>"; };
+		FA0000000000000000000600 /* FreeboardUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FreeboardUITests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -92,6 +102,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		FA0000000000000000000036 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -100,6 +117,7 @@
 			children = (
 				FA0000000000000000000004 /* Freeboard */,
 				FA0000000000000000000005 /* FreeboardTests */,
+				FA0000000000000000000006 /* FreeboardUITests */,
 				FA0000000000000000000003 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -109,6 +127,7 @@
 			children = (
 				FA0000000000000000000040 /* Freeboard.app */,
 				FA0000000000000000000041 /* FreeboardTests.xctest */,
+				FA0000000000000000000042 /* FreeboardUITests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -152,6 +171,14 @@
 			path = FreeboardTests;
 			sourceTree = "<group>";
 		};
+		FA0000000000000000000006 /* FreeboardUITests */ = {
+			isa = PBXGroup;
+			children = (
+				FA0000000000000000000600 /* FreeboardUITests.swift */,
+			);
+			path = FreeboardUITests;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -189,6 +216,23 @@
 			productReference = FA0000000000000000000041 /* FreeboardTests.xctest */;
 			productType = "com.apple.product-type.bundle.unit-test";
 		};
+		FA0000000000000000000022 /* FreeboardUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = FA0000000000000000000019 /* Build configuration list for PBXNativeTarget "FreeboardUITests" */;
+			buildPhases = (
+				FA0000000000000000000035 /* Sources */,
+				FA0000000000000000000036 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				FA0000000000000000000053 /* PBXTargetDependency */,
+			);
+			name = FreeboardUITests;
+			productName = FreeboardUITests;
+			productReference = FA0000000000000000000042 /* FreeboardUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -214,6 +258,7 @@
 			targets = (
 				FA0000000000000000000020 /* Freeboard */,
 				FA0000000000000000000021 /* FreeboardTests */,
+				FA0000000000000000000022 /* FreeboardUITests */,
 			);
 		};
 /* End PBXProject section */
@@ -271,6 +316,14 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		FA0000000000000000000035 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FA0000000000000000000601 /* FreeboardUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -278,6 +331,11 @@
 			isa = PBXTargetDependency;
 			target = FA0000000000000000000020 /* Freeboard */;
 			targetProxy = FA0000000000000000000051 /* PBXContainerItemProxy */;
+		};
+		FA0000000000000000000053 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = FA0000000000000000000020 /* Freeboard */;
+			targetProxy = FA0000000000000000000052 /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -484,6 +542,46 @@
 			};
 			name = Release;
 		};
+		FA0000000000000000000060 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "-";
+				CODE_SIGN_STYLE = Manual;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEAD_CODE_STRIPPING = YES;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = ink.maxheiber.freeboard.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = Freeboard;
+			};
+			name = Debug;
+		};
+		FA0000000000000000000061 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				DEAD_CODE_STRIPPING = YES;
+				DEVELOPMENT_TEAM = VC965E4DWA;
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@loader_path/../Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = ink.maxheiber.freeboard.uitests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_VERSION = 5.0;
+				TEST_TARGET_NAME = Freeboard;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -510,6 +608,15 @@
 			buildConfigurations = (
 				FA0000000000000000000016 /* Debug */,
 				FA0000000000000000000017 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		FA0000000000000000000019 /* Build configuration list for PBXNativeTarget "FreeboardUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FA0000000000000000000060 /* Debug */,
+				FA0000000000000000000061 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

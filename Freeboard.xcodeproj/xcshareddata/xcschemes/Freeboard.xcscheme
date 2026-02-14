@@ -38,6 +38,16 @@
                ReferencedContainer = "container:Freeboard.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "FA0000000000000000000022"
+               BuildableName = "FreeboardUITests.xctest"
+               BlueprintName = "FreeboardUITests"
+               ReferencedContainer = "container:Freeboard.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

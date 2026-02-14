@@ -36,6 +36,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
             ]
             button.attributedTitle = NSAttributedString(string: "[F]", attributes: attrs)
             button.setAccessibilityLabel("Freeboard")
+            button.setAccessibilityIdentifier("FreeboardStatusItem")
             button.action = #selector(statusItemClicked(_:))
             button.target = self
             button.sendAction(on: [.leftMouseUp, .rightMouseUp])
