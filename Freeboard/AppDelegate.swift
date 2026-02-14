@@ -119,6 +119,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
     private func showStatusMenu() {
         let menu = NSMenu()
 
+        // Open item
+        let openItem = NSMenuItem(title: L.open, action: #selector(openApp), keyEquivalent: HotkeyChoice.current.rawValue)
+        openItem.keyEquivalentModifierMask = [.command, .shift]
+        openItem.target = self
+        menu.addItem(openItem)
+        menu.addItem(NSMenuItem.separator())
+
         // Language submenu
         let langItem = NSMenuItem(title: L.current == .zh ? "语言" : "Language", action: nil, keyEquivalent: "")
         let langMenu = NSMenu()
@@ -176,6 +183,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
         HotkeyChoice.current = choice
         hotkeyManager.register(keyCode: choice.keyCode)
         historyVC.refreshLocalization()
+    }
+
+    @objc private func openApp() {
+        togglePopup()
     }
 
     @objc private func quitApp() {

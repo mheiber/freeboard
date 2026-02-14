@@ -56,6 +56,7 @@ struct L {
         }
     }
 
+    static var open: String { current == .zh ? "打开" : "Open" }
     static var shortcut: String { current == .zh ? "快捷键" : "Shortcut" }
 
     static var searchPlaceholder: String {
