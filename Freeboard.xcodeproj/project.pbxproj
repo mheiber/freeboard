@@ -21,6 +21,8 @@
 		FA000000000000000000020A /* Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA000000000000000000010C /* Localization.swift */; };
 		FA000000000000000000020B /* ScreenOverlayWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA000000000000000000010D /* ScreenOverlayWindow.swift */; };
 		FA000000000000000000020D /* EmptyStateMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000110 /* EmptyStateMode.swift */; };
+		FA000000000000000000020E /* MonacoEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000111 /* MonacoEditorView.swift */; };
+		FA000000000000000000020F /* MonacoEditor in Resources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000112 /* MonacoEditor */; };
 		FA0000000000000000000400 /* PasswordDetectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000300 /* PasswordDetectorTests.swift */; };
 		FA0000000000000000000401 /* FuzzySearchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000301 /* FuzzySearchTests.swift */; };
 		FA0000000000000000000402 /* ClipboardManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000302 /* ClipboardManagerTests.swift */; };
@@ -64,6 +66,8 @@
 		FA000000000000000000010E /* FreeboardRelease.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = FreeboardRelease.entitlements; sourceTree = "<group>"; };
 		FA000000000000000000010F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		FA0000000000000000000110 /* EmptyStateMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStateMode.swift; sourceTree = "<group>"; };
+		FA0000000000000000000111 /* MonacoEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonacoEditorView.swift; sourceTree = "<group>"; };
+		FA0000000000000000000112 /* MonacoEditor */ = {isa = PBXFileReference; lastKnownFileType = folder; path = Resources/MonacoEditor; sourceTree = "<group>"; };
 		FA0000000000000000000300 /* PasswordDetectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasswordDetectorTests.swift; sourceTree = "<group>"; };
 		FA0000000000000000000301 /* FuzzySearchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FuzzySearchTests.swift; sourceTree = "<group>"; };
 		FA0000000000000000000302 /* ClipboardManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardManagerTests.swift; sourceTree = "<group>"; };
@@ -123,6 +127,8 @@
 				FA000000000000000000010C /* Localization.swift */,
 				FA000000000000000000010D /* ScreenOverlayWindow.swift */,
 				FA0000000000000000000110 /* EmptyStateMode.swift */,
+				FA0000000000000000000111 /* MonacoEditorView.swift */,
+				FA0000000000000000000112 /* MonacoEditor */,
 				FA000000000000000000010A /* Info.plist */,
 				FA000000000000000000010B /* Freeboard.entitlements */,
 				FA000000000000000000010E /* FreeboardRelease.entitlements */,
@@ -215,6 +221,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				FA000000000000000000020C /* Assets.xcassets in Resources */,
+				FA000000000000000000020F /* MonacoEditor in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -238,6 +245,7 @@
 				FA000000000000000000020A /* Localization.swift in Sources */,
 				FA000000000000000000020B /* ScreenOverlayWindow.swift in Sources */,
 				FA000000000000000000020D /* EmptyStateMode.swift in Sources */,
+				FA000000000000000000020E /* MonacoEditorView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

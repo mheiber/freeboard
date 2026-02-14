@@ -134,6 +134,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
         loginItem.state = isLaunchAtLoginEnabled() ? .on : .off
         menu.addItem(loginItem)
 
+        // Vim mode toggle
+        let vimItem = NSMenuItem(title: L.vimStyleEditing, action: #selector(toggleVimMode(_:)), keyEquivalent: "")
+        vimItem.target = self
+        vimItem.state = UserDefaults.standard.bool(forKey: "vimModeEnabled") ? .on : .off
+        menu.addItem(vimItem)
+
         menu.addItem(NSMenuItem.separator())
         let helpItem = NSMenuItem(title: L.help, action: #selector(showHelp), keyEquivalent: "")
         helpItem.target = self
@@ -270,6 +276,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
     }
 
     // MARK: - Launch at Login
+
+    @objc private func toggleVimMode(_ sender: NSMenuItem) {
+        let current = UserDefaults.standard.bool(forKey: "vimModeEnabled")
+        UserDefaults.standard.set(!current, forKey: "vimModeEnabled")
+    }
 
     @objc private func toggleLaunchAtLogin(_ sender: NSMenuItem) {
         if #available(macOS 13.0, *) {

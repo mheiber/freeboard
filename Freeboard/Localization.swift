@@ -132,6 +132,7 @@ struct L {
     static var permissionWarningLabel: String { tr("permissionWarningLabel") }
     static var permissionWarningTooltip: String { tr("permissionWarningTooltip") }
     static var launchAtLogin: String { tr("launchAtLogin") }
+    static var vimStyleEditing: String { tr("vimStyleEditing") }
 
     static func accessibleMinutesAgo(_ n: Int) -> String {
         String(format: tr("accessibleMinutesAgo"), n)
@@ -429,6 +430,12 @@ struct L {
             .es: "Iniciar al acceder", .fr: "Ouvrir au démarrage",
             .ar: "التشغيل عند تسجيل الدخول", .bn: "লগইনে চালু করুন",
             .pt: "Abrir ao iniciar sessão", .ru: "Запускать при входе", .ja: "ログイン時に起動"
+        ],
+        "vimStyleEditing": [
+            .en: "Vim-style Editing", .zh: "Vim 风格编辑", .hi: "Vim शैली संपादन",
+            .es: "Edición estilo Vim", .fr: "Édition style Vim",
+            .ar: "تحرير بأسلوب Vim", .bn: "Vim স্টাইল সম্পাদনা",
+            .pt: "Edição estilo Vim", .ru: "Редактирование в стиле Vim", .ja: "Vim スタイル編集"
         ],
     ]
 }

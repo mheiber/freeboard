@@ -1,4 +1,5 @@
 import Cocoa
+import WebKit
 
 protocol ClipboardHistoryDelegate: AnyObject {
     func didSelectEntry(_ entry: ClipboardEntry)
@@ -7,7 +8,7 @@ protocol ClipboardHistoryDelegate: AnyObject {
     func didDismiss()
 }
 
-class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, NSTableViewDelegate, NSTextFieldDelegate, NSTextViewDelegate, NSGestureRecognizerDelegate {
+class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, NSTableViewDelegate, NSTextFieldDelegate, NSTextViewDelegate, NSGestureRecognizerDelegate, MonacoEditorDelegate {
 
     weak var historyDelegate: ClipboardHistoryDelegate?
     var clipboardManager: ClipboardManager?
@@ -31,6 +32,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     private var expandedIndex: Int? = nil
     private var editingIndex: Int? = nil
     private var editTextView: NSTextView? = nil
+    private var monacoEditorView: MonacoEditorView? = nil
+    private var monacoEditingIndex: Int? = nil
     private var searchQuery: String = ""
     private var hoveredRow: Int? = nil
     private var mouseInIndicatorZone: Bool = false
@@ -1139,7 +1142,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     }
 
     private func handleEnter() {
-        if editingIndex != nil { return }
+        if editingIndex != nil || monacoEditorView != nil { return }
         selectCurrent()
     }
 
@@ -1157,7 +1160,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
 
     private func toggleExpand() {
         guard !filteredEntries.isEmpty else { return }
-        if editingIndex != nil { return } // Don't toggle while editing
+        if editingIndex != nil || monacoEditorView != nil { return } // Don't toggle while editing
         if expandedIndex == selectedIndex {
             expandedIndex = nil
         } else {
@@ -1175,11 +1178,36 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
 
         switch entry.entryType {
         case .text:
-            expandedIndex = selectedIndex
-            editingIndex = selectedIndex
-            tableView.noteHeightOfRows(withIndexesChanged: IndexSet(integer: selectedIndex))
-            tableView.reloadData()
-            tableView.scrollRowToVisible(selectedIndex)
+            monacoEditingIndex = selectedIndex
+            let editorView = MonacoEditorView(frame: .zero)
+            editorView.translatesAutoresizingMaskIntoConstraints = false
+            editorView.delegate = self
+            editorView.wantsLayer = true
+            editorView.layer?.cornerRadius = 4
+
+            containerView.addSubview(editorView, positioned: .below, relativeTo: effectsView)
+
+            NSLayoutConstraint.activate([
+                editorView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 8),
+                editorView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 8),
+                editorView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -8),
+                editorView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -8),
+            ])
+
+            // Hide other elements
+            scrollView.isHidden = true
+            searchField.isHidden = true
+            helpLabel.isHidden = true
+            helpButton.isHidden = true
+            quitButton.isHidden = true
+            permissionWarningButton.isHidden = true
+            emptyStateView?.isHidden = true
+
+            monacoEditorView = editorView
+            editorView.loadEditor()
+
+            let language = MonacoEditorView.detectLanguage(entry.content)
+            editorView.setContent(entry.content, language: language)
         case .image:
             openImageInEditor(entry)
         case .fileURL:
@@ -1219,6 +1247,28 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     }
 
     private func exitEditMode() {
+        // Monaco editor path
+        if let editorView = monacoEditorView {
+            editorView.cleanup()
+            editorView.removeFromSuperview()
+            monacoEditorView = nil
+            monacoEditingIndex = nil
+
+            // Restore UI elements
+            scrollView.isHidden = false
+            searchField.isHidden = false
+            helpLabel.isHidden = false
+            helpButton.isHidden = false
+            quitButton.isHidden = false
+            updateEmptyStateVisibility()
+            updatePermissionWarning()
+
+            reloadEntries()
+            view.window?.makeFirstResponder(self)
+            return
+        }
+
+        // Legacy inline edit path
         guard let idx = editingIndex, idx < filteredEntries.count else {
             editingIndex = nil
             editTextView = nil
@@ -1236,6 +1286,22 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         view.window?.makeFirstResponder(self)
     }
 
+    // MARK: - MonacoEditorDelegate
+
+    func editorDidSave(content: String) {
+        if let idx = monacoEditingIndex, idx < filteredEntries.count {
+            let entry = filteredEntries[idx]
+            if !content.isEmpty && content != entry.content {
+                clipboardManager?.updateEntryContent(id: entry.id, newContent: content)
+            }
+        }
+        exitEditMode()
+    }
+
+    func editorDidClose() {
+        exitEditMode()
+    }
+
     // MARK: - Keyboard handling
 
     private var isSearchFieldFocused: Bool {
@@ -1248,6 +1314,9 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         if event.keyCode == 53 { // Esc
             if helpOverlay?.superview != nil {
                 dismissHelp()
+            } else if monacoEditorView != nil {
+                // Let Monaco handle Esc (vim mode or direct save+close)
+                return
             } else if editingIndex != nil {
                 exitEditMode()
             } else if isSearchFieldFocused {
@@ -1269,6 +1338,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             }
             return
         }
+        if monacoEditorView != nil { return } // Monaco handles its own keys
         if editingIndex != nil { super.keyDown(with: event); return } // Pass through when editing
 
         // Normal mode (search field NOT focused): number keys quick select
