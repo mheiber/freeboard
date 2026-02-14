@@ -128,13 +128,25 @@
         }
     }
 
-    function isInsertMode() {
+    function getVimMode() {
         var statusText = statusEl.textContent || '';
-        return statusText.indexOf('INSERT') !== -1 || statusText.indexOf('REPLACE') !== -1;
+        if (statusText.indexOf('INSERT') !== -1) return 'insert';
+        if (statusText.indexOf('REPLACE') !== -1) return 'replace';
+        if (statusText.indexOf('VISUAL BLOCK') !== -1) return 'visual-block';
+        if (statusText.indexOf('VISUAL LINE') !== -1) return 'visual-line';
+        if (statusText.indexOf('VISUAL') !== -1) return 'visual';
+        // Command-line mode: monaco-vim renders an input field inside #vim-status
+        if (statusEl.querySelector('input[type="text"]')) return 'command';
+        return 'normal';
+    }
+
+    function isInsertMode() {
+        var mode = getVimMode();
+        return mode === 'insert' || mode === 'replace';
     }
 
     function switchToInsertMode() {
-        if (!editor || !vimEnabled || isInsertMode()) return;
+        if (!editor || !vimEnabled || getVimMode() === 'insert') return;
         editor.focus();
         // Use the Vim API to send 'i' key to enter insert mode.
         // vimModeInstance is the CodeMirror adapter that Vim.handleKey expects.
@@ -144,7 +156,7 @@
     }
 
     function switchToNormalMode() {
-        if (!editor || !vimEnabled || !isInsertMode()) return;
+        if (!editor || !vimEnabled || getVimMode() === 'normal') return;
         editor.focus();
         if (vimModeInstance && typeof MonacoVim !== 'undefined') {
             MonacoVim.VimMode.Vim.handleKey(vimModeInstance, '<Esc>');
@@ -156,17 +168,29 @@
             hintsEl.innerHTML = '<span class="hint-action" data-action="save-close"><span class="key">Esc</span> save+close</span>';
             return;
         }
-        if (isInsertMode()) {
-            hintsEl.innerHTML =
-                '<span class="hint-action" data-action="save-close"><span class="key">:x</span> save+close</span>' +
-                '&nbsp;&nbsp;' +
-                '<span class="hint-action" data-action="normal-mode"><span class="key">jk</span> normal mode</span>';
-        } else {
-            hintsEl.innerHTML =
-                '<span class="hint-action" data-action="save-close"><span class="key">:x</span> save+close</span>' +
-                '&nbsp;&nbsp;' +
-                '<span class="hint-action" data-action="insert-mode"><span class="key">i</span> insert mode</span>';
+        var mode = getVimMode();
+        var saveHint = '<span class="hint-action" data-action="save-close"><span class="key">:x</span> save+close</span>';
+        var modeHint;
+        switch (mode) {
+            case 'insert':
+                modeHint = '<span class="hint-action" data-action="normal-mode"><span class="key">Esc</span> normal mode</span>';
+                break;
+            case 'replace':
+                modeHint = '<span class="hint-action" data-action="normal-mode"><span class="key">Esc</span> normal mode</span>';
+                break;
+            case 'visual':
+            case 'visual-line':
+            case 'visual-block':
+                modeHint = '<span class="hint-action" data-action="normal-mode"><span class="key">Esc</span> normal mode</span>';
+                break;
+            case 'command':
+                modeHint = '<span class="hint-action" data-action="normal-mode"><span class="key">Esc</span> cancel</span>';
+                break;
+            default: // normal mode
+                modeHint = '<span class="hint-action" data-action="insert-mode"><span class="key">i</span> insert mode</span>';
+                break;
         }
+        hintsEl.innerHTML = saveHint + '&nbsp;&nbsp;' + modeHint;
     }
 
     // Handle clicks on hint actions (event delegation)
