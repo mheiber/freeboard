@@ -32,6 +32,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     private var editingIndex: Int? = nil
     private var editTextView: NSTextView? = nil
     private var searchQuery: String = ""
+    private var hoveredRow: Int? = nil
+    private var mouseInIndicatorZone: Bool = false
 
     private let retroGreen = NSColor(red: 0.0, green: 1.0, blue: 0.25, alpha: 1.0)
     private let retroDimGreen = NSColor(red: 0.0, green: 0.6, blue: 0.15, alpha: 1.0)
@@ -227,6 +229,15 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             scrollView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
             scrollView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -32)
         ])
+
+        // Tracking area for hover detection on the table view
+        let trackingArea = NSTrackingArea(
+            rect: .zero,
+            options: [.mouseMoved, .mouseEnteredAndExited, .activeInActiveApp, .inVisibleRect],
+            owner: self,
+            userInfo: nil
+        )
+        tableView.addTrackingArea(trackingArea)
     }
 
     private func setupHelpLabel() {
@@ -377,7 +388,9 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     func reloadEntries() {
         guard let manager = clipboardManager else { return }
         if searchQuery.isEmpty {
-            filteredEntries = manager.entries
+            let favorites = manager.entries.filter { $0.isFavorite }
+            let nonFavorites = manager.entries.filter { !$0.isFavorite }
+            filteredEntries = favorites + nonFavorites
         } else {
             filteredEntries = FuzzySearch.filter(entries: manager.entries, query: searchQuery)
         }
@@ -409,12 +422,25 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         cell.wantsLayer = true
         cell.layer?.backgroundColor = isSelected ? retroSelectionBg.cgColor : NSColor.clear.cgColor
 
-        let indicator = NSTextField(labelWithString: isEditing ? "✎" : (isSelected ? ">" : " "))
+        let indicatorTitle: String
+        if entry.isFavorite {
+            indicatorTitle = "★"
+        } else if row == hoveredRow && mouseInIndicatorZone {
+            indicatorTitle = "☆"
+        } else if isEditing {
+            indicatorTitle = "✎"
+        } else if isSelected {
+            indicatorTitle = ">"
+        } else {
+            indicatorTitle = " "
+        }
+
+        let indicator = NSButton(title: indicatorTitle, target: self, action: #selector(favoriteClicked(_:)))
         indicator.translatesAutoresizingMaskIntoConstraints = false
+        indicator.isBordered = false
         indicator.font = retroFont
-        indicator.textColor = retroGreen
-        indicator.backgroundColor = .clear
-        indicator.isBezeled = false
+        indicator.contentTintColor = retroGreen
+        indicator.tag = row
         cell.addSubview(indicator)
 
         // Number label for quick-select (rows 0–8 → keys 1–9)
@@ -591,6 +617,41 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         let row = sender.tag
         guard row < filteredEntries.count else { return }
         historyDelegate?.didDeleteEntry(filteredEntries[row])
+    }
+
+    @objc private func favoriteClicked(_ sender: NSButton) {
+        let row = sender.tag
+        guard row < filteredEntries.count else { return }
+        clipboardManager?.toggleFavorite(id: filteredEntries[row].id)
+    }
+
+    override func mouseMoved(with event: NSEvent) {
+        let pointInTable = tableView.convert(event.locationInWindow, from: nil)
+        let row = tableView.row(at: pointInTable)
+        let inIndicator = pointInTable.x < 60
+
+        let oldRow = hoveredRow
+        let oldZone = mouseInIndicatorZone
+        hoveredRow = row >= 0 ? row : nil
+        mouseInIndicatorZone = inIndicator
+
+        if hoveredRow != oldRow || mouseInIndicatorZone != oldZone {
+            var rowsToReload = IndexSet()
+            if let old = oldRow { rowsToReload.insert(old) }
+            if let new = hoveredRow { rowsToReload.insert(new) }
+            if !rowsToReload.isEmpty {
+                tableView.reloadData(forRowIndexes: rowsToReload, columnIndexes: IndexSet(integer: 0))
+            }
+        }
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        let oldRow = hoveredRow
+        hoveredRow = nil
+        mouseInIndicatorZone = false
+        if let old = oldRow {
+            tableView.reloadData(forRowIndexes: IndexSet(integer: old), columnIndexes: IndexSet(integer: 0))
+        }
     }
 
     @objc private func tableClicked() {

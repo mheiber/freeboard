@@ -54,13 +54,14 @@ class ClipboardManager {
         guard let content = pasteboard.string(forType: .string) else { return }
         guard !content.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else { return }
 
-        // Remove duplicate if exists
+        // Preserve favorite status from any duplicate before removing
+        let wasFavorite = entries.first(where: { $0.content == content })?.isFavorite ?? false
         entries.removeAll { $0.content == content }
 
         let isBitwarden = PasswordDetector.isBitwardenContent(pasteboardTypes: pasteboard.types)
         let isPassword = isBitwarden || PasswordDetector.isPasswordLike(content)
 
-        let entry = ClipboardEntry(content: content, isPassword: isPassword)
+        let entry = ClipboardEntry(content: content, isPassword: isPassword, isFavorite: wasFavorite)
         entries.insert(entry, at: 0)
 
         // Cap at max entries
@@ -87,7 +88,14 @@ class ClipboardManager {
     func updateEntryContent(id: UUID, newContent: String) {
         guard let idx = entries.firstIndex(where: { $0.id == id }) else { return }
         let old = entries[idx]
-        entries[idx] = ClipboardEntry(content: newContent, isPassword: old.isPassword, timestamp: old.timestamp, id: old.id)
+        entries[idx] = ClipboardEntry(content: newContent, isPassword: old.isPassword, isFavorite: old.isFavorite, timestamp: old.timestamp, id: old.id)
+        delegate?.clipboardManagerDidUpdateEntries(self)
+    }
+
+    func toggleFavorite(id: UUID) {
+        guard let idx = entries.firstIndex(where: { $0.id == id }) else { return }
+        let old = entries[idx]
+        entries[idx] = ClipboardEntry(content: old.content, isPassword: old.isPassword, isFavorite: !old.isFavorite, timestamp: old.timestamp, id: old.id)
         delegate?.clipboardManagerDidUpdateEntries(self)
     }
 

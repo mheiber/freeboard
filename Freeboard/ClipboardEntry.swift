@@ -5,13 +5,15 @@ struct ClipboardEntry: Identifiable, Equatable {
     let content: String
     let timestamp: Date
     let isPassword: Bool
+    let isFavorite: Bool
     let expirationDate: Date?
 
-    init(content: String, isPassword: Bool = false, timestamp: Date = Date(), id: UUID = UUID()) {
+    init(content: String, isPassword: Bool = false, isFavorite: Bool = false, timestamp: Date = Date(), id: UUID = UUID()) {
         self.id = id
         self.content = content
         self.timestamp = timestamp
         self.isPassword = isPassword
+        self.isFavorite = isFavorite
         self.expirationDate = isPassword ? timestamp.addingTimeInterval(60) : nil
     }
 
