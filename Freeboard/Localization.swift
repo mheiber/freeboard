@@ -101,6 +101,7 @@ struct L {
     static var close: String { tr("close") }
     static var expand: String { tr("expand") }
     static var edit: String { tr("edit") }
+    static var view: String { tr("view") }
     static var star: String { tr("star") }
     static var quit: String { tr("quit") }
     static var quitFreeboard: String { tr("quitFreeboard") }
@@ -173,6 +174,7 @@ struct L {
     static var contextPasteAsRichText: String { tr("contextPasteAsRichText") }
     static var contextPasteAsMarkdown: String { tr("contextPasteAsMarkdown") }
     static var contextEdit: String { tr("contextEdit") }
+    static var contextView: String { tr("contextView") }
     static var contextExpand: String { tr("contextExpand") }
     static var contextCollapse: String { tr("contextCollapse") }
     static var contextStar: String { tr("contextStar") }
@@ -236,6 +238,10 @@ struct L {
         "edit": [
             .en: "edit", .zh: "编辑", .hi: "संपादित करें", .es: "editar", .fr: "modifier",
             .ar: "تحرير", .bn: "সম্পাদনা", .pt: "editar", .ru: "править", .ja: "編集"
+        ],
+        "view": [
+            .en: "view", .zh: "查看", .hi: "देखें", .es: "ver", .fr: "voir",
+            .ar: "عرض", .bn: "দেখুন", .pt: "ver", .ru: "просмотр", .ja: "表示"
         ],
         "star": [
             .en: "star", .zh: "收藏", .hi: "स्टार करें", .es: "destacar", .fr: "favori",
@@ -770,6 +776,10 @@ struct L {
         "contextEdit": [
             .en: "Edit", .zh: "编辑", .hi: "संपादित करें", .es: "Editar", .fr: "Modifier",
             .ar: "تحرير", .bn: "সম্পাদনা", .pt: "Editar", .ru: "Править", .ja: "編集"
+        ],
+        "contextView": [
+            .en: "View", .zh: "查看", .hi: "देखें", .es: "Ver", .fr: "Voir",
+            .ar: "عرض", .bn: "দেখুন", .pt: "Ver", .ru: "Просмотр", .ja: "表示"
         ],
         "contextExpand": [
             .en: "Expand", .zh: "展开", .hi: "विस्तार करें", .es: "Expandir", .fr: "Développer",

@@ -1266,7 +1266,13 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         str.append(NSAttributedString(string: "Tab ", attributes: keyAttrs))
         str.append(NSAttributedString(string: L.expand + "  ", attributes: dimAttrs))
         str.append(NSAttributedString(string: "^E ", attributes: keyAttrs))
-        str.append(NSAttributedString(string: L.edit + "  ", attributes: dimAttrs))
+        let editOrView: String
+        if let entry = entry, entry.entryType != .text {
+            editOrView = L.view
+        } else {
+            editOrView = L.edit
+        }
+        str.append(NSAttributedString(string: editOrView + "  ", attributes: dimAttrs))
         str.append(NSAttributedString(string: "\u{2318}S ", attributes: keyAttrs))
         str.append(NSAttributedString(string: L.star + "  ", attributes: dimAttrs))
         str.append(NSAttributedString(string: "\u{2318}D ", attributes: keyAttrs))
@@ -1891,6 +1897,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
 
         if entry.entryType == .text && !entry.isPassword {
             addItem(L.contextEdit, hint: "^E", action: #selector(contextMenuEdit(_:)))
+        } else if entry.entryType == .image || entry.entryType == .fileURL {
+            addItem(L.contextView, hint: "^E", action: #selector(contextMenuEdit(_:)))
         }
 
         let expandTitle = expandedIndex == row ? L.contextCollapse : L.contextExpand
@@ -1953,19 +1961,47 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         tableView.scrollRowToVisible(selectedIndex)
     }
 
+    /// View an image entry by writing a temporary file and opening it with the system viewer.
+    /// The temp file is cleaned up after a short delay to honor the "instant and ephemeral" principle.
+    private func viewImageEntry(_ entry: ClipboardEntry) {
+        guard let data = entry.imageData else { return }
+        let tempDir = FileManager.default.temporaryDirectory
+        let fileName = "freeboard_preview_\(entry.id.uuidString).png"
+        let tempURL = tempDir.appendingPathComponent(fileName)
+        do {
+            try data.write(to: tempURL)
+            NSWorkspace.shared.open(tempURL)
+            // Clean up the temp file after a delay to give the viewer time to open
+            DispatchQueue.main.asyncAfter(deadline: .now() + 10) {
+                try? FileManager.default.removeItem(at: tempURL)
+            }
+        } catch {
+            // Silently fail — no beep, no disk write noise
+        }
+    }
+
+    /// View a file entry by revealing it in Finder or opening it with the system viewer.
+    private func viewFileEntry(_ entry: ClipboardEntry) {
+        guard let url = entry.fileURL else { return }
+        if FileManager.default.fileExists(atPath: url.path) {
+            NSWorkspace.shared.activateFileViewerSelecting([url])
+        }
+    }
+
     private func enterEditMode() {
         guard selectedIndex < filteredEntries.count else { return }
         let entry = filteredEntries[selectedIndex]
         guard !entry.isPassword else { return }
-        // Only text entries support in-app editing.
-        // Images/files would require writing to disk and round-tripping through
-        // external editors, which is broken under app sandbox (atomic saves
-        // invalidate file watchers, and sandboxed temp dirs are inaccessible to
-        // external apps). This also conflicts with the "instant and ephemeral"
-        // principle — no disk writes.
-        guard entry.entryType == .text else {
-            NSSound.beep()
+
+        switch entry.entryType {
+        case .image:
+            viewImageEntry(entry)
             return
+        case .fileURL:
+            viewFileEntry(entry)
+            return
+        case .text:
+            break // fall through to Monaco editor
         }
 
         monacoEditingIndex = selectedIndex
