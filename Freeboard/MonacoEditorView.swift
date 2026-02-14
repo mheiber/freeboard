@@ -291,8 +291,7 @@ class MonacoEditorView: NSView {
 
     private func handleVimNormal(_ event: NSEvent) -> Bool {
         let keyCode = event.keyCode
-        let key = event.charactersIgnoringModifiers ?? ""
-        let hasShift = event.modifierFlags.contains(.shift)
+        let key = event.characters ?? ""
 
         // Esc → save and close (go back)
         if keyCode == 53 {
@@ -304,7 +303,7 @@ class MonacoEditorView: NSView {
         // ZZ handling
         if pendingZ {
             pendingZ = false
-            if key == "z" && hasShift {
+            if key == "Z" {
                 NSLog("[DEBUG Vim] ZZ → save+close")
                 saveAndClose()
                 return true
@@ -314,7 +313,7 @@ class MonacoEditorView: NSView {
         // gg handling
         if pendingG {
             pendingG = false
-            if key == "g" && !hasShift {
+            if key == "g" {
                 NSLog("[DEBUG Vim] gg → top of file")
                 setNormalCursor(at: 0)
                 textView.scrollRangeToVisible(textView.selectedRange())
@@ -328,83 +327,76 @@ class MonacoEditorView: NSView {
 
         switch key {
         // Enter command mode
-        case ";":
-            if hasShift { // : is shift+;
-                commandBuffer = ":"
-                vimMode = .command
-                updateStatusLine()
-                NSLog("[DEBUG Vim] entering command mode")
-                return true
-            }
+        case ":":
+            commandBuffer = ":"
+            vimMode = .command
+            updateStatusLine()
+            NSLog("[DEBUG Vim] entering command mode")
             return true
 
         case "i":
-            if hasShift {
-                // I → first non-whitespace of line
-                let lineRange = text.lineRange(for: NSRange(location: pos, length: 0))
-                var firstNonWS = lineRange.location
-                while firstNonWS < lineRange.location + lineRange.length {
-                    let ch = text.character(at: firstNonWS)
-                    if ch != 0x20 && ch != 0x09 { break }
-                    firstNonWS += 1
-                }
-                textView.setSelectedRange(NSRange(location: firstNonWS, length: 0))
-            } else {
-                textView.setSelectedRange(NSRange(location: pos, length: 0))
+            textView.setSelectedRange(NSRange(location: pos, length: 0))
+            NSLog("[DEBUG Vim] i → insert mode")
+            enterInsertMode()
+            return true
+
+        case "I":
+            // I → first non-whitespace of line
+            let lineRange = text.lineRange(for: NSRange(location: pos, length: 0))
+            var firstNonWS = lineRange.location
+            while firstNonWS < lineRange.location + lineRange.length {
+                let ch = text.character(at: firstNonWS)
+                if ch != 0x20 && ch != 0x09 { break }
+                firstNonWS += 1
             }
-            NSLog("[DEBUG Vim] \(hasShift ? "I" : "i") → insert mode")
+            textView.setSelectedRange(NSRange(location: firstNonWS, length: 0))
+            NSLog("[DEBUG Vim] I → insert mode (line start)")
             enterInsertMode()
             return true
 
         case "a":
-            if hasShift {
-                // A → end of line
-                let lineRange = text.lineRange(for: NSRange(location: pos, length: 0))
-                var end = lineRange.location + lineRange.length
-                if end > lineRange.location && end <= text.length && text.character(at: end - 1) == 0x0A {
-                    end -= 1
-                }
-                textView.setSelectedRange(NSRange(location: end, length: 0))
-            } else {
-                // a → after current char
-                let newPos = min(pos + 1, text.length)
-                textView.setSelectedRange(NSRange(location: newPos, length: 0))
+            let newPos = min(pos + 1, text.length)
+            textView.setSelectedRange(NSRange(location: newPos, length: 0))
+            enterInsertMode()
+            return true
+
+        case "A":
+            let lineRange = text.lineRange(for: NSRange(location: pos, length: 0))
+            var end = lineRange.location + lineRange.length
+            if end > lineRange.location && end <= text.length && text.character(at: end - 1) == 0x0A {
+                end -= 1
             }
+            textView.setSelectedRange(NSRange(location: end, length: 0))
             enterInsertMode()
             return true
 
         case "o":
-            if hasShift {
-                // O → open line above
-                let lineRange = text.lineRange(for: NSRange(location: pos, length: 0))
-                textView.setSelectedRange(NSRange(location: lineRange.location, length: 0))
-                textView.insertText("\n", replacementRange: NSRange(location: lineRange.location, length: 0))
-                textView.setSelectedRange(NSRange(location: lineRange.location, length: 0))
-            } else {
-                // o → open line below
-                let lineRange = text.lineRange(for: NSRange(location: pos, length: 0))
-                let lineEnd = lineRange.location + lineRange.length
-                textView.setSelectedRange(NSRange(location: lineEnd, length: 0))
-                textView.insertText("\n", replacementRange: NSRange(location: lineEnd, length: 0))
-            }
+            let lineRange = text.lineRange(for: NSRange(location: pos, length: 0))
+            let lineEnd = lineRange.location + lineRange.length
+            textView.setSelectedRange(NSRange(location: lineEnd, length: 0))
+            textView.insertText("\n", replacementRange: NSRange(location: lineEnd, length: 0))
+            enterInsertMode()
+            return true
+
+        case "O":
+            let lineRange = text.lineRange(for: NSRange(location: pos, length: 0))
+            textView.setSelectedRange(NSRange(location: lineRange.location, length: 0))
+            textView.insertText("\n", replacementRange: NSRange(location: lineRange.location, length: 0))
+            textView.setSelectedRange(NSRange(location: lineRange.location, length: 0))
             enterInsertMode()
             return true
 
         case "g":
-            if hasShift {
-                // G → end of file
-                setNormalCursor(at: text.length > 0 ? text.length - 1 : 0)
-                textView.scrollRangeToVisible(textView.selectedRange())
-            } else {
-                pendingG = true
-            }
+            pendingG = true
             return true
 
-        case "z":
-            if hasShift {
-                // Z → first Z of ZZ
-                pendingZ = true
-            }
+        case "G":
+            setNormalCursor(at: text.length > 0 ? text.length - 1 : 0)
+            textView.scrollRangeToVisible(textView.selectedRange())
+            return true
+
+        case "Z":
+            pendingZ = true
             return true
 
         case "h":
