@@ -172,6 +172,10 @@ struct L {
     static var editingHelpSeeAlsoMarkdown: String { tr("editingHelpSeeAlsoMarkdown") }
     static var editingHelpVimEnable: String { tr("editingHelpVimEnable") }
     static var editingHelpVimDisable: String { tr("editingHelpVimDisable") }
+    static var settings: String { tr("settings") }
+    static var helpSettingsLink: String { tr("helpSettingsLink") }
+    static var settingsHelpRightClick: String { tr("settingsHelpRightClick") }
+    static var settingsHelpAvailable: String { tr("settingsHelpAvailable") }
     static var contextPaste: String { tr("contextPaste") }
     static var contextPasteAsPlainText: String { tr("contextPasteAsPlainText") }
     static var contextPasteAsRichText: String { tr("contextPasteAsRichText") }
@@ -781,6 +785,38 @@ struct L {
             .pt: "Clique aqui para desativar edição estilo Vim",
             .ru: "Нажмите, чтобы отключить редактирование в стиле Vim",
             .ja: "クリックして Vim スタイル編集を無効にする"
+        ],
+        "settings": [
+            .en: "Settings", .zh: "设置", .hi: "सेटिंग्स", .es: "Ajustes", .fr: "Réglages",
+            .ar: "الإعدادات", .bn: "সেটিংস", .pt: "Configurações", .ru: "Настройки", .ja: "設定"
+        ],
+        "helpSettingsLink": [
+            .en: "Settings →", .zh: "设置 →", .hi: "सेटिंग्स →", .es: "Ajustes →", .fr: "Réglages →",
+            .ar: "→ الإعدادات", .bn: "সেটিংস →", .pt: "Configurações →", .ru: "Настройки →", .ja: "設定 →"
+        ],
+        "settingsHelpRightClick": [
+            .en: "Right-click the [F] menu bar icon",
+            .zh: "右键点击菜单栏的 [F] 图标",
+            .hi: "मेनू बार में [F] आइकन पर राइट-क्लिक करें",
+            .es: "Haz clic derecho en el icono [F] de la barra de menú",
+            .fr: "Faites un clic droit sur l'icône [F] dans la barre de menus",
+            .ar: "انقر بزر الماوس الأيمن على أيقونة [F] في شريط القوائم",
+            .bn: "মেনু বারে [F] আইকনে ডান-ক্লিক করুন",
+            .pt: "Clique com o botão direito no ícone [F] na barra de menus",
+            .ru: "Нажмите правой кнопкой на значок [F] в строке меню",
+            .ja: "メニューバーの [F] アイコンを右クリック"
+        ],
+        "settingsHelpAvailable": [
+            .en: "Language, keyboard shortcut, launch at login, vim mode",
+            .zh: "语言、快捷键、登录时启动、Vim 模式",
+            .hi: "भाषा, कीबोर्ड शॉर्टकट, लॉगिन पर शुरू, Vim मोड",
+            .es: "Idioma, atajo de teclado, iniciar al acceder, modo Vim",
+            .fr: "Langue, raccourci clavier, ouvrir au démarrage, mode Vim",
+            .ar: "اللغة، اختصار لوحة المفاتيح، التشغيل عند الدخول، وضع Vim",
+            .bn: "ভাষা, কীবোর্ড শর্টকাট, লগইনে চালু, Vim মোড",
+            .pt: "Idioma, atalho de teclado, abrir ao iniciar, modo Vim",
+            .ru: "Язык, сочетание клавиш, запуск при входе, режим Vim",
+            .ja: "言語、キーボードショートカット、ログイン時起動、Vimモード"
         ],
         "contextPaste": [
             .en: "Paste", .zh: "粘贴", .hi: "पेस्ट करें", .es: "Pegar", .fr: "Coller",

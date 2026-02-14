@@ -29,6 +29,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     private var helpFocusableItems: [NSButton] = []
     private var helpFocusIndex: Int = -1
     private var helpHasBackButton: Bool = false
+    private var settingsArrowWindow: NSWindow?
     private var permissionTooltipView: NSView?
 
     private var filteredEntries: [ClipboardEntry] = []
@@ -393,6 +394,12 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         editingLinkButton.attributedTitle = NSAttributedString(string: L.helpEditingLink, attributes: linkAttrs)
         editingLinkButton.setAccessibilityLabel(L.editing)
 
+        let settingsLinkButton = NSButton(title: "", target: self, action: #selector(settingsLinkClicked))
+        settingsLinkButton.translatesAutoresizingMaskIntoConstraints = false
+        settingsLinkButton.isBordered = false
+        settingsLinkButton.attributedTitle = NSAttributedString(string: L.helpSettingsLink, attributes: linkAttrs)
+        settingsLinkButton.setAccessibilityLabel(L.settings)
+
         let dismissLabel = NSTextField(labelWithString: "")
         dismissLabel.translatesAutoresizingMaskIntoConstraints = false
         dismissLabel.backgroundColor = .clear
@@ -405,10 +412,11 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         overlay.addSubview(sectionLabel)
         overlay.addSubview(markdownLinkButton)
         overlay.addSubview(editingLinkButton)
+        overlay.addSubview(settingsLinkButton)
         overlay.addSubview(dismissLabel)
 
         // Track focusable items for keyboard navigation
-        helpFocusableItems = [markdownLinkButton, editingLinkButton]
+        helpFocusableItems = [markdownLinkButton, editingLinkButton, settingsLinkButton]
         helpFocusIndex = -1
         helpHasBackButton = false
 
@@ -436,7 +444,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             overlay.addSubview(accessibilityButton)
 
             // Include accessibility button before the link buttons
-            helpFocusableItems = [accessibilityButton, markdownLinkButton, editingLinkButton]
+            helpFocusableItems = [accessibilityButton, markdownLinkButton, editingLinkButton, settingsLinkButton]
 
             NSLayoutConstraint.activate([
                 accessibilityButton.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
@@ -454,6 +462,9 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
 
                 editingLinkButton.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
                 editingLinkButton.topAnchor.constraint(equalTo: markdownLinkButton.bottomAnchor, constant: 4),
+
+                settingsLinkButton.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
+                settingsLinkButton.topAnchor.constraint(equalTo: editingLinkButton.bottomAnchor, constant: 4),
             ])
         } else {
             NSLayoutConstraint.activate([
@@ -465,6 +476,9 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
 
                 editingLinkButton.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
                 editingLinkButton.topAnchor.constraint(equalTo: markdownLinkButton.bottomAnchor, constant: 4),
+
+                settingsLinkButton.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
+                settingsLinkButton.topAnchor.constraint(equalTo: editingLinkButton.bottomAnchor, constant: 4),
             ])
         }
 
@@ -496,6 +510,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         helpFocusableItems = []
         helpFocusIndex = -1
         helpHasBackButton = false
+        settingsArrowWindow?.orderOut(nil)
+        settingsArrowWindow = nil
     }
 
     private func helpMoveFocus(by delta: Int) {
@@ -594,6 +610,225 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         UserDefaults.standard.set(!current, forKey: "vimModeEnabled")
         dismissHelp()
         showEditingHelp()
+    }
+
+    @objc private func settingsLinkClicked() {
+        dismissHelp()
+        showSettingsHelp()
+    }
+
+    @objc private func settingsBackClicked() {
+        dismissHelp()
+        showHelp()
+    }
+
+    private func showSettingsHelp() {
+        let overlay = NSView(frame: containerView.bounds)
+        overlay.autoresizingMask = [.width, .height]
+        overlay.wantsLayer = true
+        overlay.layer?.backgroundColor = NSColor(red: 0.01, green: 0.01, blue: 0.01, alpha: 0.95).cgColor
+
+        let titleFont = L.current.usesSystemFont
+            ? NSFont.systemFont(ofSize: 22, weight: .bold)
+            : NSFont(name: "Menlo-Bold", size: 18) ?? NSFont.monospacedSystemFont(ofSize: 18, weight: .bold)
+        let bodyFont = L.current.usesSystemFont
+            ? NSFont.systemFont(ofSize: 14, weight: .regular)
+            : NSFont(name: "Menlo", size: 12) ?? NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
+        let arrowFont = L.current.usesSystemFont
+            ? NSFont.systemFont(ofSize: 28, weight: .bold)
+            : NSFont(name: "Menlo-Bold", size: 24) ?? NSFont.monospacedSystemFont(ofSize: 24, weight: .bold)
+
+        // Back button
+        let backButton = NSButton(title: "", target: self, action: #selector(settingsBackClicked))
+        backButton.translatesAutoresizingMaskIntoConstraints = false
+        backButton.isBordered = false
+        let backAttrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: retroGreen.withAlphaComponent(0.8),
+            .font: bodyFont,
+            .underlineStyle: NSUnderlineStyle.single.rawValue
+        ]
+        backButton.attributedTitle = NSAttributedString(string: L.markdownHelpBack, attributes: backAttrs)
+        backButton.setAccessibilityLabel(L.help)
+        overlay.addSubview(backButton)
+
+        // Content
+        let leftPara = NSMutableParagraphStyle()
+        leftPara.alignment = .left
+        leftPara.lineSpacing = 4
+
+        let centerPara = NSMutableParagraphStyle()
+        centerPara.alignment = .center
+        centerPara.lineSpacing = 6
+
+        let titleAttrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: retroGreen,
+            .font: titleFont,
+            .paragraphStyle: leftPara
+        ]
+        let bodyAttrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: retroDimGreen,
+            .font: bodyFont,
+            .paragraphStyle: leftPara
+        ]
+        let dimAttrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: retroDimGreen.withAlphaComponent(0.6),
+            .font: bodyFont,
+            .paragraphStyle: leftPara
+        ]
+
+        let str = NSMutableAttributedString()
+        str.append(NSAttributedString(string: L.settings.uppercased(), attributes: titleAttrs))
+        str.append(NSAttributedString(string: "\n\n", attributes: bodyAttrs))
+        str.append(NSAttributedString(string: L.settingsHelpRightClick, attributes: bodyAttrs))
+        str.append(NSAttributedString(string: "\n\n", attributes: bodyAttrs))
+        str.append(NSAttributedString(string: L.settingsHelpAvailable, attributes: dimAttrs))
+
+        let helpContent = NSTextField(labelWithString: "")
+        helpContent.translatesAutoresizingMaskIntoConstraints = false
+        helpContent.backgroundColor = .clear
+        helpContent.isBezeled = false
+        helpContent.isEditable = false
+        helpContent.maximumNumberOfLines = 0
+        helpContent.lineBreakMode = .byWordWrapping
+        helpContent.alignment = .left
+        helpContent.attributedStringValue = str
+
+        // Arrow pointing up toward the menu bar
+        let arrowAttrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: retroGreen,
+            .font: arrowFont,
+            .paragraphStyle: centerPara
+        ]
+        let arrowLabel = NSTextField(labelWithString: "")
+        arrowLabel.translatesAutoresizingMaskIntoConstraints = false
+        arrowLabel.backgroundColor = .clear
+        arrowLabel.isBezeled = false
+        arrowLabel.isEditable = false
+        arrowLabel.attributedStringValue = NSAttributedString(string: "[F]", attributes: arrowAttrs)
+
+        let dismissLabel = NSTextField(labelWithString: "")
+        dismissLabel.translatesAutoresizingMaskIntoConstraints = false
+        dismissLabel.backgroundColor = .clear
+        dismissLabel.isBezeled = false
+        dismissLabel.isEditable = false
+        dismissLabel.alignment = .center
+        dismissLabel.attributedStringValue = makeDismissString(withBackNav: true)
+
+        overlay.addSubview(helpContent)
+        overlay.addSubview(arrowLabel)
+        overlay.addSubview(dismissLabel)
+
+        // Track focusable items for keyboard navigation
+        helpFocusableItems = [backButton]
+        helpFocusIndex = -1
+        helpHasBackButton = true
+
+        // Insert below effectsView so CRT effects still show on top
+        containerView.addSubview(overlay, positioned: .below, relativeTo: effectsView)
+
+        NSLayoutConstraint.activate([
+            backButton.topAnchor.constraint(equalTo: overlay.topAnchor, constant: 16),
+            backButton.leadingAnchor.constraint(equalTo: overlay.leadingAnchor, constant: 24),
+
+            helpContent.topAnchor.constraint(equalTo: backButton.bottomAnchor, constant: 12),
+            helpContent.leadingAnchor.constraint(equalTo: overlay.leadingAnchor, constant: 60),
+            helpContent.trailingAnchor.constraint(equalTo: overlay.trailingAnchor, constant: -60),
+
+            arrowLabel.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
+            arrowLabel.topAnchor.constraint(equalTo: helpContent.bottomAnchor, constant: 24),
+
+            dismissLabel.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
+            dismissLabel.bottomAnchor.constraint(equalTo: overlay.bottomAnchor, constant: -24),
+        ])
+
+        let clickGesture = NSClickGestureRecognizer(target: self, action: #selector(helpOverlayClicked))
+        clickGesture.delegate = self
+        overlay.addGestureRecognizer(clickGesture)
+
+        helpOverlay = overlay
+
+        // Show arrow window pointing to the status bar icon
+        showSettingsArrowToStatusItem()
+    }
+
+    private func showSettingsArrowToStatusItem() {
+        // Only show arrow if we have our AppDelegate
+        guard NSApp.delegate is AppDelegate else { return }
+
+        // Access the status item button's window frame to find its screen position
+        // The statusItem is private, so we look for the status item button via accessibility
+        // Alternative: find the [F] button window in the status bar
+        let statusItemFrame: NSRect
+        if let buttonWindow = findStatusItemWindow() {
+            statusItemFrame = buttonWindow
+        } else {
+            // Fallback: approximate position in the top-right area of the screen
+            guard let screen = NSScreen.main else { return }
+            statusItemFrame = NSRect(
+                x: screen.frame.maxX - 100,
+                y: screen.frame.maxY - 22,
+                width: 40,
+                height: 22
+            )
+        }
+
+        guard let popupWindow = self.view.window else { return }
+        let popupFrame = popupWindow.frame
+
+        // Calculate arrow endpoints:
+        // Start from top-center of popup window, end near the status item
+        let startX = popupFrame.midX
+        let startY = popupFrame.maxY
+        let endX = statusItemFrame.midX
+        let endY = statusItemFrame.minY
+
+        // Create a window that covers the area between popup top and status item
+        let minX = min(startX, endX) - 30
+        let maxX = max(startX, endX) + 30
+        let minY = startY
+        let maxY = endY + 10
+
+        guard maxY > minY else { return }
+
+        let arrowWindowFrame = NSRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
+
+        let arrowWindow = NSWindow(
+            contentRect: arrowWindowFrame,
+            styleMask: .borderless,
+            backing: .buffered,
+            defer: false
+        )
+        arrowWindow.isOpaque = false
+        arrowWindow.backgroundColor = .clear
+        arrowWindow.ignoresMouseEvents = true
+        arrowWindow.level = .floating
+        arrowWindow.hasShadow = false
+
+        let arrowView = SettingsArrowView(frame: NSRect(origin: .zero, size: arrowWindowFrame.size))
+        arrowView.startPoint = CGPoint(x: startX - minX, y: 0)
+        arrowView.endPoint = CGPoint(x: endX - minX, y: arrowWindowFrame.height)
+        arrowView.arrowColor = retroGreen
+        arrowWindow.contentView = arrowView
+
+        arrowWindow.orderFront(nil)
+        settingsArrowWindow = arrowWindow
+    }
+
+    private func findStatusItemWindow() -> NSRect? {
+        // Look through all windows for the status item button
+        for window in NSApp.windows {
+            // Status bar button windows have a specific class and are in the menu bar area
+            if let screen = NSScreen.main,
+               window.frame.maxY >= screen.frame.maxY - 30,
+               window.frame.height <= 30 {
+                // Check if this window contains our [F] button
+                if let button = window.contentView as? NSStatusBarButton,
+                   button.title.contains("F") || (button.attributedTitle.string.contains("F")) {
+                    return window.frame
+                }
+            }
+        }
+        return nil
     }
 
     func showMarkdownHelpScreen() {
@@ -2432,5 +2667,52 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             return true
         }
         return false
+    }
+}
+
+// MARK: - Settings Arrow View
+
+class SettingsArrowView: NSView {
+    var startPoint: CGPoint = .zero
+    var endPoint: CGPoint = .zero
+    var arrowColor: NSColor = NSColor(red: 0.0, green: 1.0, blue: 0.25, alpha: 1.0)
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        guard let context = NSGraphicsContext.current?.cgContext else { return }
+
+        // Draw a dashed line from start to end
+        context.setStrokeColor(arrowColor.withAlphaComponent(0.6).cgColor)
+        context.setLineWidth(2.0)
+        context.setLineDash(phase: 0, lengths: [6, 4])
+        context.setLineCap(.round)
+
+        context.beginPath()
+        context.move(to: startPoint)
+        context.addLine(to: endPoint)
+        context.strokePath()
+
+        // Draw arrowhead at the end (pointing up)
+        let arrowSize: CGFloat = 12
+        let angle = atan2(endPoint.y - startPoint.y, endPoint.x - startPoint.x)
+        let arrowAngle: CGFloat = .pi / 6
+
+        let leftPoint = CGPoint(
+            x: endPoint.x - arrowSize * cos(angle - arrowAngle),
+            y: endPoint.y - arrowSize * sin(angle - arrowAngle)
+        )
+        let rightPoint = CGPoint(
+            x: endPoint.x - arrowSize * cos(angle + arrowAngle),
+            y: endPoint.y - arrowSize * sin(angle + arrowAngle)
+        )
+
+        context.setLineDash(phase: 0, lengths: [])
+        context.setFillColor(arrowColor.withAlphaComponent(0.6).cgColor)
+        context.beginPath()
+        context.move(to: endPoint)
+        context.addLine(to: leftPoint)
+        context.addLine(to: rightPoint)
+        context.closePath()
+        context.fillPath()
     }
 }
