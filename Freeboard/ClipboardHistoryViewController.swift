@@ -717,7 +717,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         }
     }
 
-    private func makeHelpString() -> NSAttributedString {
+    private func makeHelpString(for entry: ClipboardEntry? = nil) -> NSAttributedString {
         let str = NSMutableAttributedString()
         let keyAttrs: [NSAttributedString.Key: Any] = [
             .foregroundColor: retroGreen.withAlphaComponent(0.6),
@@ -731,6 +731,24 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         str.append(NSAttributedString(string: L.pasteNth + "  ", attributes: dimAttrs))
         str.append(NSAttributedString(string: "Enter ", attributes: keyAttrs))
         str.append(NSAttributedString(string: L.paste + "  ", attributes: dimAttrs))
+
+        // Dynamic shift hint based on selected entry's format category
+        if let entry = entry, entry.entryType == .text {
+            switch entry.formatCategory {
+            case .richText:
+                str.append(NSAttributedString(string: "⇧ ", attributes: keyAttrs))
+                str.append(NSAttributedString(string: L.plain + "  ", attributes: dimAttrs))
+            case .plainMarkdown:
+                str.append(NSAttributedString(string: "⇧ ", attributes: keyAttrs))
+                str.append(NSAttributedString(string: L.rich + "  ", attributes: dimAttrs))
+            case .richMarkdown:
+                str.append(NSAttributedString(string: "⇧ ", attributes: keyAttrs))
+                str.append(NSAttributedString(string: L.markdownFormat + "  ", attributes: dimAttrs))
+            case .plainText:
+                break // No shift hint for plain text
+            }
+        }
+
         str.append(NSAttributedString(string: "^N/^P ", attributes: keyAttrs))
         str.append(NSAttributedString(string: L.select + "  ", attributes: dimAttrs))
         str.append(NSAttributedString(string: "Tab ", attributes: keyAttrs))
@@ -744,6 +762,11 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         str.append(NSAttributedString(string: "Esc ", attributes: keyAttrs))
         str.append(NSAttributedString(string: L.close, attributes: dimAttrs))
         return str
+    }
+
+    private func updateHelpLabel() {
+        let entry = filteredEntries.indices.contains(selectedIndex) ? filteredEntries[selectedIndex] : nil
+        helpLabel.attributedStringValue = makeHelpString(for: entry)
     }
 
     // MARK: - Data
@@ -764,6 +787,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         }
         updateEmptyStateVisibility()
         updatePermissionWarning()
+        updateHelpLabel()
     }    // MARK: - NSTableViewDataSource
 
     func numberOfRows(in tableView: NSTableView) -> Int {
@@ -1520,6 +1544,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         }
         tableView.reloadData()
         tableView.scrollRowToVisible(selectedIndex)
+        updateHelpLabel()
     }
 
     // MARK: - NSTextFieldDelegate

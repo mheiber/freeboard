@@ -139,6 +139,9 @@ struct L {
     static var vimNormalMode: String { tr("vimNormalMode") }
     static var vimGoBack: String { tr("vimGoBack") }
     static var move: String { tr("move") }
+    static var plain: String { tr("plain") }
+    static var rich: String { tr("rich") }
+    static var markdownFormat: String { tr("markdownFormat") }
 
     static func accessibleMinutesAgo(_ n: Int) -> String {
         String(format: tr("accessibleMinutesAgo"), n)
@@ -478,6 +481,24 @@ struct L {
             .es: "mover", .fr: "déplacer",
             .ar: "تحريك", .bn: "সরান",
             .pt: "mover", .ru: "двигаться", .ja: "移動"
+        ],
+        "plain": [
+            .en: "plain", .zh: "纯文本", .hi: "सादा",
+            .es: "plano", .fr: "brut",
+            .ar: "نص عادي", .bn: "সাধারণ",
+            .pt: "simples", .ru: "текст", .ja: "テキスト"
+        ],
+        "rich": [
+            .en: "rich", .zh: "富文本", .hi: "रिच",
+            .es: "formato", .fr: "riche",
+            .ar: "منسق", .bn: "রিচ",
+            .pt: "formatado", .ru: "формат", .ja: "リッチ"
+        ],
+        "markdownFormat": [
+            .en: "markdown", .zh: "markdown", .hi: "markdown",
+            .es: "markdown", .fr: "markdown",
+            .ar: "markdown", .bn: "markdown",
+            .pt: "markdown", .ru: "markdown", .ja: "markdown"
         ],
     ]
 }
