@@ -367,8 +367,6 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         str.append(NSAttributedString(string: L.expand + "  ", attributes: dimAttrs))
         str.append(NSAttributedString(string: "^E ", attributes: keyAttrs))
         str.append(NSAttributedString(string: L.edit + "  ", attributes: dimAttrs))
-        str.append(NSAttributedString(string: "Del ", attributes: keyAttrs))
-        str.append(NSAttributedString(string: L.delete + "  ", attributes: dimAttrs))
         str.append(NSAttributedString(string: "Esc ", attributes: keyAttrs))
         str.append(NSAttributedString(string: L.close, attributes: dimAttrs))
         return str
@@ -654,12 +652,6 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         view.window?.makeFirstResponder(self)
     }
 
-    private func deleteSelected() {
-        guard editingIndex == nil else { return } // Don't delete while editing
-        guard selectedIndex < filteredEntries.count else { return }
-        historyDelegate?.didDeleteEntry(filteredEntries[selectedIndex])
-    }
-
     // MARK: - Keyboard handling
 
     private var isSearchFieldFocused: Bool {
@@ -701,7 +693,6 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         }
 
         if event.keyCode == 48 { toggleExpand(); return } // Tab
-        if event.keyCode == 51 || event.keyCode == 117 { deleteSelected(); return } // Backspace / Delete
         if flags.contains(.control) && event.charactersIgnoringModifiers == "e" { enterEditMode(); return }
         if flags.contains(.control) && event.charactersIgnoringModifiers == "n" { moveSelection(by: 1); return }
         if flags.contains(.control) && event.charactersIgnoringModifiers == "p" { moveSelection(by: -1); return }
@@ -766,11 +757,6 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         }
         if commandSelector == #selector(insertTab(_:)) { toggleExpand(); return true }
         if commandSelector == #selector(moveToEndOfParagraph(_:)) { enterEditMode(); return true } // ctrl-e
-        if commandSelector == #selector(deleteBackward(_:)) {
-            if searchField.stringValue.isEmpty { return true } // no-op; exit search first to delete entries
-            return false
-        }
-        if commandSelector == #selector(deleteForward(_:)) { return true } // no-op; exit search first to delete entries
         return false
     }
 
