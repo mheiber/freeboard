@@ -9,6 +9,46 @@ protocol ClipboardHistoryDelegate: AnyObject {
     func didDismiss()
 }
 
+/// An NSButton subclass that shows an underline on its attributed title
+/// when the mouse hovers over it, giving a visual "clickable" affordance.
+private class HoverUnderlineButton: NSButton {
+    private var trackingArea: NSTrackingArea?
+
+    override func updateTrackingAreas() {
+        super.updateTrackingAreas()
+        if let existing = trackingArea {
+            removeTrackingArea(existing)
+        }
+        let area = NSTrackingArea(
+            rect: bounds,
+            options: [.mouseEnteredAndExited, .activeInActiveApp],
+            owner: self,
+            userInfo: nil
+        )
+        addTrackingArea(area)
+        trackingArea = area
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        super.mouseEntered(with: event)
+        let current = attributedTitle
+        let mutable = NSMutableAttributedString(attributedString: current)
+        mutable.addAttribute(.underlineStyle,
+                             value: NSUnderlineStyle.single.rawValue,
+                             range: NSRange(location: 0, length: mutable.length))
+        attributedTitle = mutable
+    }
+
+    override func mouseExited(with event: NSEvent) {
+        super.mouseExited(with: event)
+        let current = attributedTitle
+        let mutable = NSMutableAttributedString(attributedString: current)
+        mutable.removeAttribute(.underlineStyle,
+                                range: NSRange(location: 0, length: mutable.length))
+        attributedTitle = mutable
+    }
+}
+
 class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, NSTableViewDelegate, NSTextFieldDelegate, NSTextViewDelegate, NSGestureRecognizerDelegate, MonacoEditorDelegate, NSMenuDelegate {
 
     weak var historyDelegate: ClipboardHistoryDelegate?
@@ -1513,6 +1553,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     private static let hintTagEdit = 4
     private static let hintTagStar = 5
     private static let hintTagDelete = 6
+    private static let hintTagNextItem = 7
+    private static let hintTagPrevItem = 8
 
     /// Build a single clickable hint button: "⌘S star" or "Enter paste" etc.
     /// `shortcut` is the keyboard-shortcut text (rendered brighter), `label` is the
@@ -1531,7 +1573,12 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         title.append(NSAttributedString(string: shortcut + " ", attributes: keyAttrs))
         title.append(NSAttributedString(string: label, attributes: dimAttrs))
 
-        let btn = NSButton(title: "", target: self, action: #selector(helpHintClicked(_:)))
+        let btn: NSButton
+        if tag != Self.hintTagNoAction {
+            btn = HoverUnderlineButton(title: "", target: self, action: #selector(helpHintClicked(_:)))
+        } else {
+            btn = NSButton(title: "", target: self, action: #selector(helpHintClicked(_:)))
+        }
         btn.translatesAutoresizingMaskIntoConstraints = false
         btn.isBordered = false
         btn.attributedTitle = title
@@ -1590,7 +1637,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
                 rpTitle.append(NSAttributedString(string: "\u{21E7}", attributes: shiftAttrs))
                 rpTitle.append(NSAttributedString(string: "Enter ", attributes: keyAttrs))
                 rpTitle.append(NSAttributedString(string: L.richPaste, attributes: dimAttrs))
-                let rpBtn = NSButton(title: "", target: self, action: #selector(helpHintClicked(_:)))
+                let rpBtn = HoverUnderlineButton(title: "", target: self, action: #selector(helpHintClicked(_:)))
                 rpBtn.translatesAutoresizingMaskIntoConstraints = false
                 rpBtn.isBordered = false
                 rpBtn.attributedTitle = rpTitle
@@ -1603,8 +1650,9 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             }
         }
 
-        // "^N/^P select" — informational (navigation)
-        helpLabel.addArrangedSubview(makeHintButton(shortcut: "^N/^P", label: L.select, tag: Self.hintTagNoAction))
+        // "^N next" and "^P prev" — navigate the clipboard list
+        helpLabel.addArrangedSubview(makeHintButton(shortcut: "^N", label: L.select + "↓", tag: Self.hintTagNextItem))
+        helpLabel.addArrangedSubview(makeHintButton(shortcut: "^P", label: L.select + "↑", tag: Self.hintTagPrevItem))
         helpLabel.addArrangedSubview(makeHintSpacer())
 
         // "Tab expand"
@@ -1644,6 +1692,10 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             toggleStarOnSelected()
         case Self.hintTagDelete:
             deleteSelected()
+        case Self.hintTagNextItem:
+            moveSelection(by: 1)
+        case Self.hintTagPrevItem:
+            moveSelection(by: -1)
         default:
             break
         }
