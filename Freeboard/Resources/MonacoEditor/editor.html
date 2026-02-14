@@ -36,11 +36,29 @@
     #vim-status {
         color: #d4d4d4;
         flex-shrink: 0;
+        flex-grow: 1;
+    }
+    /* Vim command-line input (created by monaco-vim inside #vim-status) */
+    #vim-status input[type="text"] {
+        background: #1e1e1e;
+        color: #d4d4d4;
+        border: none;
+        outline: none;
+        font-family: Menlo, monospace;
+        font-size: 11px;
+        line-height: 22px;
+        height: 20px;
+        width: 60%;
+        padding: 0;
+        margin: 0;
+        caret-color: #00ff40;
     }
     #editor-hints {
         color: #00c030;
         opacity: 0.5;
         white-space: nowrap;
+        flex-shrink: 1;
+        min-width: 0;
     }
     #editor-hints .key {
         color: #00ff40;
@@ -274,9 +292,14 @@
         initEditor();
     });
 
-    // Watch vim status changes to update hints
+    // Watch vim status changes to update hints and ensure command-line
+    // input gets focus (WKWebView can drop programmatic focus calls)
     var observer = new MutationObserver(function() {
         updateHints();
+        var input = statusEl.querySelector('input[type="text"]');
+        if (input && document.activeElement !== input) {
+            setTimeout(function() { input.focus(); }, 0);
+        }
     });
     observer.observe(statusEl, { childList: true, characterData: true, subtree: true });
 
