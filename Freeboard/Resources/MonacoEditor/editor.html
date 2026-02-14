@@ -87,7 +87,7 @@
         if (statusText.indexOf('INSERT') !== -1 || statusText.indexOf('REPLACE') !== -1) {
             hintsEl.innerHTML = '<span class="key">jk</span> normal mode&nbsp;&nbsp;<span class="key">:x</span> save+close';
         } else {
-            hintsEl.innerHTML = '<span class="key">:x</span> save+close&nbsp;&nbsp;<span class="key">:q</span> close&nbsp;&nbsp;<span class="key">i</span> insert mode';
+            hintsEl.innerHTML = '<span class="key">:x</span> save+close&nbsp;&nbsp;<span class="key">i</span> insert mode';
         }
     }
 
@@ -105,14 +105,11 @@
     }
 
     function flashStatus(msg) {
-        var prev = statusEl.textContent;
-        statusEl.textContent = msg;
-        statusEl.style.color = '#ff6060';
+        var prevHtml = hintsEl.innerHTML;
+        hintsEl.innerHTML = '<span style="color:#ff6060;opacity:1">' + msg + '</span>';
         setTimeout(function() {
-            statusEl.style.color = '';
-            // Only restore if still showing our message
-            if (statusEl.textContent === msg) {
-                statusEl.textContent = prev;
+            if (hintsEl.textContent === msg) {
+                hintsEl.innerHTML = prevHtml;
             }
         }, 2000);
     }
@@ -185,6 +182,53 @@
     });
     observer.observe(statusEl, { childList: true, characterData: true, subtree: true });
 
+    // Register ex commands and mappings once on the global Vim singleton
+    var vimCommandsRegistered = false;
+    function registerVimCommands() {
+        if (vimCommandsRegistered) return;
+        vimCommandsRegistered = true;
+
+        var Vim = MonacoVim.VimMode.Vim;
+
+        // :w — save and close
+        Vim.defineEx('write', 'w', function() {
+            saveAndClose();
+        });
+
+        // :q — close only if no unsaved changes
+        Vim.defineEx('quit', 'q', function(cm, params) {
+            if (params && params.argString === '!') {
+                closeWithoutSaving();
+            } else if (hasUnsavedChanges()) {
+                flashStatus('E37: No write since last change (add ! to override)');
+            } else {
+                closeWithoutSaving();
+            }
+        });
+
+        // :wq — save and close
+        Vim.defineEx('wquit', 'wq', function() {
+            saveAndClose();
+        });
+
+        // :x — save and close (only writes if changed, like vim)
+        Vim.defineEx('x', 'x', function() {
+            if (hasUnsavedChanges()) {
+                saveAndClose();
+            } else {
+                closeWithoutSaving();
+            }
+        });
+
+        // jk to exit insert mode
+        Vim.map('jk', '<Esc>', 'insert');
+
+        // Esc in normal mode to save and close
+        Vim.mapCommand('<Esc>', '', '', function() {
+            saveAndClose();
+        }, { context: 'normal' });
+    }
+
     function enableVim() {
         if (vimModeInstance) {
             vimModeInstance.dispose();
@@ -193,45 +237,7 @@
 
         if (typeof MonacoVim !== 'undefined' && MonacoVim.initVimMode) {
             vimModeInstance = MonacoVim.initVimMode(editor, statusEl);
-
-            // :w — save and close
-            MonacoVim.VimMode.Vim.defineEx('write', 'w', function() {
-                saveAndClose();
-            });
-
-            // :q — close only if no unsaved changes
-            MonacoVim.VimMode.Vim.defineEx('quit', 'q', function(cm, params) {
-                if (params && params.argString === '!') {
-                    // :q! — force close without saving
-                    closeWithoutSaving();
-                } else if (hasUnsavedChanges()) {
-                    flashStatus('E37: No write since last change (add ! to override)');
-                } else {
-                    closeWithoutSaving();
-                }
-            });
-
-            // :wq — save and close
-            MonacoVim.VimMode.Vim.defineEx('wquit', 'wq', function() {
-                saveAndClose();
-            });
-
-            // :x — save and close (only writes if changed, like vim)
-            MonacoVim.VimMode.Vim.defineEx('x', 'x', function() {
-                if (hasUnsavedChanges()) {
-                    saveAndClose();
-                } else {
-                    closeWithoutSaving();
-                }
-            });
-
-            // jk to exit insert mode
-            MonacoVim.VimMode.Vim.map('jk', '<Esc>', 'insert');
-
-            // Esc in normal mode to save and close
-            MonacoVim.VimMode.Vim.mapCommand('<Esc>', '', '', function() {
-                saveAndClose();
-            }, { context: 'normal' });
+            registerVimCommands();
         }
         updateHints();
     }
