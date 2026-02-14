@@ -131,6 +131,7 @@ struct L {
     static var imageEntry: String { tr("imageEntry") }
     static var permissionWarningLabel: String { tr("permissionWarningLabel") }
     static var permissionWarningTooltip: String { tr("permissionWarningTooltip") }
+    static var permissionWarningButtonTitle: String { tr("permissionWarningButtonTitle") }
     static var launchAtLogin: String { tr("launchAtLogin") }
     static var vimStyleEditing: String { tr("vimStyleEditing") }
     static var saveAndClose: String { tr("saveAndClose") }
@@ -451,6 +452,18 @@ struct L {
             .pt: "Vá para Ajustes do Sistema → Privacidade → Acessibilidade,\nclique em [+], adicione o Freeboard e ative-o [✓]",
             .ru: "Откройте Системные настройки → Конфиденциальность → Универсальный доступ,\nнажмите [+], добавьте Freeboard и включите [✓]",
             .ja: "システム設定 → プライバシー → アクセシビリティを開き、\n[+] をクリックして Freeboard を追加し、有効にしてください [✓]"
+        ],
+        "permissionWarningButtonTitle": [
+            .en: "Needs Permissions",
+            .zh: "需要权限",
+            .hi: "अनुमति चाहिए",
+            .es: "Necesita permisos",
+            .fr: "Permissions requises",
+            .ar: "يلزم إذن",
+            .bn: "অনুমতি দরকার",
+            .pt: "Precisa de permissões",
+            .ru: "Нужны разрешения",
+            .ja: "許可が必要"
         ],
         "launchAtLogin": [
             .en: "Launch at Login", .zh: "登录时启动", .hi: "लॉगिन पर शुरू करें",

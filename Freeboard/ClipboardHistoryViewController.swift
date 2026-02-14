@@ -27,6 +27,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     private var permissionWarningButton: NSButton!
     private var helpButton: NSButton!
     private var helpOverlay: NSView?
+    private var permissionTooltipView: NSView?
 
     private var filteredEntries: [ClipboardEntry] = []
     private var selectedIndex: Int = 0
@@ -156,6 +157,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     override func viewWillDisappear() {
         super.viewWillDisappear()
         dismissHelp()
+        dismissPermissionTooltip()
         stopWatchingImageFile()
         if let monitor = keyMonitor {
             NSEvent.removeMonitor(monitor)
@@ -177,7 +179,14 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         helpButton.font = retroFontSmall
         quitButton.title = L.quit
         quitButton.font = retroFontSmall
-        permissionWarningButton.toolTip = L.permissionWarningTooltip
+        let warningAttrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: NSColor.orange,
+            .font: retroFontSmall
+        ]
+        permissionWarningButton.attributedTitle = NSAttributedString(
+            string: "⚠ \(L.permissionWarningButtonTitle)",
+            attributes: warningAttrs
+        )
         permissionWarningButton.setAccessibilityLabel(L.permissionWarningLabel)
         updateEmptyStateStrings()
         tableView?.reloadData()
@@ -279,14 +288,27 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         quitButton.font = retroFontSmall
         quitButton.contentTintColor = retroDimGreen.withAlphaComponent(0.5)
 
-        permissionWarningButton = NSButton(title: "⚠", target: self, action: #selector(permissionWarningClicked))
+        permissionWarningButton = NSButton(title: "", target: self, action: #selector(permissionWarningClicked))
         permissionWarningButton.translatesAutoresizingMaskIntoConstraints = false
         permissionWarningButton.isBordered = false
-        permissionWarningButton.font = retroFontSmall
-        permissionWarningButton.contentTintColor = NSColor.orange
-        permissionWarningButton.toolTip = L.permissionWarningTooltip
+        let warningAttrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: NSColor.orange,
+            .font: retroFontSmall
+        ]
+        permissionWarningButton.attributedTitle = NSAttributedString(
+            string: "⚠ \(L.permissionWarningButtonTitle)",
+            attributes: warningAttrs
+        )
         permissionWarningButton.setAccessibilityLabel(L.permissionWarningLabel)
         permissionWarningButton.isHidden = true
+
+        let warningTrackingArea = NSTrackingArea(
+            rect: .zero,
+            options: [.mouseEnteredAndExited, .activeInActiveApp, .inVisibleRect],
+            owner: self,
+            userInfo: ["zone": "permissionWarning"]
+        )
+        permissionWarningButton.addTrackingArea(warningTrackingArea)
 
         containerView.addSubview(helpLabel)
         containerView.addSubview(permissionWarningButton)
@@ -752,7 +774,11 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
 
     private func updatePermissionWarning() {
         let hasItems = !(clipboardManager?.entries.isEmpty ?? true)
-        permissionWarningButton?.isHidden = AXIsProcessTrusted() || !hasItems
+        let shouldHide = AXIsProcessTrusted() || !hasItems
+        permissionWarningButton?.isHidden = shouldHide
+        if shouldHide {
+            dismissPermissionTooltip()
+        }
     }
 
     @objc private func permissionWarningClicked() {
@@ -765,6 +791,49 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         if !NSWorkspace.shared.open(url) {
             NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/System Settings.app"))
         }
+    }
+
+    private func showPermissionTooltip() {
+        guard permissionTooltipView == nil else { return }
+
+        let tooltip = NSView()
+        tooltip.translatesAutoresizingMaskIntoConstraints = false
+        tooltip.wantsLayer = true
+        tooltip.layer?.backgroundColor = NSColor(red: 0.05, green: 0.05, blue: 0.05, alpha: 0.95).cgColor
+        tooltip.layer?.borderColor = NSColor.orange.withAlphaComponent(0.4).cgColor
+        tooltip.layer?.borderWidth = 1
+        tooltip.layer?.cornerRadius = 4
+
+        let label = NSTextField(labelWithString: L.permissionWarningTooltip)
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.font = retroFontSmall
+        label.textColor = NSColor.orange.withAlphaComponent(0.85)
+        label.backgroundColor = .clear
+        label.isBezeled = false
+        label.isEditable = false
+        label.maximumNumberOfLines = 0
+        label.lineBreakMode = .byWordWrapping
+        label.preferredMaxLayoutWidth = 400
+
+        tooltip.addSubview(label)
+        containerView.addSubview(tooltip, positioned: .below, relativeTo: effectsView)
+
+        NSLayoutConstraint.activate([
+            label.topAnchor.constraint(equalTo: tooltip.topAnchor, constant: 8),
+            label.bottomAnchor.constraint(equalTo: tooltip.bottomAnchor, constant: -8),
+            label.leadingAnchor.constraint(equalTo: tooltip.leadingAnchor, constant: 10),
+            label.trailingAnchor.constraint(equalTo: tooltip.trailingAnchor, constant: -10),
+
+            tooltip.bottomAnchor.constraint(equalTo: permissionWarningButton.topAnchor, constant: -4),
+            tooltip.trailingAnchor.constraint(equalTo: permissionWarningButton.trailingAnchor),
+        ])
+
+        permissionTooltipView = tooltip
+    }
+
+    private func dismissPermissionTooltip() {
+        permissionTooltipView?.removeFromSuperview()
+        permissionTooltipView = nil
     }
 
     private func setupEmptyState() {
@@ -1440,12 +1509,24 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     }
 
     override func mouseExited(with event: NSEvent) {
+        if let zone = event.trackingArea?.userInfo?["zone"] as? String, zone == "permissionWarning" {
+            dismissPermissionTooltip()
+            return
+        }
         let oldRow = hoveredRow
         hoveredRow = nil
         mouseInIndicatorZone = false
         if let old = oldRow {
             tableView.reloadData(forRowIndexes: IndexSet(integer: old), columnIndexes: IndexSet(integer: 0))
         }
+    }
+
+    override func mouseEntered(with event: NSEvent) {
+        if let zone = event.trackingArea?.userInfo?["zone"] as? String, zone == "permissionWarning" {
+            showPermissionTooltip()
+            return
+        }
+        super.mouseEntered(with: event)
     }
 
     @objc private func tableClicked() {
@@ -1537,6 +1618,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             helpButton.isHidden = true
             quitButton.isHidden = true
             permissionWarningButton.isHidden = true
+            dismissPermissionTooltip()
             emptyStateView?.isHidden = true
 
             monacoEditorView = editorView
