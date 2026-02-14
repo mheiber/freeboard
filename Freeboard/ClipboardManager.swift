@@ -198,6 +198,174 @@ class ClipboardManager {
         lastChangeCount = pasteboard.changeCount
     }
 
+    /// Convert markdown content to rich text (HTML) and write to pasteboard.
+    /// Used when Shift+Enter is pressed on a plain markdown entry.
+    func selectEntryAsRenderedMarkdown(_ entry: ClipboardEntry) {
+        let html = Self.markdownToHTML(entry.content)
+        pasteboard.clearContents()
+        _ = pasteboard.setString(entry.content, forType: .string)
+        if let htmlData = html.data(using: .utf8) {
+            _ = pasteboard.setData(htmlData, forType: .html)
+        }
+        lastChangeCount = pasteboard.changeCount
+    }
+
+    /// Minimal markdown-to-HTML converter. Handles the most common markdown
+    /// constructs: headings, bold, italic, code blocks, inline code, links,
+    /// blockquotes, unordered/ordered lists, and horizontal rules.
+    static func markdownToHTML(_ markdown: String) -> String {
+        var lines = markdown.components(separatedBy: "\n")
+        var html: [String] = []
+        var inCodeBlock = false
+        var codeBlockLang = ""
+        var codeLines: [String] = []
+        var inList = false
+        var listOrdered = false
+        var i = 0
+
+        while i < lines.count {
+            let line = lines[i]
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+
+            // Code fences
+            if trimmed.hasPrefix("```") || trimmed.hasPrefix("~~~") {
+                if inCodeBlock {
+                    html.append("<pre><code>" + escapeHTML(codeLines.joined(separator: "\n")) + "</code></pre>")
+                    codeLines = []
+                    inCodeBlock = false
+                    codeBlockLang = ""
+                } else {
+                    closeList(&html, &inList, listOrdered)
+                    inCodeBlock = true
+                    let fence = trimmed.hasPrefix("```") ? "```" : "~~~"
+                    codeBlockLang = String(trimmed.dropFirst(fence.count)).trimmingCharacters(in: .whitespaces)
+                }
+                i += 1
+                continue
+            }
+
+            if inCodeBlock {
+                codeLines.append(line)
+                i += 1
+                continue
+            }
+
+            // Empty line
+            if trimmed.isEmpty {
+                closeList(&html, &inList, listOrdered)
+                i += 1
+                continue
+            }
+
+            // Horizontal rule
+            if trimmed.range(of: "^[-*_]{3,}$", options: .regularExpression) != nil {
+                closeList(&html, &inList, listOrdered)
+                html.append("<hr>")
+                i += 1
+                continue
+            }
+
+            // Headings
+            if let match = trimmed.range(of: "^(#{1,6}) (.+)$", options: .regularExpression) {
+                closeList(&html, &inList, listOrdered)
+                let hashCount = trimmed.prefix(while: { $0 == "#" }).count
+                let content = String(trimmed.dropFirst(hashCount + 1))
+                html.append("<h\(hashCount)>\(inlineMarkdown(content))</h\(hashCount)>")
+                i += 1
+                continue
+            }
+
+            // Blockquote
+            if trimmed.hasPrefix("> ") {
+                closeList(&html, &inList, listOrdered)
+                let content = String(trimmed.dropFirst(2))
+                html.append("<blockquote>\(inlineMarkdown(content))</blockquote>")
+                i += 1
+                continue
+            }
+
+            // Unordered list
+            if trimmed.hasPrefix("- ") || trimmed.hasPrefix("* ") || trimmed.hasPrefix("+ ") {
+                if !inList || listOrdered {
+                    closeList(&html, &inList, listOrdered)
+                    html.append("<ul>")
+                    inList = true
+                    listOrdered = false
+                }
+                let content = String(trimmed.dropFirst(2))
+                html.append("<li>\(inlineMarkdown(content))</li>")
+                i += 1
+                continue
+            }
+
+            // Ordered list
+            if trimmed.range(of: "^\\d+\\. ", options: .regularExpression) != nil {
+                if !inList || !listOrdered {
+                    closeList(&html, &inList, listOrdered)
+                    html.append("<ol>")
+                    inList = true
+                    listOrdered = true
+                }
+                let dotIndex = trimmed.firstIndex(of: ".")!
+                let content = String(trimmed[trimmed.index(dotIndex, offsetBy: 2)...])
+                html.append("<li>\(inlineMarkdown(content))</li>")
+                i += 1
+                continue
+            }
+
+            // Paragraph
+            closeList(&html, &inList, listOrdered)
+            html.append("<p>\(inlineMarkdown(trimmed))</p>")
+            i += 1
+        }
+
+        // Close any open blocks
+        if inCodeBlock {
+            html.append("<pre><code>" + escapeHTML(codeLines.joined(separator: "\n")) + "</code></pre>")
+        }
+        closeList(&html, &inList, listOrdered)
+
+        return html.joined(separator: "\n")
+    }
+
+    /// Process inline markdown: bold, italic, code, links.
+    private static func inlineMarkdown(_ text: String) -> String {
+        var result = escapeHTML(text)
+        // Inline code (must come before bold/italic to avoid conflicts)
+        result = result.replacingOccurrences(of: "`([^`]+)`",
+            with: "<code>$1</code>", options: .regularExpression)
+        // Bold+italic
+        result = result.replacingOccurrences(of: "\\*\\*\\*(.+?)\\*\\*\\*",
+            with: "<strong><em>$1</em></strong>", options: .regularExpression)
+        // Bold
+        result = result.replacingOccurrences(of: "\\*\\*(.+?)\\*\\*",
+            with: "<strong>$1</strong>", options: .regularExpression)
+        result = result.replacingOccurrences(of: "__(.+?)__",
+            with: "<strong>$1</strong>", options: .regularExpression)
+        // Italic
+        result = result.replacingOccurrences(of: "\\*(.+?)\\*",
+            with: "<em>$1</em>", options: .regularExpression)
+        result = result.replacingOccurrences(of: "_(.+?)_",
+            with: "<em>$1</em>", options: .regularExpression)
+        // Links [text](url)
+        result = result.replacingOccurrences(of: "\\[([^\\]]+)\\]\\(([^)]+)\\)",
+            with: "<a href=\"$2\">$1</a>", options: .regularExpression)
+        return result
+    }
+
+    private static func escapeHTML(_ text: String) -> String {
+        text.replacingOccurrences(of: "&", with: "&amp;")
+            .replacingOccurrences(of: "<", with: "&lt;")
+            .replacingOccurrences(of: ">", with: "&gt;")
+    }
+
+    private static func closeList(_ html: inout [String], _ inList: inout Bool, _ ordered: Bool) {
+        if inList {
+            html.append(ordered ? "</ol>" : "</ul>")
+            inList = false
+        }
+    }
+
     // For testing
     func addEntry(_ entry: ClipboardEntry) {
         entries.insert(entry, at: 0)

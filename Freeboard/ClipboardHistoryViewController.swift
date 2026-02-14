@@ -4,6 +4,7 @@ import WebKit
 protocol ClipboardHistoryDelegate: AnyObject {
     func didSelectEntry(_ entry: ClipboardEntry)
     func didSelectEntryAsPlainText(_ entry: ClipboardEntry)
+    func didSelectEntryAsRenderedMarkdown(_ entry: ClipboardEntry)
     func didDeleteEntry(_ entry: ClipboardEntry)
     func didDismiss()
 }
@@ -1230,10 +1231,18 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         historyDelegate?.didSelectEntry(filteredEntries[idx])
     }
 
-    private func selectCurrentAsPlainText(at index: Int? = nil) {
+    /// Shift+Enter / Shift+N: paste in the "alternative" format.
+    /// For rich text → plain, for plain markdown → rich, for rich markdown → markdown source.
+    private func selectCurrentAlternateFormat(at index: Int? = nil) {
         let idx = index ?? selectedIndex
         guard idx < filteredEntries.count else { return }
-        historyDelegate?.didSelectEntryAsPlainText(filteredEntries[idx])
+        let entry = filteredEntries[idx]
+        switch entry.formatCategory {
+        case .plainMarkdown:
+            historyDelegate?.didSelectEntryAsRenderedMarkdown(entry)
+        case .richText, .richMarkdown, .plainText:
+            historyDelegate?.didSelectEntryAsPlainText(entry)
+        }
     }
 
     private func toggleExpand() {
@@ -1471,7 +1480,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         if event.keyCode == 36 { // Enter
             if editingIndex != nil { return } // Let text view handle it
             if event.modifierFlags.contains(.shift) {
-                selectCurrentAsPlainText()
+                selectCurrentAlternateFormat()
             } else {
                 handleEnter()
             }
@@ -1487,7 +1496,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             if let chars = event.charactersIgnoringModifiers, let digit = chars.first, digit >= "1" && digit <= "9" {
                 let index = Int(String(digit))! - 1
                 if flags == .shift {
-                    selectCurrentAsPlainText(at: index)
+                    selectCurrentAlternateFormat(at: index)
                 } else if flags.isEmpty {
                     selectCurrent(at: index)
                 }
