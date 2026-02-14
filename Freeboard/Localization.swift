@@ -161,6 +161,11 @@ struct L {
     static var markdownHelpOrderedList: String { tr("markdownHelpOrderedList") }
     static var markdownHelpBlockquote: String { tr("markdownHelpBlockquote") }
     static var markdownHelpHr: String { tr("markdownHelpHr") }
+    static var editing: String { tr("editing") }
+    static var helpEditingLink: String { tr("helpEditingLink") }
+    static var editingHelpCtrlE: String { tr("editingHelpCtrlE") }
+    static var editingHelpVimEnable: String { tr("editingHelpVimEnable") }
+    static var editingHelpVimDisable: String { tr("editingHelpVimDisable") }
 
     static func accessibleMinutesAgo(_ n: Int) -> String {
         String(format: tr("accessibleMinutesAgo"), n)
@@ -658,6 +663,50 @@ struct L {
             .es: "--- línea horizontal", .fr: "--- ligne horizontale",
             .ar: "--- خط أفقي", .bn: "--- অনুভূমিক রেখা",
             .pt: "--- linha horizontal", .ru: "--- горизонтальная линия", .ja: "--- 水平線"
+        ],
+        "editing": [
+            .en: "Editing", .zh: "编辑", .hi: "संपादन", .es: "Edición", .fr: "Édition",
+            .ar: "تحرير", .bn: "সম্পাদনা", .pt: "Edição", .ru: "Редактирование", .ja: "編集"
+        ],
+        "helpEditingLink": [
+            .en: "Editing →", .zh: "编辑 →", .hi: "संपादन →", .es: "Edición →", .fr: "Édition →",
+            .ar: "→ تحرير", .bn: "সম্পাদনা →", .pt: "Edição →", .ru: "Редактирование →", .ja: "編集 →"
+        ],
+        "editingHelpCtrlE": [
+            .en: "Press Ctrl+E on any clipboard item to open the editor",
+            .zh: "在任何剪贴板条目上按 Ctrl+E 打开编辑器",
+            .hi: "किसी भी क्लिपबोर्ड आइटम पर Ctrl+E दबाकर एडिटर खोलें",
+            .es: "Presiona Ctrl+E en cualquier elemento para abrir el editor",
+            .fr: "Appuyez sur Ctrl+E sur un élément pour ouvrir l'éditeur",
+            .ar: "اضغط Ctrl+E على أي عنصر لفتح المحرر",
+            .bn: "যেকোনো ক্লিপবোর্ড আইটেমে Ctrl+E চাপুন এডিটর খুলতে",
+            .pt: "Pressione Ctrl+E em qualquer item para abrir o editor",
+            .ru: "Нажмите Ctrl+E на любом элементе для открытия редактора",
+            .ja: "任意のクリップボード項目で Ctrl+E を押してエディタを開く"
+        ],
+        "editingHelpVimEnable": [
+            .en: "Click here to enable vim-style editing",
+            .zh: "点击此处启用 Vim 风格编辑",
+            .hi: "Vim शैली संपादन सक्षम करने के लिए यहां क्लिक करें",
+            .es: "Haz clic aquí para activar la edición estilo Vim",
+            .fr: "Cliquez ici pour activer l'édition style Vim",
+            .ar: "انقر هنا لتفعيل تحرير بأسلوب Vim",
+            .bn: "Vim স্টাইল সম্পাদনা সক্ষম করতে এখানে ক্লিক করুন",
+            .pt: "Clique aqui para ativar edição estilo Vim",
+            .ru: "Нажмите, чтобы включить редактирование в стиле Vim",
+            .ja: "クリックして Vim スタイル編集を有効にする"
+        ],
+        "editingHelpVimDisable": [
+            .en: "Click here to disable vim-style editing",
+            .zh: "点击此处禁用 Vim 风格编辑",
+            .hi: "Vim शैली संपादन अक्षम करने के लिए यहां क्लिक करें",
+            .es: "Haz clic aquí para desactivar la edición estilo Vim",
+            .fr: "Cliquez ici pour désactiver l'édition style Vim",
+            .ar: "انقر هنا لتعطيل تحرير بأسلوب Vim",
+            .bn: "Vim স্টাইল সম্পাদনা নিষ্ক্রিয় করতে এখানে ক্লিক করুন",
+            .pt: "Clique aqui para desativar edição estilo Vim",
+            .ru: "Нажмите, чтобы отключить редактирование в стиле Vim",
+            .ja: "クリックして Vim スタイル編集を無効にする"
         ],
     ]
 }

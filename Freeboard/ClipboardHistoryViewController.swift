@@ -175,7 +175,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             string: L.searchPlaceholder, attributes: placeholderAttrs
         )
         helpLabel.attributedStringValue = makeHelpString()
-        helpButton.title = "[?]"
+        helpButton.title = "[\(L.help)]"
+        helpButton.setAccessibilityLabel(L.help)
         helpButton.font = retroFontSmall
         quitButton.title = L.quit
         quitButton.font = retroFontSmall
@@ -276,11 +277,12 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         helpLabel.alignment = .left
         helpLabel.attributedStringValue = makeHelpString()
 
-        helpButton = NSButton(title: "[?]", target: self, action: #selector(helpButtonClicked))
+        helpButton = NSButton(title: "[\(L.help)]", target: self, action: #selector(helpButtonClicked))
         helpButton.translatesAutoresizingMaskIntoConstraints = false
         helpButton.isBordered = false
         helpButton.font = retroFontSmall
         helpButton.contentTintColor = retroDimGreen.withAlphaComponent(0.5)
+        helpButton.setAccessibilityLabel(L.help)
 
         quitButton = NSButton(title: L.quit, target: self, action: #selector(quitClicked))
         quitButton.translatesAutoresizingMaskIntoConstraints = false
@@ -394,6 +396,12 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         markdownLinkButton.attributedTitle = NSAttributedString(string: L.helpMarkdownLink, attributes: linkAttrs)
         markdownLinkButton.setAccessibilityLabel(L.markdownSupport)
 
+        let editingLinkButton = NSButton(title: "", target: self, action: #selector(editingLinkClicked))
+        editingLinkButton.translatesAutoresizingMaskIntoConstraints = false
+        editingLinkButton.isBordered = false
+        editingLinkButton.attributedTitle = NSAttributedString(string: L.helpEditingLink, attributes: linkAttrs)
+        editingLinkButton.setAccessibilityLabel(L.editing)
+
         let dismissLabel = NSTextField(labelWithString: "")
         dismissLabel.translatesAutoresizingMaskIntoConstraints = false
         dismissLabel.backgroundColor = .clear
@@ -405,6 +413,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         overlay.addSubview(helpContent)
         overlay.addSubview(sectionLabel)
         overlay.addSubview(markdownLinkButton)
+        overlay.addSubview(editingLinkButton)
         overlay.addSubview(dismissLabel)
 
         if !AXIsProcessTrusted() {
@@ -443,6 +452,9 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
 
                 markdownLinkButton.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
                 markdownLinkButton.topAnchor.constraint(equalTo: sectionLabel.bottomAnchor, constant: 8),
+
+                editingLinkButton.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
+                editingLinkButton.topAnchor.constraint(equalTo: markdownLinkButton.bottomAnchor, constant: 4),
             ])
         } else {
             NSLayoutConstraint.activate([
@@ -451,6 +463,9 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
 
                 markdownLinkButton.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
                 markdownLinkButton.topAnchor.constraint(equalTo: sectionLabel.bottomAnchor, constant: 8),
+
+                editingLinkButton.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
+                editingLinkButton.topAnchor.constraint(equalTo: markdownLinkButton.bottomAnchor, constant: 4),
             ])
         }
 
@@ -510,6 +525,23 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     @objc private func markdownBackClicked() {
         dismissHelp()
         showHelp()
+    }
+
+    @objc private func editingLinkClicked() {
+        dismissHelp()
+        showEditingHelp()
+    }
+
+    @objc private func editingBackClicked() {
+        dismissHelp()
+        showHelp()
+    }
+
+    @objc private func editingVimToggleClicked() {
+        let current = UserDefaults.standard.bool(forKey: "vimModeEnabled")
+        UserDefaults.standard.set(!current, forKey: "vimModeEnabled")
+        dismissHelp()
+        showEditingHelp()
     }
 
     func showMarkdownHelpScreen() {
@@ -663,6 +695,132 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             helpContent.topAnchor.constraint(equalTo: scrollContainer.contentView.topAnchor),
             helpContent.leadingAnchor.constraint(equalTo: scrollContainer.contentView.leadingAnchor),
             helpContent.trailingAnchor.constraint(equalTo: scrollContainer.contentView.trailingAnchor),
+
+            dismissLabel.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
+            dismissLabel.bottomAnchor.constraint(equalTo: overlay.bottomAnchor, constant: -24),
+        ])
+
+        let clickGesture = NSClickGestureRecognizer(target: self, action: #selector(helpOverlayClicked))
+        clickGesture.delegate = self
+        overlay.addGestureRecognizer(clickGesture)
+
+        helpOverlay = overlay
+    }
+
+    private func showEditingHelp() {
+        let overlay = NSView(frame: containerView.bounds)
+        overlay.autoresizingMask = [.width, .height]
+        overlay.wantsLayer = true
+        overlay.layer?.backgroundColor = NSColor(red: 0.01, green: 0.01, blue: 0.01, alpha: 0.95).cgColor
+
+        let titleFont = L.current.usesSystemFont
+            ? NSFont.systemFont(ofSize: 22, weight: .bold)
+            : NSFont(name: "Menlo-Bold", size: 18) ?? NSFont.monospacedSystemFont(ofSize: 18, weight: .bold)
+        let sectionFont = L.current.usesSystemFont
+            ? NSFont.systemFont(ofSize: 14, weight: .bold)
+            : NSFont(name: "Menlo-Bold", size: 12) ?? NSFont.monospacedSystemFont(ofSize: 12, weight: .bold)
+        let bodyFont = L.current.usesSystemFont
+            ? NSFont.systemFont(ofSize: 14, weight: .regular)
+            : NSFont(name: "Menlo", size: 12) ?? NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
+
+        // Back button
+        let backButton = NSButton(title: "", target: self, action: #selector(editingBackClicked))
+        backButton.translatesAutoresizingMaskIntoConstraints = false
+        backButton.isBordered = false
+        let backAttrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: retroGreen.withAlphaComponent(0.8),
+            .font: bodyFont,
+            .underlineStyle: NSUnderlineStyle.single.rawValue
+        ]
+        backButton.attributedTitle = NSAttributedString(string: L.markdownHelpBack, attributes: backAttrs)
+        backButton.setAccessibilityLabel(L.help)
+        overlay.addSubview(backButton)
+
+        // Content
+        let leftPara = NSMutableParagraphStyle()
+        leftPara.alignment = .left
+        leftPara.lineSpacing = 4
+
+        let sectionPara = NSMutableParagraphStyle()
+        sectionPara.alignment = .left
+        sectionPara.paragraphSpacingBefore = 16
+
+        let titleAttrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: retroGreen,
+            .font: titleFont,
+            .paragraphStyle: leftPara
+        ]
+        let sectionAttrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: retroDimGreen.withAlphaComponent(0.5),
+            .font: sectionFont,
+            .paragraphStyle: sectionPara
+        ]
+        let bodyAttrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: retroDimGreen,
+            .font: bodyFont,
+            .paragraphStyle: leftPara
+        ]
+
+        let str = NSMutableAttributedString()
+
+        // Title
+        str.append(NSAttributedString(string: L.editing.uppercased(), attributes: titleAttrs))
+
+        // Keybindings section
+        str.append(NSAttributedString(string: "\n\n", attributes: bodyAttrs))
+        str.append(NSAttributedString(string: L.markdownHelpBindings, attributes: sectionAttrs))
+        str.append(NSAttributedString(string: "\n\n", attributes: bodyAttrs))
+        str.append(NSAttributedString(string: L.editingHelpCtrlE, attributes: bodyAttrs))
+
+        let helpContent = NSTextField(labelWithString: "")
+        helpContent.translatesAutoresizingMaskIntoConstraints = false
+        helpContent.backgroundColor = .clear
+        helpContent.isBezeled = false
+        helpContent.isEditable = false
+        helpContent.maximumNumberOfLines = 0
+        helpContent.lineBreakMode = .byWordWrapping
+        helpContent.alignment = .left
+        helpContent.attributedStringValue = str
+
+        // Vim toggle button
+        let vimEnabled = UserDefaults.standard.bool(forKey: "vimModeEnabled")
+        let vimToggleText = vimEnabled ? L.editingHelpVimDisable : L.editingHelpVimEnable
+        let vimToggleButton = NSButton(title: "", target: self, action: #selector(editingVimToggleClicked))
+        vimToggleButton.translatesAutoresizingMaskIntoConstraints = false
+        vimToggleButton.isBordered = false
+        let vimLinkAttrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: retroGreen.withAlphaComponent(0.8),
+            .font: bodyFont,
+            .underlineStyle: NSUnderlineStyle.single.rawValue
+        ]
+        vimToggleButton.attributedTitle = NSAttributedString(string: vimToggleText, attributes: vimLinkAttrs)
+        vimToggleButton.setAccessibilityLabel(vimToggleText)
+
+        let dismissLabel = NSTextField(labelWithString: "")
+        dismissLabel.translatesAutoresizingMaskIntoConstraints = false
+        dismissLabel.backgroundColor = .clear
+        dismissLabel.isBezeled = false
+        dismissLabel.isEditable = false
+        dismissLabel.alignment = .center
+        dismissLabel.attributedStringValue = makeDismissString()
+
+        overlay.addSubview(helpContent)
+        overlay.addSubview(vimToggleButton)
+        overlay.addSubview(dismissLabel)
+
+        // Insert below effectsView so CRT effects still show on top
+        containerView.addSubview(overlay, positioned: .below, relativeTo: effectsView)
+
+        NSLayoutConstraint.activate([
+            backButton.topAnchor.constraint(equalTo: overlay.topAnchor, constant: 16),
+            backButton.leadingAnchor.constraint(equalTo: overlay.leadingAnchor, constant: 24),
+
+            helpContent.topAnchor.constraint(equalTo: backButton.bottomAnchor, constant: 12),
+            helpContent.leadingAnchor.constraint(equalTo: overlay.leadingAnchor, constant: 60),
+            helpContent.trailingAnchor.constraint(equalTo: overlay.trailingAnchor, constant: -60),
+
+            vimToggleButton.topAnchor.constraint(equalTo: helpContent.bottomAnchor, constant: 16),
+            vimToggleButton.leadingAnchor.constraint(equalTo: overlay.leadingAnchor, constant: 60),
 
             dismissLabel.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
             dismissLabel.bottomAnchor.constraint(equalTo: overlay.bottomAnchor, constant: -24),
