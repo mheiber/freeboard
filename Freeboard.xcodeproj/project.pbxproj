@@ -20,15 +20,18 @@
 		FA0000000000000000000209 /* RetroEffectsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000109 /* RetroEffectsView.swift */; };
 		FA000000000000000000020A /* Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA000000000000000000010C /* Localization.swift */; };
 		FA000000000000000000020B /* ScreenOverlayWindow.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA000000000000000000010D /* ScreenOverlayWindow.swift */; };
+		FA000000000000000000020D /* EmptyStateMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000110 /* EmptyStateMode.swift */; };
 		FA0000000000000000000400 /* PasswordDetectorTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000300 /* PasswordDetectorTests.swift */; };
 		FA0000000000000000000401 /* FuzzySearchTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000301 /* FuzzySearchTests.swift */; };
 		FA0000000000000000000402 /* ClipboardManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000302 /* ClipboardManagerTests.swift */; };
 		FA0000000000000000000403 /* IntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000303 /* IntegrationTests.swift */; };
+		FA0000000000000000000404 /* EmptyStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000304 /* EmptyStateTests.swift */; };
 		FA0000000000000000000502 /* ClipboardEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000102 /* ClipboardEntry.swift */; };
 		FA0000000000000000000503 /* ClipboardManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000103 /* ClipboardManager.swift */; };
 		FA0000000000000000000504 /* PasswordDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000104 /* PasswordDetector.swift */; };
 		FA0000000000000000000506 /* FuzzySearch.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000106 /* FuzzySearch.swift */; };
 		FA0000000000000000000507 /* Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA000000000000000000010C /* Localization.swift */; };
+		FA0000000000000000000508 /* EmptyStateMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000110 /* EmptyStateMode.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -60,10 +63,12 @@
 		FA000000000000000000010D /* ScreenOverlayWindow.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenOverlayWindow.swift; sourceTree = "<group>"; };
 		FA000000000000000000010E /* FreeboardRelease.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = FreeboardRelease.entitlements; sourceTree = "<group>"; };
 		FA000000000000000000010F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		FA0000000000000000000110 /* EmptyStateMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStateMode.swift; sourceTree = "<group>"; };
 		FA0000000000000000000300 /* PasswordDetectorTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PasswordDetectorTests.swift; sourceTree = "<group>"; };
 		FA0000000000000000000301 /* FuzzySearchTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FuzzySearchTests.swift; sourceTree = "<group>"; };
 		FA0000000000000000000302 /* ClipboardManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardManagerTests.swift; sourceTree = "<group>"; };
 		FA0000000000000000000303 /* IntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntegrationTests.swift; sourceTree = "<group>"; };
+		FA0000000000000000000304 /* EmptyStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStateTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -117,6 +122,7 @@
 				FA0000000000000000000109 /* RetroEffectsView.swift */,
 				FA000000000000000000010C /* Localization.swift */,
 				FA000000000000000000010D /* ScreenOverlayWindow.swift */,
+				FA0000000000000000000110 /* EmptyStateMode.swift */,
 				FA000000000000000000010A /* Info.plist */,
 				FA000000000000000000010B /* Freeboard.entitlements */,
 				FA000000000000000000010E /* FreeboardRelease.entitlements */,
@@ -132,6 +138,7 @@
 				FA0000000000000000000301 /* FuzzySearchTests.swift */,
 				FA0000000000000000000302 /* ClipboardManagerTests.swift */,
 				FA0000000000000000000303 /* IntegrationTests.swift */,
+				FA0000000000000000000304 /* EmptyStateTests.swift */,
 			);
 			path = FreeboardTests;
 			sourceTree = "<group>";
@@ -230,6 +237,7 @@
 				FA0000000000000000000209 /* RetroEffectsView.swift in Sources */,
 				FA000000000000000000020A /* Localization.swift in Sources */,
 				FA000000000000000000020B /* ScreenOverlayWindow.swift in Sources */,
+				FA000000000000000000020D /* EmptyStateMode.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -242,10 +250,12 @@
 				FA0000000000000000000504 /* PasswordDetector.swift in Sources */,
 				FA0000000000000000000506 /* FuzzySearch.swift in Sources */,
 				FA0000000000000000000507 /* Localization.swift in Sources */,
+				FA0000000000000000000508 /* EmptyStateMode.swift in Sources */,
 				FA0000000000000000000400 /* PasswordDetectorTests.swift in Sources */,
 				FA0000000000000000000401 /* FuzzySearchTests.swift in Sources */,
 				FA0000000000000000000402 /* ClipboardManagerTests.swift in Sources */,
 				FA0000000000000000000403 /* IntegrationTests.swift in Sources */,
+				FA0000000000000000000404 /* EmptyStateTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

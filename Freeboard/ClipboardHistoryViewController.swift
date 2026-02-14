@@ -25,6 +25,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     private var accessibilityBanner: NSButton!
     private var scrollViewTopConstraint: NSLayoutConstraint!
     private var emptyStateView: NSView!
+    private var clearSearchButton: NSButton!
 
     private var filteredEntries: [ClipboardEntry] = []
     private var selectedIndex: Int = 0
@@ -293,6 +294,13 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         NSApp.terminate(nil)
     }
 
+    @objc private func clearSearchClicked() {
+        searchField.stringValue = ""
+        searchQuery = ""
+        reloadEntries()
+        view.window?.makeFirstResponder(self)
+    }
+
     private func setupEmptyState() {
         emptyStateView = NSView(frame: .zero)
         emptyStateView.translatesAutoresizingMaskIntoConstraints = false
@@ -315,6 +323,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         asciiLabel.alignment = .center
         asciiLabel.maximumNumberOfLines = 0
         asciiLabel.lineBreakMode = .byClipping
+        asciiLabel.tag = 102
 
         let hintLabel = NSTextField(labelWithString: "")
         hintLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -334,9 +343,21 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         hotkeyLabel.alignment = .center
         hotkeyLabel.tag = 101 // tag for refreshLocalization
 
+        clearSearchButton = NSButton(title: L.clearSearch, target: self, action: #selector(clearSearchClicked))
+        clearSearchButton.translatesAutoresizingMaskIntoConstraints = false
+        clearSearchButton.isBordered = false
+        clearSearchButton.wantsLayer = true
+        clearSearchButton.layer?.borderColor = retroDimGreen.withAlphaComponent(0.5).cgColor
+        clearSearchButton.layer?.borderWidth = 1
+        clearSearchButton.layer?.cornerRadius = 4
+        clearSearchButton.font = retroFontSmall
+        clearSearchButton.contentTintColor = retroGreen
+        clearSearchButton.isHidden = true
+
         emptyStateView.addSubview(asciiLabel)
         emptyStateView.addSubview(hintLabel)
         emptyStateView.addSubview(hotkeyLabel)
+        emptyStateView.addSubview(clearSearchButton)
         containerView.addSubview(emptyStateView)
 
         NSLayoutConstraint.activate([
@@ -355,6 +376,9 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
 
             hotkeyLabel.centerXAnchor.constraint(equalTo: emptyStateView.centerXAnchor),
             hotkeyLabel.topAnchor.constraint(equalTo: hintLabel.bottomAnchor, constant: 8),
+
+            clearSearchButton.centerXAnchor.constraint(equalTo: emptyStateView.centerXAnchor),
+            clearSearchButton.topAnchor.constraint(equalTo: hintLabel.bottomAnchor, constant: 16),
         ])
 
         updateEmptyStateStrings()
@@ -373,8 +397,45 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     }
 
     private func updateEmptyStateVisibility() {
-        emptyStateView?.isHidden = !filteredEntries.isEmpty
-        scrollView?.isHidden = filteredEntries.isEmpty
+        let mode = EmptyStateMode.compute(
+            filteredEntriesEmpty: filteredEntries.isEmpty,
+            searchQueryEmpty: searchQuery.isEmpty
+        )
+        switch mode {
+        case .hidden:
+            emptyStateView?.isHidden = true
+            scrollView?.isHidden = false
+        case .noItems:
+            emptyStateView?.isHidden = false
+            scrollView?.isHidden = true
+            if let asciiLabel = emptyStateView?.viewWithTag(102) {
+                asciiLabel.isHidden = false
+            }
+            if let hintLabel = emptyStateView?.viewWithTag(100) as? NSTextField {
+                hintLabel.stringValue = L.emptyHint
+                hintLabel.font = retroFont
+            }
+            if let hotkeyLabel = emptyStateView?.viewWithTag(101) {
+                hotkeyLabel.isHidden = false
+            }
+            clearSearchButton?.isHidden = true
+        case .noSearchResults:
+            emptyStateView?.isHidden = false
+            scrollView?.isHidden = true
+            if let asciiLabel = emptyStateView?.viewWithTag(102) {
+                asciiLabel.isHidden = true
+            }
+            if let hintLabel = emptyStateView?.viewWithTag(100) as? NSTextField {
+                hintLabel.stringValue = L.noMatchesFound
+                hintLabel.font = retroFont
+            }
+            if let hotkeyLabel = emptyStateView?.viewWithTag(101) {
+                hotkeyLabel.isHidden = true
+            }
+            clearSearchButton?.title = L.clearSearch
+            clearSearchButton?.font = retroFontSmall
+            clearSearchButton?.isHidden = false
+        }
     }
 
     private func makeHelpString() -> NSAttributedString {

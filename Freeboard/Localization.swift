@@ -80,6 +80,8 @@ struct L {
         current == .zh ? "打开/关闭此窗口" : "open/close"
     }
     static var quickSelect: String { current == .zh ? "快速选择" : "quick select" }
+    static var noMatchesFound: String { current == .zh ? "未找到匹配项。" : "No matches found." }
+    static var clearSearch: String { current == .zh ? "清除搜索 (Esc)" : "Clear Search (Esc)" }
 
     static func minutesAgo(_ n: Int) -> String {
         current == .zh ? "\(n)分钟前" : "\(n)m ago"
