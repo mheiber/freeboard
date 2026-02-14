@@ -41,14 +41,14 @@ struct ClipboardEntry: Identifiable, Equatable {
             return isPassword ? "********" : content
         case .image:
             if content.isEmpty {
-                return "\u{1F5BC} Image"
+                return "[img]"
             }
-            return "\u{1F5BC} " + content
+            return content
         case .fileURL:
             if let url = fileURL {
-                return "\u{1F4CE} " + url.lastPathComponent
+                return url.lastPathComponent
             }
-            return "\u{1F4CE} " + content
+            return content
         }
     }
 

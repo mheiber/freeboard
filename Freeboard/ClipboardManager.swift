@@ -180,8 +180,10 @@ class ClipboardManager {
     }
 
     private func performOCR(on imageData: Data, entryId: UUID) {
-        DispatchQueue.global(qos: .background).async { [weak self] in
-            guard let cgImage = NSImage(data: imageData)?.cgImage(forProposedRect: nil, context: nil, hints: nil) else { return }
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let nsImage = NSImage(data: imageData) else { return }
+            var rect = NSRect(origin: .zero, size: nsImage.size)
+            guard let cgImage = nsImage.cgImage(forProposedRect: &rect, context: nil, hints: nil) else { return }
             let request = VNRecognizeTextRequest { request, error in
                 guard error == nil,
                       let observations = request.results as? [VNRecognizedTextObservation] else { return }
