@@ -133,6 +133,8 @@ struct L {
     static var permissionWarningTooltip: String { tr("permissionWarningTooltip") }
     static var launchAtLogin: String { tr("launchAtLogin") }
     static var vimStyleEditing: String { tr("vimStyleEditing") }
+    static var saveAndClose: String { tr("saveAndClose") }
+    static var accessibilityTextEditor: String { tr("accessibilityTextEditor") }
 
     static func accessibleMinutesAgo(_ n: Int) -> String {
         String(format: tr("accessibleMinutesAgo"), n)
@@ -436,6 +438,18 @@ struct L {
             .es: "Edición estilo Vim", .fr: "Édition style Vim",
             .ar: "تحرير بأسلوب Vim", .bn: "Vim স্টাইল সম্পাদনা",
             .pt: "Edição estilo Vim", .ru: "Редактирование в стиле Vim", .ja: "Vim スタイル編集"
+        ],
+        "saveAndClose": [
+            .en: "save+close", .zh: "保存并关闭", .hi: "सहेजें+बंद",
+            .es: "guardar+cerrar", .fr: "enregistrer+fermer",
+            .ar: "حفظ+إغلاق", .bn: "সংরক্ষণ+বন্ধ",
+            .pt: "salvar+fechar", .ru: "сохранить+закрыть", .ja: "保存+閉じる"
+        ],
+        "accessibilityTextEditor": [
+            .en: "Text editor", .zh: "文本编辑器", .hi: "टेक्स्ट संपादक",
+            .es: "Editor de texto", .fr: "Éditeur de texte",
+            .ar: "محرر النصوص", .bn: "টেক্সট সম্পাদক",
+            .pt: "Editor de texto", .ru: "Текстовый редактор", .ja: "テキストエディタ"
         ],
     ]
 }

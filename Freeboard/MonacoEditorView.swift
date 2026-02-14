@@ -17,11 +17,6 @@ private class EditorTextView: NSTextView {
             onEscape?()
             return
         }
-        if event.keyCode == 48 { // Tab
-            NSLog("[DEBUG EditorTextView] Tab → save and close")
-            onTab?()
-            return
-        }
         super.keyDown(with: event)
     }
 
@@ -42,6 +37,8 @@ class MonacoEditorView: NSView {
     private var editorScrollView: NSScrollView!
     private var textView: EditorTextView!
     private var debugLabel: NSTextField!
+
+    private var helpLabel: NSTextField!
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -104,16 +101,41 @@ class MonacoEditorView: NSView {
             .backgroundColor: NSColor(red: 0, green: 0.23, blue: 0.05, alpha: 0.53)
         ]
         textView.allowsUndo = true
+        textView.setAccessibilityLabel(L.accessibilityTextEditor)
+        textView.setAccessibilityRole(.textArea)
 
         textView.onEscape = { [weak self] in
             self?.saveAndClose()
         }
-        textView.onTab = { [weak self] in
-            self?.saveAndClose()
-        }
+        // Tab inserts a literal tab character (default NSTextView behavior)
 
         editorScrollView.documentView = textView
         addSubview(editorScrollView)
+
+        // Help label at bottom — matching main view style
+        let retroGreen = NSColor(red: 0.0, green: 1.0, blue: 0.25, alpha: 1.0)
+        let retroDimGreen = NSColor(red: 0.0, green: 0.75, blue: 0.19, alpha: 1.0)
+        let smallFont = NSFont(name: "Menlo", size: 11) ?? .monospacedSystemFont(ofSize: 11, weight: .regular)
+        let keyAttrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: retroGreen.withAlphaComponent(0.6),
+            .font: smallFont
+        ]
+        let dimAttrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: retroDimGreen.withAlphaComponent(0.6),
+            .font: smallFont
+        ]
+        let helpStr = NSMutableAttributedString()
+        helpStr.append(NSAttributedString(string: "Esc ", attributes: keyAttrs))
+        helpStr.append(NSAttributedString(string: L.saveAndClose, attributes: dimAttrs))
+
+        helpLabel = NSTextField(labelWithString: "")
+        helpLabel.attributedStringValue = helpStr
+        helpLabel.translatesAutoresizingMaskIntoConstraints = false
+        helpLabel.backgroundColor = .clear
+        helpLabel.isEditable = false
+        helpLabel.isBezeled = false
+        helpLabel.alignment = .left
+        addSubview(helpLabel)
 
         NSLayoutConstraint.activate([
             debugLabel.topAnchor.constraint(equalTo: topAnchor, constant: 2),
@@ -123,7 +145,11 @@ class MonacoEditorView: NSView {
             editorScrollView.topAnchor.constraint(equalTo: debugLabel.bottomAnchor, constant: 2),
             editorScrollView.leadingAnchor.constraint(equalTo: leadingAnchor),
             editorScrollView.trailingAnchor.constraint(equalTo: trailingAnchor),
-            editorScrollView.bottomAnchor.constraint(equalTo: bottomAnchor),
+            editorScrollView.bottomAnchor.constraint(equalTo: helpLabel.topAnchor),
+
+            helpLabel.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -7),
+            helpLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
+            helpLabel.heightAnchor.constraint(equalToConstant: 18),
         ])
 
         NSLog("[DEBUG MonacoEditorView] setupEditor complete")
