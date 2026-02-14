@@ -6,9 +6,16 @@ Design principles for Freeboard. Every feature decision should pass through thes
 
 The keyboard is always the fastest path. Every action has a key binding. Mouse works for everything, but a user who never touches the mouse should never feel limited. If a feature cannot have a simple, discoverable keyboard binding, it probably should not exist.
 
-## 2. Terminal soul
+## 2. Terminal Power: Efficiency, pragmatism, beauty, soul
 
-Freeboard looks, sounds, and feels like a terminal. Green on black. Monospaced text. ASCII art. Scanlines and cracked glass. No rounded-corner cards, no pastel gradients, no SF Symbols in the main UI. New features must feel like they belong on a CRT monitor in a 1983 hacker movie.
+PRACTICAL: no noise, no animations
+LOoks fun and interesting
+Pragmatic efficient
+
+we want efficient and
+  pragmatic, no distractions, no overcomplication. No need for clear all, just hold cmd-d . No boot up animation. no fade ins
+  and fade outs
+
 
 ## 3. Instant and ephemeral
 
