@@ -154,6 +154,46 @@ class MonacoEditorView: NSView, WKScriptMessageHandler, WKNavigationDelegate {
             return "shell"
         }
 
+        // Markdown: check before Python since both can contain "import "
+        // Look for multiple markdown-specific signals across lines
+        let lines = trimmed.components(separatedBy: "\n")
+        var markdownScore = 0
+        for line in lines {
+            let ln = line.trimmingCharacters(in: .whitespaces)
+            // ATX headers: # , ## , ### , etc.
+            if ln.range(of: "^#{1,6} ", options: .regularExpression) != nil {
+                markdownScore += 2
+            }
+            // Unordered list items: - , * , +  (but not * alone which could be pointer/multiply)
+            if ln.hasPrefix("- ") || ln.hasPrefix("+ ") ||
+               (ln.hasPrefix("* ") && ln.count > 2) {
+                markdownScore += 1
+            }
+            // Ordered list items: 1. , 2. , etc.
+            if ln.range(of: "^\\d+\\. ", options: .regularExpression) != nil {
+                markdownScore += 1
+            }
+            // Code fences
+            if ln.hasPrefix("```") || ln.hasPrefix("~~~") {
+                markdownScore += 2
+            }
+            // Blockquotes
+            if ln.hasPrefix("> ") {
+                markdownScore += 1
+            }
+            // Links: [text](url)
+            if ln.contains("](") && ln.contains("[") {
+                markdownScore += 2
+            }
+            // Bold/italic markers
+            if ln.contains("**") || ln.contains("__") {
+                markdownScore += 1
+            }
+        }
+        if markdownScore >= 2 {
+            return "markdown"
+        }
+
         // Python
         let pythonPatterns = ["def ", "import ", "from ", "class ", "if __name__", "print("]
         for pat in pythonPatterns {
