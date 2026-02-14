@@ -734,6 +734,9 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         selectedIndex = 0
         expandedIndex = nil
         reloadEntries()
+        if searchQuery.isEmpty {
+            view.window?.makeFirstResponder(self)
+        }
     }
 
     func control(_ control: NSControl, textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
