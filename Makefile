@@ -3,14 +3,16 @@ BUILD_DIR = build/Debug
 APP_BUNDLE = $(BUILD_DIR)/$(APP_NAME).app
 INSTALL_DIR = /Applications
 
-.PHONY: build run prod clean
+.PHONY: build run prod clean kill
 
 build:
 	xcodebuild -project $(APP_NAME).xcodeproj -scheme $(APP_NAME) -configuration Debug SYMROOT=$(CURDIR)/build
 
-run: build
-	-killall $(APP_NAME) 2>/dev/null; sleep 0.5
+run: kill build
 	open $(APP_BUNDLE)
+
+kill:
+	-killall $(APP_NAME) 2>/dev/null; sleep 0.5
 
 prod:
 	xcodebuild -project $(APP_NAME).xcodeproj -scheme $(APP_NAME) -configuration Release SYMROOT=$(CURDIR)/build

@@ -175,14 +175,13 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     }
 
     @objc private func accessibilityBannerClicked() {
-        if #available(macOS 15.0, *) {
-            let granted = CGRequestPostEventAccess()
-            if granted {
-                hasAccessibility = true
-                return
-            }
+        // Prompt for accessibility permission, then open System Settings
+        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
+        let trusted = AXIsProcessTrustedWithOptions(options as CFDictionary)
+        if trusted {
+            hasAccessibility = true
+            return
         }
-        // Fallback: open System Settings to the right pane
         let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
         if !NSWorkspace.shared.open(url) {
             NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/System Settings.app"))
@@ -191,19 +190,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
 
     private func updateAccessibilityBanner() {
         guard accessibilityBanner != nil, scrollViewTopConstraint != nil else { return }
-        // Direct AX API test: try to query the focused app
-        let systemWide = AXUIElementCreateSystemWide()
-        var value: AnyObject?
-        let axResult = AXUIElementCopyAttributeValue(systemWide, kAXFocusedApplicationAttribute as CFString, &value)
         let showBanner = !hasAccessibility
-        let warningAttrs: [NSAttributedString.Key: Any] = [
-            .foregroundColor: NSColor(red: 1.0, green: 0.8, blue: 0.2, alpha: 1.0),
-            .font: retroFontSmall
-        ]
-        accessibilityBanner.attributedTitle = NSAttributedString(
-            string: "\u{26A0} Auto-paste needs Accessibility permission. [axResult=\(axResult.rawValue) has=\(hasAccessibility)]",
-            attributes: warningAttrs
-        )
         accessibilityBanner.isHidden = !showBanner
         scrollViewTopConstraint.constant = showBanner ? 88 : 54
         containerView?.layoutSubtreeIfNeeded()

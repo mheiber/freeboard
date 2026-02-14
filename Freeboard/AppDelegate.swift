@@ -9,6 +9,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
     private var clipboardManager: ClipboardManager!
     private var hotkeyManager: GlobalHotkeyManager!
     private var previousApp: NSRunningApplication?
+    private var accessibilityTimer: Timer?
+
+    var hasAccessibility = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSApp.setActivationPolicy(.accessory)
@@ -17,6 +20,45 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
         setupStatusItem()
         setupPopupWindow()
         setupHotkey()
+        checkAccessibilityAndPrompt()
+    }
+
+    // MARK: - Accessibility
+
+    /// Directly test if the AX API is functional. This is more reliable than
+    /// AXIsProcessTrusted() which can return stale results after rebuilds.
+    /// Only .apiDisabled means permission is denied.
+    private func checkAccessibility() -> Bool {
+        let systemWide = AXUIElementCreateSystemWide()
+        var value: AnyObject?
+        let result = AXUIElementCopyAttributeValue(
+            systemWide,
+            kAXFocusedApplicationAttribute as CFString,
+            &value
+        )
+        return result != .apiDisabled
+    }
+
+    private func checkAccessibilityAndPrompt() {
+        // Trigger the system prompt to request accessibility permission
+        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true]
+        AXIsProcessTrustedWithOptions(options as CFDictionary)
+
+        hasAccessibility = checkAccessibility()
+        historyVC.hasAccessibility = hasAccessibility
+
+        // Poll periodically — the user grants permission externally in System Settings
+        accessibilityTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+            self?.recheckAccessibility()
+        }
+    }
+
+    private func recheckAccessibility() {
+        let trusted = checkAccessibility()
+        if trusted != hasAccessibility {
+            hasAccessibility = trusted
+            historyVC.hasAccessibility = trusted
+        }
     }
 
     // MARK: - Setup
@@ -177,7 +219,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
         clipboardManager.selectEntry(entry)
         hidePopup()
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+        // Deactivate Freeboard and re-activate the previous app, then simulate Cmd+V
+        if let app = previousApp {
+            NSApp.hide(nil)
+            app.activate()
+        }
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { [weak self] in
             self?.simulatePaste()
         }
     }
@@ -193,20 +241,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
     // MARK: - Paste simulation
 
     private func simulatePaste() {
-        if let app = previousApp {
-            app.activate()
-        }
+        guard let keyDown = CGEvent(keyboardEventSource: nil, virtualKey: 9, keyDown: true),
+              let keyUp = CGEvent(keyboardEventSource: nil, virtualKey: 9, keyDown: false) else { return }
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-            let source = CGEventSource(stateID: .combinedSessionState)
+        keyDown.flags = .maskCommand
+        keyDown.post(tap: .cghidEventTap)
 
-            let keyDown = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: true)
-            keyDown?.flags = .maskCommand
-            keyDown?.post(tap: .cghidEventTap)
-
-            let keyUp = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: false)
-            keyUp?.flags = .maskCommand
-            keyUp?.post(tap: .cghidEventTap)
-        }
+        keyUp.flags = .maskCommand
+        keyUp.post(tap: .cghidEventTap)
     }
 }

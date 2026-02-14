@@ -2,14 +2,14 @@
 
 clipboard manager. 100% vibecoded.
 
-cmd-shift-v to open and select recent clipboard entries
+cmd-shift-c to open and select recent clipboard entries
 
 ![Freeboard screenshot](screenshot.png)
 
 ## Features
 
 - **Clipboard history** — stores last 50 entries in memory (never on disk)
-- **cmd-shift-v** or click `[F]` in menu bar to open
+- **cmd-shift-c** or click `[F]` in menu bar to open
 - **Fuzzy search**, ctrl-n/ctrl-p navigation, click or Enter to paste
 - **Password detection** — masks entries that look like passwords (`********`), auto-expires after 60s
 - **Bitwarden support** — recognizes `org.nspasteboard.ConcealedType` pasteboard marker
@@ -61,3 +61,7 @@ All UI strings with pinyin for learners:
 | N hours ago | N小时前 | N xiǎoshí qián |
 | N days ago | N天前 | N tiān qián |
 | Language | 语言 | yǔyán |
+| Text you copy will show up here | 复制的文本将显示在这里 | fùzhì de wénběn jiāng xiǎnshì zài zhèlǐ |
+| open/close | 打开/关闭 | dǎkāi/guānbì |
+| quick select | 快速选择 | kuàisù xuǎnzé |
+| search | 搜索 | sōusuǒ |

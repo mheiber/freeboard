@@ -1,7 +1,7 @@
 
 Make a mac clipboard app.
 cmd-v pastes
-cmd-shift-v or clicking the app in the menu bar opens a menu where ctrl-n ctrl-p, mouse, or fuzzy search select the entry.
+cmd-shift-c or clicking the app in the menu bar opens a menu where ctrl-n ctrl-p, mouse, or fuzzy search select the entry.
 Items in the drop-down have 'X' next to them to delete
 UI for selecting recents is green and black retro hacker style (like "homebrew" theme of iterm) with subtle VCR glitch effects and not afrai of taking up a lot of space
 

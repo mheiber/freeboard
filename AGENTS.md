@@ -33,7 +33,7 @@ Freeboard/
   ClipboardEntry.swift               → Data model (content, timestamp, password flag)
   PasswordDetector.swift             → Password heuristics, commit hash exclusion, Bitwarden
   FuzzySearch.swift                  → Character-order fuzzy matching with scoring
-  GlobalHotkeyManager.swift          → cmd-shift-v via Carbon RegisterEventHotKey
+  GlobalHotkeyManager.swift          → cmd-shift-c via Carbon RegisterEventHotKey
   PopupWindow.swift                  → Floating borderless panel
   ClipboardHistoryViewController.swift → Table view, search, keyboard nav, delete
   RetroEffectsView.swift             → Static scanlines and vignette (mouse-transparent)
