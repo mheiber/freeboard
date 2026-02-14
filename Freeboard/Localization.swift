@@ -135,6 +135,10 @@ struct L {
     static var vimStyleEditing: String { tr("vimStyleEditing") }
     static var saveAndClose: String { tr("saveAndClose") }
     static var accessibilityTextEditor: String { tr("accessibilityTextEditor") }
+    static var vimInsertMode: String { tr("vimInsertMode") }
+    static var vimNormalMode: String { tr("vimNormalMode") }
+    static var vimGoBack: String { tr("vimGoBack") }
+    static var move: String { tr("move") }
 
     static func accessibleMinutesAgo(_ n: Int) -> String {
         String(format: tr("accessibleMinutesAgo"), n)
@@ -450,6 +454,30 @@ struct L {
             .es: "Editor de texto", .fr: "Éditeur de texte",
             .ar: "محرر النصوص", .bn: "টেক্সট সম্পাদক",
             .pt: "Editor de texto", .ru: "Текстовый редактор", .ja: "テキストエディタ"
+        ],
+        "vimInsertMode": [
+            .en: "insert mode", .zh: "插入模式", .hi: "इन्सर्ट मोड",
+            .es: "modo inserción", .fr: "mode insertion",
+            .ar: "وضع الإدراج", .bn: "ইনসার্ট মোড",
+            .pt: "modo inserção", .ru: "режим вставки", .ja: "挿入モード"
+        ],
+        "vimNormalMode": [
+            .en: "normal mode", .zh: "普通模式", .hi: "नॉर्मल मोड",
+            .es: "modo normal", .fr: "mode normal",
+            .ar: "الوضع العادي", .bn: "নরমাল মোড",
+            .pt: "modo normal", .ru: "обычный режим", .ja: "ノーマルモード"
+        ],
+        "vimGoBack": [
+            .en: "go back", .zh: "返回", .hi: "वापस जाएं",
+            .es: "volver", .fr: "retour",
+            .ar: "رجوع", .bn: "ফিরে যান",
+            .pt: "voltar", .ru: "назад", .ja: "戻る"
+        ],
+        "move": [
+            .en: "move", .zh: "移动", .hi: "चलाएं",
+            .es: "mover", .fr: "déplacer",
+            .ar: "تحريك", .bn: "সরান",
+            .pt: "mover", .ru: "двигаться", .ja: "移動"
         ],
     ]
 }

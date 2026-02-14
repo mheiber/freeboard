@@ -5,16 +5,12 @@ protocol MonacoEditorDelegate: AnyObject {
     func editorDidClose()
 }
 
-/// Custom NSTextView subclass that intercepts Esc and Tab for save/close
+/// Custom NSTextView subclass that delegates all key handling to the parent MonacoEditorView
 private class EditorTextView: NSTextView {
-    var onEscape: (() -> Void)?
-    var onTab: (() -> Void)?
+    var keyHandler: ((NSEvent) -> Bool)?
 
     override func keyDown(with event: NSEvent) {
-        NSLog("[DEBUG EditorTextView] keyDown: keyCode=\(event.keyCode) chars='\(event.characters ?? "")' firstResponder=\(window?.firstResponder === self)")
-        if event.keyCode == 53 { // Esc
-            NSLog("[DEBUG EditorTextView] Esc → save and close")
-            onEscape?()
+        if let handler = keyHandler, handler(event) {
             return
         }
         super.keyDown(with: event)
@@ -37,8 +33,16 @@ class MonacoEditorView: NSView {
     private var editorScrollView: NSScrollView!
     private var textView: EditorTextView!
     private var debugLabel: NSTextField!
+    private var statusLabel: NSTextField!  // vim mode indicator / help hints
 
-    private var helpLabel: NSTextField!
+    // Vim state
+    private var vimEnabled = false
+    private enum VimMode { case insert, normal, command }
+    private var vimMode: VimMode = .insert
+    private var jkTimer: Timer?
+    private var pendingG = false
+    private var pendingZ = false
+    private var commandBuffer = ""
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -104,38 +108,21 @@ class MonacoEditorView: NSView {
         textView.setAccessibilityLabel(L.accessibilityTextEditor)
         textView.setAccessibilityRole(.textArea)
 
-        textView.onEscape = { [weak self] in
-            self?.saveAndClose()
+        textView.keyHandler = { [weak self] event in
+            self?.handleKeyDown(event) ?? false
         }
-        // Tab inserts a literal tab character (default NSTextView behavior)
 
         editorScrollView.documentView = textView
         addSubview(editorScrollView)
 
-        // Help label at bottom — matching main view style
-        let retroGreen = NSColor(red: 0.0, green: 1.0, blue: 0.25, alpha: 1.0)
-        let retroDimGreen = NSColor(red: 0.0, green: 0.75, blue: 0.19, alpha: 1.0)
-        let smallFont = NSFont(name: "Menlo", size: 11) ?? .monospacedSystemFont(ofSize: 11, weight: .regular)
-        let keyAttrs: [NSAttributedString.Key: Any] = [
-            .foregroundColor: retroGreen.withAlphaComponent(0.6),
-            .font: smallFont
-        ]
-        let dimAttrs: [NSAttributedString.Key: Any] = [
-            .foregroundColor: retroDimGreen.withAlphaComponent(0.6),
-            .font: smallFont
-        ]
-        let helpStr = NSMutableAttributedString()
-        helpStr.append(NSAttributedString(string: "Esc ", attributes: keyAttrs))
-        helpStr.append(NSAttributedString(string: L.saveAndClose, attributes: dimAttrs))
-
-        helpLabel = NSTextField(labelWithString: "")
-        helpLabel.attributedStringValue = helpStr
-        helpLabel.translatesAutoresizingMaskIntoConstraints = false
-        helpLabel.backgroundColor = .clear
-        helpLabel.isEditable = false
-        helpLabel.isBezeled = false
-        helpLabel.alignment = .left
-        addSubview(helpLabel)
+        // Status label at bottom — mode indicator + hints (like vim status line)
+        statusLabel = NSTextField(labelWithString: "")
+        statusLabel.translatesAutoresizingMaskIntoConstraints = false
+        statusLabel.backgroundColor = .clear
+        statusLabel.isEditable = false
+        statusLabel.isBezeled = false
+        statusLabel.alignment = .left
+        addSubview(statusLabel)
 
         NSLayoutConstraint.activate([
             debugLabel.topAnchor.constraint(equalTo: topAnchor, constant: 2),
@@ -145,15 +132,443 @@ class MonacoEditorView: NSView {
             editorScrollView.topAnchor.constraint(equalTo: debugLabel.bottomAnchor, constant: 2),
             editorScrollView.leadingAnchor.constraint(equalTo: leadingAnchor),
             editorScrollView.trailingAnchor.constraint(equalTo: trailingAnchor),
-            editorScrollView.bottomAnchor.constraint(equalTo: helpLabel.topAnchor),
+            editorScrollView.bottomAnchor.constraint(equalTo: statusLabel.topAnchor),
 
-            helpLabel.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -7),
-            helpLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
-            helpLabel.heightAnchor.constraint(equalToConstant: 18),
+            statusLabel.bottomAnchor.constraint(equalTo: bottomAnchor, constant: -7),
+            statusLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 12),
+            statusLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -12),
+            statusLabel.heightAnchor.constraint(equalToConstant: 18),
         ])
 
         NSLog("[DEBUG MonacoEditorView] setupEditor complete")
     }
+
+    // MARK: - Status line
+
+    private func updateStatusLine() {
+        let retroGreen = NSColor(red: 0.0, green: 1.0, blue: 0.25, alpha: 1.0)
+        let retroDimGreen = NSColor(red: 0.0, green: 0.75, blue: 0.19, alpha: 1.0)
+        let smallFont = NSFont(name: "Menlo", size: 11) ?? .monospacedSystemFont(ofSize: 11, weight: .regular)
+        let modeAttrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: retroGreen.withAlphaComponent(0.8),
+            .font: smallFont
+        ]
+        let keyAttrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: retroGreen.withAlphaComponent(0.6),
+            .font: smallFont
+        ]
+        let dimAttrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: retroDimGreen.withAlphaComponent(0.6),
+            .font: smallFont
+        ]
+
+        let str = NSMutableAttributedString()
+
+        if !vimEnabled {
+            str.append(NSAttributedString(string: "Esc ", attributes: keyAttrs))
+            str.append(NSAttributedString(string: L.saveAndClose, attributes: dimAttrs))
+        } else {
+            switch vimMode {
+            case .insert:
+                str.append(NSAttributedString(string: "-- INSERT --", attributes: modeAttrs))
+                str.append(NSAttributedString(string: "    ", attributes: dimAttrs))
+                str.append(NSAttributedString(string: "Esc/jk ", attributes: keyAttrs))
+                str.append(NSAttributedString(string: L.vimNormalMode, attributes: dimAttrs))
+            case .normal:
+                str.append(NSAttributedString(string: "-- NORMAL --", attributes: modeAttrs))
+                str.append(NSAttributedString(string: "    ", attributes: dimAttrs))
+                str.append(NSAttributedString(string: "i ", attributes: keyAttrs))
+                str.append(NSAttributedString(string: L.vimInsertMode + "  ", attributes: dimAttrs))
+                str.append(NSAttributedString(string: ":x ", attributes: keyAttrs))
+                str.append(NSAttributedString(string: L.saveAndClose + "  ", attributes: dimAttrs))
+                str.append(NSAttributedString(string: "Esc ", attributes: keyAttrs))
+                str.append(NSAttributedString(string: L.vimGoBack, attributes: dimAttrs))
+            case .command:
+                str.append(NSAttributedString(string: commandBuffer, attributes: modeAttrs))
+            }
+        }
+
+        statusLabel.attributedStringValue = str
+    }
+
+    // MARK: - Cursor style
+
+    private func updateCursorForMode() {
+        let text = textView.string as NSString
+        let pos = textView.selectedRange().location
+
+        if vimMode == .normal {
+            // Block cursor: bright green bg with dark text, like a real terminal
+            textView.selectedTextAttributes = [
+                .backgroundColor: NSColor(red: 0, green: 1.0, blue: 0.25, alpha: 0.85),
+                .foregroundColor: NSColor(red: 0.04, green: 0.04, blue: 0.04, alpha: 1)
+            ]
+            if pos < text.length {
+                textView.setSelectedRange(NSRange(location: pos, length: 1))
+            }
+        } else {
+            // Insert mode: subtle selection for user-selected text
+            textView.selectedTextAttributes = [
+                .backgroundColor: NSColor(red: 0, green: 0.23, blue: 0.05, alpha: 0.53)
+            ]
+            textView.setSelectedRange(NSRange(location: pos, length: 0))
+        }
+    }
+
+    /// After a normal-mode motion, re-apply block cursor at new position
+    private func setNormalCursor(at pos: Int) {
+        let text = textView.string as NSString
+        var p = min(pos, text.length > 0 ? text.length - 1 : 0)
+        // Don't land on a newline — back up to the last printable char
+        while p > 0 && p < text.length && text.character(at: p) == 0x0A {
+            p -= 1
+        }
+        if p < text.length {
+            textView.setSelectedRange(NSRange(location: p, length: 1))
+        } else {
+            textView.setSelectedRange(NSRange(location: 0, length: 0))
+        }
+    }
+
+    // MARK: - Key handling
+
+    private func handleKeyDown(_ event: NSEvent) -> Bool {
+        let keyCode = event.keyCode
+        let key = event.charactersIgnoringModifiers ?? ""
+        NSLog("[DEBUG Editor] keyDown: keyCode=\(keyCode) key='\(key)' vim=\(vimEnabled) mode=\(vimMode)")
+
+        if !vimEnabled {
+            if keyCode == 53 {
+                NSLog("[DEBUG Editor] Esc → save+close (non-vim)")
+                saveAndClose()
+                return true
+            }
+            return false
+        }
+
+        switch vimMode {
+        case .insert:  return handleVimInsert(event)
+        case .normal:  return handleVimNormal(event)
+        case .command: return handleVimCommand(event)
+        }
+    }
+
+    private func handleVimInsert(_ event: NSEvent) -> Bool {
+        let keyCode = event.keyCode
+        let key = event.charactersIgnoringModifiers ?? ""
+
+        if keyCode == 53 {
+            NSLog("[DEBUG Vim] Esc → normal mode")
+            enterNormalMode()
+            return true
+        }
+
+        // jk detection
+        if key == "j" {
+            jkTimer?.invalidate()
+            jkTimer = Timer.scheduledTimer(withTimeInterval: 0.2, repeats: false) { [weak self] _ in
+                self?.jkTimer = nil
+            }
+            return false // let j be typed normally
+        }
+        if key == "k", jkTimer != nil {
+            jkTimer?.invalidate()
+            jkTimer = nil
+            NSLog("[DEBUG Vim] jk → normal mode")
+            if let storage = textView.textStorage, storage.length > 0 {
+                let cursorPos = textView.selectedRange().location
+                if cursorPos > 0 {
+                    textView.setSelectedRange(NSRange(location: cursorPos - 1, length: 1))
+                    textView.delete(nil)
+                }
+            }
+            enterNormalMode()
+            return true
+        }
+
+        return false
+    }
+
+    private func handleVimNormal(_ event: NSEvent) -> Bool {
+        let keyCode = event.keyCode
+        let key = event.charactersIgnoringModifiers ?? ""
+        let hasShift = event.modifierFlags.contains(.shift)
+
+        // Esc → save and close (go back)
+        if keyCode == 53 {
+            NSLog("[DEBUG Vim] Esc → save+close (normal mode)")
+            saveAndClose()
+            return true
+        }
+
+        // ZZ handling
+        if pendingZ {
+            pendingZ = false
+            if key == "z" && hasShift {
+                NSLog("[DEBUG Vim] ZZ → save+close")
+                saveAndClose()
+                return true
+            }
+        }
+
+        // gg handling
+        if pendingG {
+            pendingG = false
+            if key == "g" && !hasShift {
+                NSLog("[DEBUG Vim] gg → top of file")
+                setNormalCursor(at: 0)
+                textView.scrollRangeToVisible(textView.selectedRange())
+                return true
+            }
+        }
+
+        let text = textView.string as NSString
+        let range = textView.selectedRange()
+        let pos = range.location
+
+        switch key {
+        // Enter command mode
+        case ";":
+            if hasShift { // : is shift+;
+                commandBuffer = ":"
+                vimMode = .command
+                updateStatusLine()
+                NSLog("[DEBUG Vim] entering command mode")
+                return true
+            }
+            return true
+
+        case "i":
+            if hasShift {
+                // I → first non-whitespace of line
+                let lineRange = text.lineRange(for: NSRange(location: pos, length: 0))
+                var firstNonWS = lineRange.location
+                while firstNonWS < lineRange.location + lineRange.length {
+                    let ch = text.character(at: firstNonWS)
+                    if ch != 0x20 && ch != 0x09 { break }
+                    firstNonWS += 1
+                }
+                textView.setSelectedRange(NSRange(location: firstNonWS, length: 0))
+            } else {
+                textView.setSelectedRange(NSRange(location: pos, length: 0))
+            }
+            NSLog("[DEBUG Vim] \(hasShift ? "I" : "i") → insert mode")
+            enterInsertMode()
+            return true
+
+        case "a":
+            if hasShift {
+                // A → end of line
+                let lineRange = text.lineRange(for: NSRange(location: pos, length: 0))
+                var end = lineRange.location + lineRange.length
+                if end > lineRange.location && end <= text.length && text.character(at: end - 1) == 0x0A {
+                    end -= 1
+                }
+                textView.setSelectedRange(NSRange(location: end, length: 0))
+            } else {
+                // a → after current char
+                let newPos = min(pos + 1, text.length)
+                textView.setSelectedRange(NSRange(location: newPos, length: 0))
+            }
+            enterInsertMode()
+            return true
+
+        case "o":
+            if hasShift {
+                // O → open line above
+                let lineRange = text.lineRange(for: NSRange(location: pos, length: 0))
+                textView.setSelectedRange(NSRange(location: lineRange.location, length: 0))
+                textView.insertText("\n", replacementRange: NSRange(location: lineRange.location, length: 0))
+                textView.setSelectedRange(NSRange(location: lineRange.location, length: 0))
+            } else {
+                // o → open line below
+                let lineRange = text.lineRange(for: NSRange(location: pos, length: 0))
+                let lineEnd = lineRange.location + lineRange.length
+                textView.setSelectedRange(NSRange(location: lineEnd, length: 0))
+                textView.insertText("\n", replacementRange: NSRange(location: lineEnd, length: 0))
+            }
+            enterInsertMode()
+            return true
+
+        case "g":
+            if hasShift {
+                // G → end of file
+                setNormalCursor(at: text.length > 0 ? text.length - 1 : 0)
+                textView.scrollRangeToVisible(textView.selectedRange())
+            } else {
+                pendingG = true
+            }
+            return true
+
+        case "z":
+            if hasShift {
+                // Z → first Z of ZZ
+                pendingZ = true
+            }
+            return true
+
+        case "h":
+            if pos > 0 { setNormalCursor(at: pos - 1) }
+            return true
+
+        case "j":
+            // Move down: get current line, find same column on next line
+            textView.setSelectedRange(NSRange(location: pos, length: 0))
+            textView.moveDown(nil)
+            let newPos = textView.selectedRange().location
+            setNormalCursor(at: newPos)
+            return true
+
+        case "k":
+            textView.setSelectedRange(NSRange(location: pos, length: 0))
+            textView.moveUp(nil)
+            let newPos = textView.selectedRange().location
+            setNormalCursor(at: newPos)
+            return true
+
+        case "l":
+            if pos + 1 < text.length {
+                setNormalCursor(at: pos + 1)
+            }
+            return true
+
+        case "w":
+            if pos < text.length {
+                var i = pos
+                while i < text.length && isWordChar(text.character(at: i)) { i += 1 }
+                while i < text.length && !isWordChar(text.character(at: i)) { i += 1 }
+                setNormalCursor(at: i)
+                textView.scrollRangeToVisible(textView.selectedRange())
+            }
+            return true
+
+        case "b":
+            if pos > 0 {
+                var i = pos - 1
+                while i > 0 && !isWordChar(text.character(at: i)) { i -= 1 }
+                while i > 0 && isWordChar(text.character(at: i - 1)) { i -= 1 }
+                setNormalCursor(at: i)
+                textView.scrollRangeToVisible(textView.selectedRange())
+            }
+            return true
+
+        case "0":
+            let lineRange = text.lineRange(for: NSRange(location: pos, length: 0))
+            setNormalCursor(at: lineRange.location)
+            return true
+
+        case "$":
+            let lineRange = text.lineRange(for: NSRange(location: pos, length: 0))
+            var end = lineRange.location + lineRange.length
+            if end > lineRange.location && end <= text.length && text.character(at: end - 1) == 0x0A {
+                end -= 1
+            }
+            setNormalCursor(at: max(end - 1, lineRange.location))
+            return true
+
+        case "x":
+            if pos < text.length {
+                textView.setSelectedRange(NSRange(location: pos, length: 1))
+                textView.delete(nil)
+                setNormalCursor(at: pos)
+            }
+            return true
+
+        case "u":
+            textView.undoManager?.undo()
+            let newPos = textView.selectedRange().location
+            setNormalCursor(at: newPos)
+            return true
+
+        default:
+            return true // consume all keys in normal mode
+        }
+    }
+
+    private func handleVimCommand(_ event: NSEvent) -> Bool {
+        let keyCode = event.keyCode
+        let key = event.characters ?? ""
+
+        // Esc → cancel command, back to normal
+        if keyCode == 53 {
+            NSLog("[DEBUG Vim] Esc → cancel command mode")
+            commandBuffer = ""
+            vimMode = .normal
+            updateStatusLine()
+            return true
+        }
+
+        // Enter → execute command
+        if keyCode == 36 {
+            NSLog("[DEBUG Vim] execute command: '\(commandBuffer)'")
+            let cmd = commandBuffer.lowercased()
+            commandBuffer = ""
+            vimMode = .normal
+
+            switch cmd {
+            case ":x", ":wq":
+                saveAndClose()
+            case ":w":
+                // Save but don't close
+                delegate?.editorDidSave(content: textView.string)
+            case ":q", ":q!":
+                delegate?.editorDidClose()
+            default:
+                NSLog("[DEBUG Vim] unknown command: \(cmd)")
+                updateStatusLine()
+            }
+            return true
+        }
+
+        // Backspace
+        if keyCode == 51 {
+            if commandBuffer.count > 1 {
+                commandBuffer.removeLast()
+            } else {
+                // Backspace on just ":" → cancel
+                commandBuffer = ""
+                vimMode = .normal
+            }
+            updateStatusLine()
+            return true
+        }
+
+        // Accumulate command characters
+        commandBuffer += key
+        updateStatusLine()
+        return true
+    }
+
+    private func isWordChar(_ ch: unichar) -> Bool {
+        let c = Character(UnicodeScalar(ch)!)
+        return c.isLetter || c.isNumber || c == "_"
+    }
+
+    private func enterNormalMode() {
+        vimMode = .normal
+        jkTimer?.invalidate()
+        jkTimer = nil
+        pendingG = false
+        pendingZ = false
+        commandBuffer = ""
+        updateCursorForMode()
+        updateStatusLine()
+        updateDebugLabel("NORMAL MODE")
+        NSLog("[DEBUG Vim] entered normal mode")
+    }
+
+    private func enterInsertMode() {
+        vimMode = .insert
+        pendingG = false
+        pendingZ = false
+        commandBuffer = ""
+        updateCursorForMode()
+        updateStatusLine()
+        updateDebugLabel("INSERT MODE")
+        NSLog("[DEBUG Vim] entered insert mode")
+    }
+
+    // MARK: - Public API
 
     func loadEditor() {
         NSLog("[DEBUG MonacoEditorView] loadEditor — native NSTextView ready immediately")
@@ -161,9 +576,16 @@ class MonacoEditorView: NSView {
     }
 
     func setContent(_ text: String, language: String) {
-        NSLog("[DEBUG MonacoEditorView] setContent: \(text.count) chars, language=\(language)")
+        vimEnabled = UserDefaults.standard.bool(forKey: "vimModeEnabled")
+        vimMode = .insert
+        NSLog("[DEBUG MonacoEditorView] setContent: \(text.count) chars, language=\(language), vim=\(vimEnabled)")
         textView.string = text
-        updateDebugLabel("Editing \(text.count) chars | \(language) | Esc or Tab → save+close")
+        updateStatusLine()
+        if vimEnabled {
+            updateDebugLabel("INSERT MODE | \(text.count) chars | \(language)")
+        } else {
+            updateDebugLabel("Editing \(text.count) chars | \(language)")
+        }
 
         DispatchQueue.main.async { [weak self] in
             guard let self = self, let window = self.textView.window else {
@@ -179,7 +601,6 @@ class MonacoEditorView: NSView {
         completion(textView.string)
     }
 
-    /// Save content and close the editor (used by Tab key shortcut)
     func triggerSaveAndClose() {
         NSLog("[DEBUG MonacoEditorView] triggerSaveAndClose")
         saveAndClose()
@@ -188,6 +609,8 @@ class MonacoEditorView: NSView {
     // MARK: - Cleanup
 
     func cleanup() {
+        jkTimer?.invalidate()
+        jkTimer = nil
         NSLog("[DEBUG MonacoEditorView] cleanup")
     }
 
@@ -209,95 +632,44 @@ class MonacoEditorView: NSView {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return "plaintext" }
 
-        // JSON: starts with { or [
-        if let first = trimmed.first, first == "{" || first == "[" {
-            return "json"
-        }
-
-        // XML/HTML: starts with <
-        if trimmed.hasPrefix("<") {
-            return "xml"
-        }
+        if let first = trimmed.first, first == "{" || first == "[" { return "json" }
+        if trimmed.hasPrefix("<") { return "xml" }
 
         let upper = trimmed.uppercased()
-
-        // SQL: common keywords
         let sqlKeywords = ["SELECT ", "INSERT ", "UPDATE ", "DELETE ", "CREATE TABLE", "ALTER TABLE",
                            "DROP TABLE", "CREATE INDEX", "SELECT\n", "INSERT\n"]
         for kw in sqlKeywords {
-            if upper.hasPrefix(kw) || upper.contains("\n\(kw)") {
-                return "sql"
-            }
+            if upper.hasPrefix(kw) || upper.contains("\n\(kw)") { return "sql" }
         }
 
-        // Shell: shebang or common patterns
-        if trimmed.hasPrefix("#!/bin/") || trimmed.hasPrefix("#!/usr/bin/env") {
-            return "shell"
-        }
+        if trimmed.hasPrefix("#!/bin/") || trimmed.hasPrefix("#!/usr/bin/env") { return "shell" }
         if trimmed.hasPrefix("export ") || trimmed.hasPrefix("alias ") ||
-           trimmed.contains("| grep") || trimmed.contains("$(") {
-            return "shell"
-        }
+           trimmed.contains("| grep") || trimmed.contains("$(") { return "shell" }
 
-        // Markdown
         let lines = trimmed.components(separatedBy: "\n")
         var markdownScore = 0
         for line in lines {
             let ln = line.trimmingCharacters(in: .whitespaces)
-            if ln.range(of: "^#{1,6} ", options: .regularExpression) != nil {
-                markdownScore += 2
-            }
-            if ln.hasPrefix("- ") || ln.hasPrefix("+ ") ||
-               (ln.hasPrefix("* ") && ln.count > 2) {
-                markdownScore += 1
-            }
-            if ln.range(of: "^\\d+\\. ", options: .regularExpression) != nil {
-                markdownScore += 1
-            }
-            if ln.hasPrefix("```") || ln.hasPrefix("~~~") {
-                markdownScore += 2
-            }
-            if ln.hasPrefix("> ") {
-                markdownScore += 1
-            }
-            if ln.contains("](") && ln.contains("[") {
-                markdownScore += 2
-            }
-            if ln.contains("**") || ln.contains("__") {
-                markdownScore += 1
-            }
+            if ln.range(of: "^#{1,6} ", options: .regularExpression) != nil { markdownScore += 2 }
+            if ln.hasPrefix("- ") || ln.hasPrefix("+ ") || (ln.hasPrefix("* ") && ln.count > 2) { markdownScore += 1 }
+            if ln.range(of: "^\\d+\\. ", options: .regularExpression) != nil { markdownScore += 1 }
+            if ln.hasPrefix("```") || ln.hasPrefix("~~~") { markdownScore += 2 }
+            if ln.hasPrefix("> ") { markdownScore += 1 }
+            if ln.contains("](") && ln.contains("[") { markdownScore += 2 }
+            if ln.contains("**") || ln.contains("__") { markdownScore += 1 }
         }
-        if markdownScore >= 2 {
-            return "markdown"
-        }
+        if markdownScore >= 2 { return "markdown" }
 
-        // Python
         let pythonPatterns = ["def ", "import ", "from ", "class ", "if __name__", "print("]
-        for pat in pythonPatterns {
-            if trimmed.contains(pat) {
-                return "python"
-            }
-        }
+        for pat in pythonPatterns { if trimmed.contains(pat) { return "python" } }
 
-        // Swift
-        if trimmed.contains("func ") && (trimmed.contains("-> ") || trimmed.contains("let ") || trimmed.contains("var ")) {
-            return "swift"
-        }
+        if trimmed.contains("func ") && (trimmed.contains("-> ") || trimmed.contains("let ") || trimmed.contains("var ")) { return "swift" }
         if trimmed.contains("import Foundation") || trimmed.contains("import UIKit") ||
-           trimmed.contains("import SwiftUI") || trimmed.contains("import Cocoa") {
-            return "swift"
-        }
+           trimmed.contains("import SwiftUI") || trimmed.contains("import Cocoa") { return "swift" }
 
-        // JavaScript/TypeScript
         let jsPatterns = ["function ", "const ", "=> ", "require(", "module.exports", "async "]
-        for pat in jsPatterns {
-            if trimmed.contains(pat) {
-                return "javascript"
-            }
-        }
-        if trimmed.contains("interface ") && trimmed.contains(": ") {
-            return "typescript"
-        }
+        for pat in jsPatterns { if trimmed.contains(pat) { return "javascript" } }
+        if trimmed.contains("interface ") && trimmed.contains(": ") { return "typescript" }
 
         return "plaintext"
     }
