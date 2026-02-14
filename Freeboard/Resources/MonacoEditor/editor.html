@@ -2,6 +2,7 @@
 <html>
 <head>
 <meta charset="utf-8">
+<link rel="stylesheet" type="text/css" href="vs/editor/editor.main.css">
 <style>
     html, body {
         margin: 0;
@@ -42,6 +43,8 @@
 <div id="vim-status"></div>
 
 <script src="vs/loader.js"></script>
+<script src="vs/editor/editor.main.nls.js"></script>
+<script src="vs/editor/editor.main.js"></script>
 <script>
 (function() {
     var editor = null;
@@ -102,7 +105,13 @@
 
     require.config({ paths: { vs: 'vs' } });
 
-    require(['vs/editor/editor.main'], function() {
+    // editor.main.js is preloaded via script tag, so require should resolve immediately.
+    // If AMD resolution fails, retry with a timeout as fallback.
+    function initEditor() {
+        if (typeof monaco === 'undefined') {
+            setTimeout(initEditor, 100);
+            return;
+        }
         // Define a custom dark theme matching retro green aesthetic
         monaco.editor.defineTheme('freeboard-dark', {
             base: 'vs-dark',
@@ -332,6 +341,13 @@
 
         editor.focus();
         updateVimStatus();
+    }
+
+    require(['vs/editor/editor.main'], function() {
+        initEditor();
+    }, function(err) {
+        // AMD loading failed, try direct access (scripts were preloaded)
+        initEditor();
     });
 
     // Public API called from Swift
