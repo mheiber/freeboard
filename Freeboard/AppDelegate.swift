@@ -219,9 +219,7 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
         clipboardManager.selectEntry(entry)
         hidePopup()
 
-        // Deactivate Freeboard and re-activate the previous app, then simulate Cmd+V
         if let app = previousApp {
-            NSApp.hide(nil)
             app.activate()
         }
 
@@ -241,13 +239,19 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
     // MARK: - Paste simulation
 
     private func simulatePaste() {
-        guard let keyDown = CGEvent(keyboardEventSource: nil, virtualKey: 9, keyDown: true),
-              let keyUp = CGEvent(keyboardEventSource: nil, virtualKey: 9, keyDown: false) else { return }
+        let source = CGEventSource(stateID: .combinedSessionState)
+        source?.setLocalEventsFilterDuringSuppressionState(
+            .permitLocalMouseEvents,
+            state: .eventSuppressionStateSuppressionInterval
+        )
 
-        keyDown.flags = .maskCommand
-        keyDown.post(tap: .cghidEventTap)
+        let keyDown = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: true)
+        keyDown?.flags = .maskCommand
 
-        keyUp.flags = .maskCommand
-        keyUp.post(tap: .cghidEventTap)
+        let keyUp = CGEvent(keyboardEventSource: source, virtualKey: 9, keyDown: false)
+        keyUp?.flags = .maskCommand
+
+        keyDown?.post(tap: .cgSessionEventTap)
+        keyUp?.post(tap: .cgSessionEventTap)
     }
 }
