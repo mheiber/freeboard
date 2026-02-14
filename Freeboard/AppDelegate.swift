@@ -1,4 +1,5 @@
 import Cocoa
+import ServiceManagement
 
 class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, ClipboardHistoryDelegate {
 
@@ -126,6 +127,12 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
         }
         shortcutItem.submenu = shortcutMenu
         menu.addItem(shortcutItem)
+
+        // Launch at Login
+        let loginItem = NSMenuItem(title: L.launchAtLogin, action: #selector(toggleLaunchAtLogin(_:)), keyEquivalent: "")
+        loginItem.target = self
+        loginItem.state = isLaunchAtLoginEnabled() ? .on : .off
+        menu.addItem(loginItem)
 
         menu.addItem(NSMenuItem.separator())
         let helpItem = NSMenuItem(title: L.help, action: #selector(showHelp), keyEquivalent: "")
@@ -260,6 +267,30 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
 
     func didDismiss() {
         hidePopup()
+    }
+
+    // MARK: - Launch at Login
+
+    @objc private func toggleLaunchAtLogin(_ sender: NSMenuItem) {
+        if #available(macOS 13.0, *) {
+            let service = SMAppService.mainApp
+            do {
+                if service.status == .enabled {
+                    try service.unregister()
+                } else {
+                    try service.register()
+                }
+            } catch {
+                NSSound.beep()
+            }
+        }
+    }
+
+    private func isLaunchAtLoginEnabled() -> Bool {
+        if #available(macOS 13.0, *) {
+            return SMAppService.mainApp.status == .enabled
+        }
+        return false
     }
 
     // MARK: - Paste simulation

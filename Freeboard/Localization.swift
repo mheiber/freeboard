@@ -131,6 +131,7 @@ struct L {
     static var imageEntry: String { tr("imageEntry") }
     static var permissionWarningLabel: String { tr("permissionWarningLabel") }
     static var permissionWarningTooltip: String { tr("permissionWarningTooltip") }
+    static var launchAtLogin: String { tr("launchAtLogin") }
 
     static func accessibleMinutesAgo(_ n: Int) -> String {
         String(format: tr("accessibleMinutesAgo"), n)
@@ -422,6 +423,12 @@ struct L {
             .pt: "Vá para Ajustes do Sistema → Privacidade → Acessibilidade,\nclique em [+], adicione o Freeboard e ative-o [✓]",
             .ru: "Откройте Системные настройки → Конфиденциальность → Универсальный доступ,\nнажмите [+], добавьте Freeboard и включите [✓]",
             .ja: "システム設定 → プライバシー → アクセシビリティを開き、\n[+] をクリックして Freeboard を追加し、有効にしてください [✓]"
+        ],
+        "launchAtLogin": [
+            .en: "Launch at Login", .zh: "登录时启动", .hi: "लॉगिन पर शुरू करें",
+            .es: "Iniciar al acceder", .fr: "Ouvrir au démarrage",
+            .ar: "التشغيل عند تسجيل الدخول", .bn: "লগইনে চালু করুন",
+            .pt: "Abrir ao iniciar sessão", .ru: "Запускать при входе", .ja: "ログイン時に起動"
         ],
     ]
 }
