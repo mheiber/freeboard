@@ -95,7 +95,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         refreshLocalization()
         reloadEntries()
         updateAccessibilityBanner()
-        view.window?.makeFirstResponder(searchField)
+        view.window?.makeFirstResponder(self)
     }
 
     func refreshLocalization() {
@@ -698,6 +698,17 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         if flags.contains(.control) && event.charactersIgnoringModifiers == "p" { moveSelection(by: -1); return }
         if event.keyCode == 125 { moveSelection(by: 1); return }
         if event.keyCode == 126 { moveSelection(by: -1); return }
+
+        // Type-ahead: any printable character focuses the search field and starts a search
+        if !isSearchFieldFocused,
+           let chars = event.characters,
+           let first = chars.unicodeScalars.first,
+           flags.isEmpty || flags == .shift,
+           !CharacterSet.controlCharacters.contains(first) {
+            view.window?.makeFirstResponder(searchField)
+            searchField.currentEditor()?.insertText(chars)
+            return
+        }
 
         super.keyDown(with: event)
     }
