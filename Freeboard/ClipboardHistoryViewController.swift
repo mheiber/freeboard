@@ -17,7 +17,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     private var scrollView: NSScrollView!
     private var tableView: NSTableView!
     private var searchField: NSTextField!
-    private var helpLabel: NSTextField!
+    private var helpLabel: NSStackView!
     private var containerView: NSView!
     private var effectsView: RetroEffectsView!
     private var emptyStateView: NSView!
@@ -179,7 +179,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         searchField.placeholderAttributedString = NSAttributedString(
             string: L.searchPlaceholder, attributes: placeholderAttrs
         )
-        helpLabel.attributedStringValue = makeHelpString()
+        populateHelpBar()
         helpButton.attributedTitle = makeHelpButtonTitle()
         helpButton.setAccessibilityLabel(L.help)
         let warningAttrs: [NSAttributedString.Key: Any] = [
@@ -276,15 +276,12 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     }
 
     private func setupHelpLabel() {
-        helpLabel = NSTextField(labelWithString: "")
+        helpLabel = NSStackView()
         helpLabel.translatesAutoresizingMaskIntoConstraints = false
-        helpLabel.font = retroFontSmall
-        helpLabel.textColor = retroDimGreen.withAlphaComponent(0.6)
-        helpLabel.backgroundColor = .clear
-        helpLabel.isEditable = false
-        helpLabel.isBezeled = false
-        helpLabel.alignment = .left
-        helpLabel.attributedStringValue = makeHelpString()
+        helpLabel.orientation = .horizontal
+        helpLabel.spacing = 0
+        helpLabel.alignment = .centerY
+        populateHelpBar()
 
         helpButton = NSButton(title: "", target: self, action: #selector(helpButtonClicked))
         helpButton.translatesAutoresizingMaskIntoConstraints = false
@@ -1225,8 +1222,20 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         }
     }
 
-    private func makeHelpString(for entry: ClipboardEntry? = nil) -> NSAttributedString {
-        let str = NSMutableAttributedString()
+    /// A tag constant for hint buttons that have no meaningful click action.
+    private static let hintTagNoAction = 0
+    private static let hintTagPaste = 1
+    private static let hintTagRichPaste = 2
+    private static let hintTagExpand = 3
+    private static let hintTagEdit = 4
+    private static let hintTagStar = 5
+    private static let hintTagDelete = 6
+
+    /// Build a single clickable hint button: "⌘S star" or "Enter paste" etc.
+    /// `shortcut` is the keyboard-shortcut text (rendered brighter), `label` is the
+    /// description (rendered dimmer). When `tag != hintTagNoAction`, clicking the
+    /// button triggers `helpHintClicked(_:)`.
+    private func makeHintButton(shortcut: String, label: String, tag: Int) -> NSButton {
         let keyAttrs: [NSAttributedString.Key: Any] = [
             .foregroundColor: retroGreen.withAlphaComponent(0.6),
             .font: retroFontSmall
@@ -1235,16 +1244,48 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             .foregroundColor: retroDimGreen.withAlphaComponent(0.6),
             .font: retroFontSmall
         ]
-        str.append(NSAttributedString(string: "1-9 ", attributes: keyAttrs))
-        str.append(NSAttributedString(string: L.pasteNth + "  ", attributes: dimAttrs))
-        str.append(NSAttributedString(string: "Enter ", attributes: keyAttrs))
-        str.append(NSAttributedString(string: L.paste + "  ", attributes: dimAttrs))
+        let title = NSMutableAttributedString()
+        title.append(NSAttributedString(string: shortcut + " ", attributes: keyAttrs))
+        title.append(NSAttributedString(string: label, attributes: dimAttrs))
+
+        let btn = NSButton(title: "", target: self, action: #selector(helpHintClicked(_:)))
+        btn.translatesAutoresizingMaskIntoConstraints = false
+        btn.isBordered = false
+        btn.attributedTitle = title
+        btn.tag = tag
+        btn.setAccessibilityLabel("\(shortcut) \(label)")
+        return btn
+    }
+
+    /// Spacing label between hint buttons (non-clickable).
+    private func makeHintSpacer() -> NSView {
+        let spacer = NSTextField(labelWithString: "  ")
+        spacer.translatesAutoresizingMaskIntoConstraints = false
+        spacer.font = retroFontSmall
+        spacer.textColor = .clear
+        spacer.backgroundColor = .clear
+        spacer.isEditable = false
+        spacer.isBezeled = false
+        return spacer
+    }
+
+    /// Rebuild the help bar buttons for the currently-selected entry.
+    private func populateHelpBar(for entry: ClipboardEntry? = nil) {
+        // Remove old hint buttons
+        for view in helpLabel.arrangedSubviews { helpLabel.removeArrangedSubview(view); view.removeFromSuperview() }
+
+        // "1-9 pasteNth" — informational only (no single action to trigger)
+        helpLabel.addArrangedSubview(makeHintButton(shortcut: "1-9", label: L.pasteNth, tag: Self.hintTagNoAction))
+        helpLabel.addArrangedSubview(makeHintSpacer())
+
+        // "Enter paste"
+        helpLabel.addArrangedSubview(makeHintButton(shortcut: "Enter", label: L.paste, tag: Self.hintTagPaste))
+        helpLabel.addArrangedSubview(makeHintSpacer())
 
         // Dynamic shift hint based on selected entry's format category
         if let entry = entry, entry.entryType == .text {
             switch entry.formatCategory {
             case .markdown:
-                // Use ⇧ symbol at a larger size for visibility
                 let shiftFont = L.current.usesSystemFont
                     ? NSFont.systemFont(ofSize: 18, weight: .medium)
                     : NSFont(name: "Menlo-Bold", size: 15) ?? NSFont.monospacedSystemFont(ofSize: 15, weight: .bold)
@@ -1253,32 +1294,76 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
                     .font: shiftFont,
                     .baselineOffset: -1
                 ]
-                str.append(NSAttributedString(string: "\u{21E7}", attributes: shiftAttrs))
-                str.append(NSAttributedString(string: "Enter ", attributes: keyAttrs))
-                str.append(NSAttributedString(string: L.richPaste + "  ", attributes: dimAttrs))
+                let keyAttrs: [NSAttributedString.Key: Any] = [
+                    .foregroundColor: retroGreen.withAlphaComponent(0.6),
+                    .font: retroFontSmall
+                ]
+                let dimAttrs: [NSAttributedString.Key: Any] = [
+                    .foregroundColor: retroDimGreen.withAlphaComponent(0.6),
+                    .font: retroFontSmall
+                ]
+                // Build the rich paste button with mixed attributes for the shift symbol
+                let rpTitle = NSMutableAttributedString()
+                rpTitle.append(NSAttributedString(string: "\u{21E7}", attributes: shiftAttrs))
+                rpTitle.append(NSAttributedString(string: "Enter ", attributes: keyAttrs))
+                rpTitle.append(NSAttributedString(string: L.richPaste, attributes: dimAttrs))
+                let rpBtn = NSButton(title: "", target: self, action: #selector(helpHintClicked(_:)))
+                rpBtn.translatesAutoresizingMaskIntoConstraints = false
+                rpBtn.isBordered = false
+                rpBtn.attributedTitle = rpTitle
+                rpBtn.tag = Self.hintTagRichPaste
+                rpBtn.setAccessibilityLabel("Shift+Enter \(L.richPaste)")
+                helpLabel.addArrangedSubview(rpBtn)
+                helpLabel.addArrangedSubview(makeHintSpacer())
             case .other:
                 break
             }
         }
 
-        str.append(NSAttributedString(string: "^N/^P ", attributes: keyAttrs))
-        str.append(NSAttributedString(string: L.select + "  ", attributes: dimAttrs))
-        str.append(NSAttributedString(string: "Tab ", attributes: keyAttrs))
-        str.append(NSAttributedString(string: L.expand + "  ", attributes: dimAttrs))
-        str.append(NSAttributedString(string: "^E ", attributes: keyAttrs))
+        // "^N/^P select" — informational (navigation)
+        helpLabel.addArrangedSubview(makeHintButton(shortcut: "^N/^P", label: L.select, tag: Self.hintTagNoAction))
+        helpLabel.addArrangedSubview(makeHintSpacer())
+
+        // "Tab expand"
+        helpLabel.addArrangedSubview(makeHintButton(shortcut: "Tab", label: L.expand, tag: Self.hintTagExpand))
+        helpLabel.addArrangedSubview(makeHintSpacer())
+
+        // "^E edit/view"
         let editOrView: String
         if let entry = entry, entry.entryType != .text {
             editOrView = L.view
         } else {
             editOrView = L.edit
         }
-        str.append(NSAttributedString(string: editOrView + "  ", attributes: dimAttrs))
-        str.append(NSAttributedString(string: "\u{2318}S ", attributes: keyAttrs))
-        let starLabel = entry?.isStarred == true ? L.unstar : L.star
-        str.append(NSAttributedString(string: starLabel + "  ", attributes: dimAttrs))
-        str.append(NSAttributedString(string: "\u{2318}D ", attributes: keyAttrs))
-        str.append(NSAttributedString(string: L.delete, attributes: dimAttrs))
-        return str
+        helpLabel.addArrangedSubview(makeHintButton(shortcut: "^E", label: editOrView, tag: Self.hintTagEdit))
+        helpLabel.addArrangedSubview(makeHintSpacer())
+
+        // "⌘S star/unstar"
+        let starText = entry?.isStarred == true ? L.unstar : L.star
+        helpLabel.addArrangedSubview(makeHintButton(shortcut: "\u{2318}S", label: starText, tag: Self.hintTagStar))
+        helpLabel.addArrangedSubview(makeHintSpacer())
+
+        // "⌘D delete"
+        helpLabel.addArrangedSubview(makeHintButton(shortcut: "\u{2318}D", label: L.delete, tag: Self.hintTagDelete))
+    }
+
+    @objc private func helpHintClicked(_ sender: NSButton) {
+        switch sender.tag {
+        case Self.hintTagPaste:
+            selectCurrent()
+        case Self.hintTagRichPaste:
+            selectCurrentAlternateFormat()
+        case Self.hintTagExpand:
+            toggleExpand()
+        case Self.hintTagEdit:
+            enterEditMode()
+        case Self.hintTagStar:
+            toggleStarOnSelected()
+        case Self.hintTagDelete:
+            deleteSelected()
+        default:
+            break
+        }
     }
 
     private func makeHelpButtonTitle() -> NSAttributedString {
@@ -1300,7 +1385,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
 
     private func updateHelpLabel() {
         let entry = filteredEntries.indices.contains(selectedIndex) ? filteredEntries[selectedIndex] : nil
-        helpLabel.attributedStringValue = makeHelpString(for: entry)
+        populateHelpBar(for: entry)
 
         // Update VoiceOver label for the help bar
         if let entry = entry, entry.entryType == .text {

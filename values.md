@@ -6,6 +6,8 @@ Design principles for Freeboard. Every feature decision should pass through thes
 
 The keyboard is always the fastest path. Every action has a key binding. Mouse works for everything, but a user who never touches the mouse should never feel limited. If a feature cannot have a simple, discoverable keyboard binding, it probably should not exist.
 
+Hints are live. If the UI shows a shortcut like "^E edit" or ":x save+close", clicking that hint performs the action. A hint that describes something you can do should let you do it right there. No dead text.
+
 ## 2. Terminal Power: Efficiency, pragmatism, beauty, soul
 
 PRACTICAL: no noise, no animations

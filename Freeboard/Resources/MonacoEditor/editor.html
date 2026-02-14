@@ -64,6 +64,36 @@
         color: #00ff40;
         opacity: 1;
     }
+    /* Clickable hint buttons */
+    #editor-hints .hint-action {
+        cursor: pointer;
+        display: inline;
+        border: none;
+        background: none;
+        padding: 0;
+        margin: 0;
+        font: inherit;
+        color: inherit;
+        opacity: inherit;
+        line-height: inherit;
+        -webkit-user-select: none;
+        user-select: none;
+    }
+    #editor-hints .hint-action:hover {
+        opacity: 1;
+    }
+    #editor-hints .hint-action:hover .key {
+        text-decoration: underline;
+    }
+    /* Clickable vim mode indicator in status bar */
+    #vim-status .vim-mode-toggle {
+        cursor: pointer;
+        -webkit-user-select: none;
+        user-select: none;
+    }
+    #vim-status .vim-mode-toggle:hover {
+        text-decoration: underline;
+    }
 </style>
 </head>
 <body>
@@ -98,18 +128,70 @@
         }
     }
 
-    function updateHints() {
-        if (!vimEnabled) {
-            hintsEl.innerHTML = '<span class="key">Esc</span> save+close';
-            return;
-        }
+    function isInsertMode() {
         var statusText = statusEl.textContent || '';
-        if (statusText.indexOf('INSERT') !== -1 || statusText.indexOf('REPLACE') !== -1) {
-            hintsEl.innerHTML = '<span class="key">jk</span> normal mode&nbsp;&nbsp;<span class="key">:x</span> save+close';
-        } else {
-            hintsEl.innerHTML = '<span class="key">:x</span> save+close&nbsp;&nbsp;<span class="key">i</span> insert mode';
+        return statusText.indexOf('INSERT') !== -1 || statusText.indexOf('REPLACE') !== -1;
+    }
+
+    function switchToInsertMode() {
+        if (!editor || !vimEnabled || isInsertMode()) return;
+        editor.focus();
+        // Use the Vim API to send 'i' key to enter insert mode.
+        // vimModeInstance is the CodeMirror adapter that Vim.handleKey expects.
+        if (vimModeInstance && typeof MonacoVim !== 'undefined') {
+            MonacoVim.VimMode.Vim.handleKey(vimModeInstance, 'i');
         }
     }
+
+    function switchToNormalMode() {
+        if (!editor || !vimEnabled || !isInsertMode()) return;
+        editor.focus();
+        if (vimModeInstance && typeof MonacoVim !== 'undefined') {
+            MonacoVim.VimMode.Vim.handleKey(vimModeInstance, '<Esc>');
+        }
+    }
+
+    function updateHints() {
+        if (!vimEnabled) {
+            hintsEl.innerHTML = '<span class="hint-action" data-action="save-close"><span class="key">Esc</span> save+close</span>';
+            return;
+        }
+        if (isInsertMode()) {
+            hintsEl.innerHTML =
+                '<span class="hint-action" data-action="normal-mode"><span class="key">jk</span> normal mode</span>' +
+                '&nbsp;&nbsp;' +
+                '<span class="hint-action" data-action="save-close"><span class="key">:x</span> save+close</span>';
+        } else {
+            hintsEl.innerHTML =
+                '<span class="hint-action" data-action="save-close"><span class="key">:x</span> save+close</span>' +
+                '&nbsp;&nbsp;' +
+                '<span class="hint-action" data-action="insert-mode"><span class="key">i</span> insert mode</span>';
+        }
+    }
+
+    // Handle clicks on hint actions (event delegation)
+    hintsEl.addEventListener('click', function(e) {
+        var target = e.target.closest('.hint-action');
+        if (!target) return;
+        var action = target.getAttribute('data-action');
+        switch (action) {
+            case 'save-close':
+                if (vimEnabled && hasUnsavedChanges()) {
+                    saveAndClose();
+                } else if (vimEnabled) {
+                    closeWithoutSaving();
+                } else {
+                    saveAndClose();
+                }
+                break;
+            case 'insert-mode':
+                switchToInsertMode();
+                break;
+            case 'normal-mode':
+                switchToNormalMode();
+                break;
+        }
+    });
 
     function hasUnsavedChanges() {
         return editor ? editor.getValue() !== originalContent : false;
@@ -292,16 +374,54 @@
         initEditor();
     });
 
-    // Watch vim status changes to update hints and ensure command-line
-    // input gets focus (WKWebView can drop programmatic focus calls)
+    // Watch vim status changes to update hints, ensure command-line
+    // input gets focus, and make the mode indicator clickable.
+    var updatingStatus = false;
     var observer = new MutationObserver(function() {
+        if (updatingStatus) return;
         updateHints();
-        var input = statusEl.querySelector('input[type="text"]');
-        if (input && document.activeElement !== input) {
-            setTimeout(function() { input.focus(); }, 0);
+
+        // Make the vim mode indicator (e.g. "-- INSERT --" or "-- NORMAL --") clickable
+        // to toggle between modes.  Monaco-vim renders mode text as the first text node
+        // or inside a span within #vim-status.
+        if (vimEnabled) {
+            var textContent = statusEl.textContent || '';
+            // Only wrap if there's a mode string and no input field present
+            // (input means the user is typing an ex command like :x)
+            var input = statusEl.querySelector('input[type="text"]');
+            if (!input) {
+                var modeMatch = textContent.match(/--(.*?)--/);
+                if (modeMatch) {
+                    // Check if we already wrapped it
+                    if (!statusEl.querySelector('.vim-mode-toggle')) {
+                        var modeText = modeMatch[0];
+                        var html = statusEl.innerHTML;
+                        updatingStatus = true;
+                        statusEl.innerHTML = html.replace(
+                            modeText,
+                            '<span class="vim-mode-toggle">' + modeText + '</span>'
+                        );
+                        updatingStatus = false;
+                    }
+                }
+            }
+            if (input && document.activeElement !== input) {
+                setTimeout(function() { input.focus(); }, 0);
+            }
         }
     });
     observer.observe(statusEl, { childList: true, characterData: true, subtree: true });
+
+    // Click handler for vim mode toggle in status bar
+    statusEl.addEventListener('click', function(e) {
+        var toggle = e.target.closest('.vim-mode-toggle');
+        if (!toggle) return;
+        if (isInsertMode()) {
+            switchToNormalMode();
+        } else {
+            switchToInsertMode();
+        }
+    });
 
     // Register ex commands and mappings once on the global Vim singleton
     var vimCommandsRegistered = false;
