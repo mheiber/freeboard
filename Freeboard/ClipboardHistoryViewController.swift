@@ -27,6 +27,9 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     private var permissionWarningButton: NSButton!
     private var helpButton: NSButton!
     private var helpOverlay: NSView?
+    private var helpFocusableItems: [NSButton] = []
+    private var helpFocusIndex: Int = -1
+    private var helpHasBackButton: Bool = false
     private var permissionTooltipView: NSView?
 
     private var filteredEntries: [ClipboardEntry] = []
@@ -430,6 +433,11 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         overlay.addSubview(editingLinkButton)
         overlay.addSubview(dismissLabel)
 
+        // Track focusable items for keyboard navigation
+        helpFocusableItems = [markdownLinkButton, editingLinkButton]
+        helpFocusIndex = -1
+        helpHasBackButton = false
+
         if !AXIsProcessTrusted() {
             let accessibilityButton = NSButton(title: "", target: self, action: #selector(helpAccessibilityClicked))
             accessibilityButton.translatesAutoresizingMaskIntoConstraints = false
@@ -452,6 +460,9 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             attrStr.append(NSAttributedString(string: ",\n" + L.helpAccessibilitySteps, attributes: hintAttrs))
             accessibilityButton.attributedTitle = attrStr
             overlay.addSubview(accessibilityButton)
+
+            // Include accessibility button before the link buttons
+            helpFocusableItems = [accessibilityButton, markdownLinkButton, editingLinkButton]
 
             NSLayoutConstraint.activate([
                 accessibilityButton.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
@@ -508,6 +519,54 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     private func dismissHelp() {
         helpOverlay?.removeFromSuperview()
         helpOverlay = nil
+        helpFocusableItems = []
+        helpFocusIndex = -1
+        helpHasBackButton = false
+    }
+
+    private func helpMoveFocus(by delta: Int) {
+        guard !helpFocusableItems.isEmpty else { return }
+        // Remove highlight from current
+        if helpFocusIndex >= 0 && helpFocusIndex < helpFocusableItems.count {
+            updateHelpButtonHighlight(helpFocusableItems[helpFocusIndex], highlighted: false)
+        }
+        // Move focus
+        if helpFocusIndex < 0 {
+            helpFocusIndex = delta > 0 ? 0 : helpFocusableItems.count - 1
+        } else {
+            helpFocusIndex = helpFocusIndex + delta
+            if helpFocusIndex < 0 { helpFocusIndex = helpFocusableItems.count - 1 }
+            if helpFocusIndex >= helpFocusableItems.count { helpFocusIndex = 0 }
+        }
+        // Apply highlight to new
+        updateHelpButtonHighlight(helpFocusableItems[helpFocusIndex], highlighted: true)
+        // Update VoiceOver focus
+        NSAccessibility.post(element: helpFocusableItems[helpFocusIndex], notification: .focusedUIElementChanged)
+    }
+
+    private func helpActivateFocused() {
+        guard helpFocusIndex >= 0, helpFocusIndex < helpFocusableItems.count else { return }
+        helpFocusableItems[helpFocusIndex].performClick(nil)
+    }
+
+    private func helpGoBack() {
+        guard helpHasBackButton, !helpFocusableItems.isEmpty else { return }
+        // The back button is always the first focusable item on sub-screens
+        helpFocusableItems[0].performClick(nil)
+    }
+
+    private func updateHelpButtonHighlight(_ button: NSButton, highlighted: Bool) {
+        guard let attrTitle = button.attributedTitle.mutableCopy() as? NSMutableAttributedString else { return }
+        let range = NSRange(location: 0, length: attrTitle.length)
+        if highlighted {
+            // Inverse: green background, dark text
+            attrTitle.addAttribute(.backgroundColor, value: retroGreen.withAlphaComponent(0.85), range: range)
+            attrTitle.addAttribute(.foregroundColor, value: NSColor.black, range: range)
+        } else {
+            attrTitle.removeAttribute(.backgroundColor, range: range)
+            attrTitle.addAttribute(.foregroundColor, value: retroGreen.withAlphaComponent(0.8), range: range)
+        }
+        button.attributedTitle = attrTitle
     }
 
     @objc private func helpOverlayClicked() {
@@ -689,10 +748,15 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         dismissLabel.isBezeled = false
         dismissLabel.isEditable = false
         dismissLabel.alignment = .center
-        dismissLabel.attributedStringValue = makeDismissString()
+        dismissLabel.attributedStringValue = makeDismissString(withBackNav: true)
 
         overlay.addSubview(scrollContainer)
         overlay.addSubview(dismissLabel)
+
+        // Track focusable items for keyboard navigation
+        helpFocusableItems = [backButton]
+        helpFocusIndex = -1
+        helpHasBackButton = true
 
         // Insert below effectsView so CRT effects still show on top
         containerView.addSubview(overlay, positioned: .below, relativeTo: effectsView)
@@ -816,11 +880,16 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         dismissLabel.isBezeled = false
         dismissLabel.isEditable = false
         dismissLabel.alignment = .center
-        dismissLabel.attributedStringValue = makeDismissString()
+        dismissLabel.attributedStringValue = makeDismissString(withBackNav: true)
 
         overlay.addSubview(helpContent)
         overlay.addSubview(vimToggleButton)
         overlay.addSubview(dismissLabel)
+
+        // Track focusable items for keyboard navigation
+        helpFocusableItems = [backButton, vimToggleButton]
+        helpFocusIndex = -1
+        helpHasBackButton = true
 
         // Insert below effectsView so CRT effects still show on top
         containerView.addSubview(overlay, positioned: .below, relativeTo: effectsView)
@@ -907,7 +976,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         return str
     }
 
-    private func makeDismissString() -> NSAttributedString {
+    private func makeDismissString(withBackNav: Bool = false) -> NSAttributedString {
         let font = L.current.usesSystemFont
             ? NSFont.systemFont(ofSize: 16, weight: .medium)
             : NSFont(name: "Menlo", size: 14) ?? NSFont.monospacedSystemFont(ofSize: 14, weight: .regular)
@@ -918,7 +987,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             .font: font,
             .paragraphStyle: centered
         ]
-        return NSAttributedString(string: L.helpDismissEsc, attributes: attrs)
+        let text = withBackNav ? L.helpNavHintBack : L.helpNavHint
+        return NSAttributedString(string: text, attributes: attrs)
     }
 
     @objc private func clearSearchClicked() {
@@ -2102,6 +2172,41 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             }
             return
         }
+
+        // Help overlay keyboard navigation
+        if helpOverlay?.superview != nil {
+            if let chars = event.charactersIgnoringModifiers {
+                if chars == "j" && flags.isEmpty {
+                    helpMoveFocus(by: 1)
+                    return
+                }
+                if chars == "k" && flags.isEmpty {
+                    helpMoveFocus(by: -1)
+                    return
+                }
+                // Ctrl+] — vim help jump (secret alias for Enter)
+                if chars == "]" && flags == .control {
+                    helpActivateFocused()
+                    return
+                }
+            }
+            // Enter follows highlighted link
+            if event.keyCode == 36 && flags.isEmpty {
+                helpActivateFocused()
+                return
+            }
+            // Backspace goes back on sub-screens
+            if event.keyCode == 51 && helpHasBackButton {
+                helpGoBack()
+                return
+            }
+            // Arrow keys also work for navigation
+            if event.keyCode == 125 { helpMoveFocus(by: 1); return } // Down
+            if event.keyCode == 126 { helpMoveFocus(by: -1); return } // Up
+            // Swallow all other keys while help is open
+            return
+        }
+
         if event.keyCode == 36 { // Enter
             if editingIndex != nil { return } // Let text view handle it
             if event.modifierFlags.contains(.shift) {
