@@ -1219,6 +1219,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         guard selectedIndex < filteredEntries.count else { return }
         let entry = filteredEntries[selectedIndex]
         guard !entry.isPassword else { return }
+        NSLog("[DEBUG VC] enterEditMode: index=\(selectedIndex), type=\(entry.entryType), contentLen=\(entry.content.count)")
 
         switch entry.entryType {
         case .text:
@@ -1228,6 +1229,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             editorView.delegate = self
             editorView.wantsLayer = true
             editorView.layer?.cornerRadius = 4
+            NSLog("[DEBUG VC] adding editor view to containerView")
 
             containerView.addSubview(editorView, positioned: .below, relativeTo: effectsView)
 
@@ -1329,8 +1331,10 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     }
 
     private func exitEditMode() {
+        NSLog("[DEBUG VC] exitEditMode called")
         // Monaco editor path
         if let editorView = monacoEditorView {
+            NSLog("[DEBUG VC] removing editor view, restoring UI")
             editorView.cleanup()
             editorView.removeFromSuperview()
             monacoEditorView = nil
@@ -1371,16 +1375,21 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     // MARK: - MonacoEditorDelegate
 
     func editorDidSave(content: String) {
+        NSLog("[DEBUG VC] editorDidSave: \(content.count) chars")
         if let idx = monacoEditingIndex, idx < filteredEntries.count {
             let entry = filteredEntries[idx]
             if !content.isEmpty && content != entry.content {
+                NSLog("[DEBUG VC] content changed — updating entry \(entry.id)")
                 clipboardManager?.updateEntryContent(id: entry.id, newContent: content)
+            } else {
+                NSLog("[DEBUG VC] content unchanged — no update needed")
             }
         }
         exitEditMode()
     }
 
     func editorDidClose() {
+        NSLog("[DEBUG VC] editorDidClose")
         exitEditMode()
     }
 
@@ -1397,8 +1406,9 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             if helpOverlay?.superview != nil {
                 dismissHelp()
             } else if monacoEditorView != nil {
-                // Let Monaco handle Esc (vim mode or direct save+close)
-                return
+                // Native editor: save and close (fallback if text view didn't handle Esc)
+                NSLog("[DEBUG VC] Esc reached VC while editor open — triggering save+close")
+                monacoEditorView?.triggerSaveAndClose()
             } else if editingIndex != nil {
                 exitEditMode()
             } else if isSearchFieldFocused {

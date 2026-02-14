@@ -1,124 +1,183 @@
 import Cocoa
-import WebKit
 
 protocol MonacoEditorDelegate: AnyObject {
     func editorDidSave(content: String)
     func editorDidClose()
 }
 
-class MonacoEditorView: NSView, WKScriptMessageHandler, WKNavigationDelegate {
+/// Custom NSTextView subclass that intercepts Esc and Tab for save/close
+private class EditorTextView: NSTextView {
+    var onEscape: (() -> Void)?
+    var onTab: (() -> Void)?
+
+    override func keyDown(with event: NSEvent) {
+        NSLog("[DEBUG EditorTextView] keyDown: keyCode=\(event.keyCode) chars='\(event.characters ?? "")' firstResponder=\(window?.firstResponder === self)")
+        if event.keyCode == 53 { // Esc
+            NSLog("[DEBUG EditorTextView] Esc → save and close")
+            onEscape?()
+            return
+        }
+        if event.keyCode == 48 { // Tab
+            NSLog("[DEBUG EditorTextView] Tab → save and close")
+            onTab?()
+            return
+        }
+        super.keyDown(with: event)
+    }
+
+    override func becomeFirstResponder() -> Bool {
+        NSLog("[DEBUG EditorTextView] becomeFirstResponder")
+        return super.becomeFirstResponder()
+    }
+
+    override func resignFirstResponder() -> Bool {
+        NSLog("[DEBUG EditorTextView] resignFirstResponder")
+        return super.resignFirstResponder()
+    }
+}
+
+class MonacoEditorView: NSView {
 
     weak var delegate: MonacoEditorDelegate?
-    private var webView: WKWebView!
-    private var isLoaded = false
-    private var pendingContent: (text: String, language: String, vimEnabled: Bool)?
+    private var editorScrollView: NSScrollView!
+    private var textView: EditorTextView!
+    private var debugLabel: NSTextField!
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
-        setupWebView()
+        NSLog("[DEBUG MonacoEditorView] init frame=\(frameRect)")
+        setupEditor()
     }
 
     required init?(coder: NSCoder) {
         super.init(coder: coder)
-        setupWebView()
+        NSLog("[DEBUG MonacoEditorView] init(coder)")
+        setupEditor()
     }
 
-    private func setupWebView() {
-        let config = WKWebViewConfiguration()
-        let userContentController = WKUserContentController()
-        userContentController.add(self, name: "editorBridge")
-        config.userContentController = userContentController
-        config.preferences.setValue(true, forKey: "allowFileAccessFromFileURLs")
+    private func setupEditor() {
+        wantsLayer = true
+        layer?.backgroundColor = NSColor(red: 0.04, green: 0.04, blue: 0.04, alpha: 1).cgColor
 
-        webView = WKWebView(frame: bounds, configuration: config)
-        webView.autoresizingMask = [.width, .height]
-        webView.navigationDelegate = self
-        webView.setValue(false, forKey: "drawsBackground")
-        addSubview(webView)
+        // Debug label — bright yellow for visibility through CRT effects
+        debugLabel = NSTextField(labelWithString: "[DEBUG] Editor initializing...")
+        debugLabel.translatesAutoresizingMaskIntoConstraints = false
+        debugLabel.font = NSFont(name: "Menlo", size: 11) ?? .monospacedSystemFont(ofSize: 11, weight: .bold)
+        debugLabel.textColor = NSColor.yellow
+        debugLabel.backgroundColor = NSColor(red: 0.2, green: 0.1, blue: 0, alpha: 0.9)
+        debugLabel.drawsBackground = true
+        debugLabel.maximumNumberOfLines = 2
+        addSubview(debugLabel)
+
+        // Scroll view for text editor
+        editorScrollView = NSScrollView()
+        editorScrollView.translatesAutoresizingMaskIntoConstraints = false
+        editorScrollView.hasVerticalScroller = true
+        editorScrollView.drawsBackground = true
+        editorScrollView.backgroundColor = NSColor(red: 0.04, green: 0.04, blue: 0.04, alpha: 1)
+        editorScrollView.scrollerStyle = .overlay
+
+        let contentSize = NSSize(width: 400, height: 300)
+        let textStorage = NSTextStorage()
+        let layoutManager = NSLayoutManager()
+        textStorage.addLayoutManager(layoutManager)
+
+        let textContainer = NSTextContainer(containerSize: NSSize(width: contentSize.width, height: .greatestFiniteMagnitude))
+        textContainer.widthTracksTextView = true
+        layoutManager.addTextContainer(textContainer)
+
+        textView = EditorTextView(frame: NSRect(origin: .zero, size: contentSize), textContainer: textContainer)
+        textView.autoresizingMask = [.width]
+        textView.isEditable = true
+        textView.isSelectable = true
+        textView.backgroundColor = NSColor(red: 0.04, green: 0.04, blue: 0.04, alpha: 1)
+        textView.textColor = NSColor(red: 0.83, green: 0.83, blue: 0.83, alpha: 1) // #d4d4d4
+        textView.insertionPointColor = NSColor(red: 0, green: 1, blue: 0.25, alpha: 1) // #00ff40
+        textView.font = NSFont(name: "Menlo", size: 14) ?? .monospacedSystemFont(ofSize: 14, weight: .regular)
+        textView.isRichText = false
+        textView.textContainerInset = NSSize(width: 8, height: 8)
+        textView.isAutomaticQuoteSubstitutionEnabled = false
+        textView.isAutomaticDashSubstitutionEnabled = false
+        textView.isAutomaticTextReplacementEnabled = false
+        textView.isAutomaticSpellingCorrectionEnabled = false
+        textView.selectedTextAttributes = [
+            .backgroundColor: NSColor(red: 0, green: 0.23, blue: 0.05, alpha: 0.53)
+        ]
+        textView.allowsUndo = true
+
+        textView.onEscape = { [weak self] in
+            self?.saveAndClose()
+        }
+        textView.onTab = { [weak self] in
+            self?.saveAndClose()
+        }
+
+        editorScrollView.documentView = textView
+        addSubview(editorScrollView)
+
+        NSLayoutConstraint.activate([
+            debugLabel.topAnchor.constraint(equalTo: topAnchor, constant: 2),
+            debugLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 4),
+            debugLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -4),
+
+            editorScrollView.topAnchor.constraint(equalTo: debugLabel.bottomAnchor, constant: 2),
+            editorScrollView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            editorScrollView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            editorScrollView.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ])
+
+        NSLog("[DEBUG MonacoEditorView] setupEditor complete")
     }
 
     func loadEditor() {
-        guard let resourceURL = Bundle.main.resourceURL else { return }
-        let monacoDir = resourceURL.appendingPathComponent("MonacoEditor")
-        let htmlFile = monacoDir.appendingPathComponent("editor.html")
-
-        guard FileManager.default.fileExists(atPath: htmlFile.path) else {
-            NSLog("MonacoEditorView: editor.html not found at \(htmlFile.path)")
-            return
-        }
-
-        webView.loadFileURL(htmlFile, allowingReadAccessTo: monacoDir)
+        NSLog("[DEBUG MonacoEditorView] loadEditor — native NSTextView ready immediately")
+        updateDebugLabel("Editor ready (native NSTextView)")
     }
 
     func setContent(_ text: String, language: String) {
-        let vimEnabled = UserDefaults.standard.bool(forKey: "vimModeEnabled")
-        if isLoaded {
-            evaluateSetContent(text: text, language: language, vimEnabled: vimEnabled)
-        } else {
-            pendingContent = (text, language, vimEnabled)
-        }
-    }
+        NSLog("[DEBUG MonacoEditorView] setContent: \(text.count) chars, language=\(language)")
+        textView.string = text
+        updateDebugLabel("Editing \(text.count) chars | \(language) | Esc or Tab → save+close")
 
-    private func evaluateSetContent(text: String, language: String, vimEnabled: Bool) {
-        let escaped = text
-            .replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "`", with: "\\`")
-            .replacingOccurrences(of: "$", with: "\\$")
-        let js = "setContent(`\(escaped)`, '\(language)', \(vimEnabled));"
-        webView.evaluateJavaScript(js) { _, error in
-            if let error = error {
-                NSLog("MonacoEditorView setContent error: \(error)")
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self, let window = self.textView.window else {
+                NSLog("[DEBUG MonacoEditorView] setContent: no window available for focus")
+                return
             }
+            let ok = window.makeFirstResponder(self.textView)
+            NSLog("[DEBUG MonacoEditorView] makeFirstResponder → \(ok)")
         }
     }
 
     func getContent(completion: @escaping (String) -> Void) {
-        webView.evaluateJavaScript("getContent()") { result, _ in
-            completion(result as? String ?? "")
-        }
-    }
-
-    // MARK: - WKNavigationDelegate
-
-    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-        isLoaded = true
-        if let pending = pendingContent {
-            evaluateSetContent(text: pending.text, language: pending.language, vimEnabled: pending.vimEnabled)
-            pendingContent = nil
-        }
-    }
-
-    // MARK: - WKScriptMessageHandler
-
-    func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
-        guard let body = message.body as? [String: Any],
-              let type = body["type"] as? String else { return }
-
-        switch type {
-        case "save":
-            let content = body["content"] as? String ?? ""
-            delegate?.editorDidSave(content: content)
-        case "close":
-            delegate?.editorDidClose()
-        default:
-            break
-        }
+        completion(textView.string)
     }
 
     /// Save content and close the editor (used by Tab key shortcut)
     func triggerSaveAndClose() {
-        getContent { [weak self] content in
-            self?.delegate?.editorDidSave(content: content)
-        }
+        NSLog("[DEBUG MonacoEditorView] triggerSaveAndClose")
+        saveAndClose()
     }
 
     // MARK: - Cleanup
 
     func cleanup() {
-        webView.configuration.userContentController.removeScriptMessageHandler(forName: "editorBridge")
+        NSLog("[DEBUG MonacoEditorView] cleanup")
     }
 
-    // MARK: - Syntax Detection
+    // MARK: - Private
+
+    private func saveAndClose() {
+        let content = textView.string
+        NSLog("[DEBUG MonacoEditorView] saveAndClose: \(content.count) chars")
+        delegate?.editorDidSave(content: content)
+    }
+
+    private func updateDebugLabel(_ text: String) {
+        debugLabel.stringValue = "[DEBUG] \(text)"
+    }
+
+    // MARK: - Syntax Detection (kept for future use)
 
     static func detectLanguage(_ text: String) -> String {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -154,38 +213,30 @@ class MonacoEditorView: NSView, WKScriptMessageHandler, WKNavigationDelegate {
             return "shell"
         }
 
-        // Markdown: check before Python since both can contain "import "
-        // Look for multiple markdown-specific signals across lines
+        // Markdown
         let lines = trimmed.components(separatedBy: "\n")
         var markdownScore = 0
         for line in lines {
             let ln = line.trimmingCharacters(in: .whitespaces)
-            // ATX headers: # , ## , ### , etc.
             if ln.range(of: "^#{1,6} ", options: .regularExpression) != nil {
                 markdownScore += 2
             }
-            // Unordered list items: - , * , +  (but not * alone which could be pointer/multiply)
             if ln.hasPrefix("- ") || ln.hasPrefix("+ ") ||
                (ln.hasPrefix("* ") && ln.count > 2) {
                 markdownScore += 1
             }
-            // Ordered list items: 1. , 2. , etc.
             if ln.range(of: "^\\d+\\. ", options: .regularExpression) != nil {
                 markdownScore += 1
             }
-            // Code fences
             if ln.hasPrefix("```") || ln.hasPrefix("~~~") {
                 markdownScore += 2
             }
-            // Blockquotes
             if ln.hasPrefix("> ") {
                 markdownScore += 1
             }
-            // Links: [text](url)
             if ln.contains("](") && ln.contains("[") {
                 markdownScore += 2
             }
-            // Bold/italic markers
             if ln.contains("**") || ln.contains("__") {
                 markdownScore += 1
             }
