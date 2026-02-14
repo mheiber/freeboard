@@ -648,11 +648,11 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             .font: retroFontSmall
         ]
         str.append(NSAttributedString(string: "1-9 ", attributes: keyAttrs))
-        str.append(NSAttributedString(string: L.quickSelect + "  ", attributes: dimAttrs))
-        str.append(NSAttributedString(string: "^N/^P ", attributes: keyAttrs))
-        str.append(NSAttributedString(string: L.navigate + "  ", attributes: dimAttrs))
+        str.append(NSAttributedString(string: L.pasteNth + "  ", attributes: dimAttrs))
         str.append(NSAttributedString(string: "Enter ", attributes: keyAttrs))
         str.append(NSAttributedString(string: L.paste + "  ", attributes: dimAttrs))
+        str.append(NSAttributedString(string: "^N/^P ", attributes: keyAttrs))
+        str.append(NSAttributedString(string: L.select + "  ", attributes: dimAttrs))
         str.append(NSAttributedString(string: "Tab ", attributes: keyAttrs))
         str.append(NSAttributedString(string: L.expand + "  ", attributes: dimAttrs))
         str.append(NSAttributedString(string: "^E ", attributes: keyAttrs))

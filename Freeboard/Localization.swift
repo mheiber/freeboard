@@ -110,6 +110,8 @@ struct L {
     static var quickSelect: String { tr("quickSelect") }
     static var noMatchesFound: String { tr("noMatchesFound") }
     static var clearSearch: String { tr("clearSearch") }
+    static var pasteNth: String { tr("pasteNth") }
+    static var select: String { tr("select") }
     static var help: String { tr("help") }
     static var helpTitle: String { tr("helpTitle") }
     static var helpStep1: String { tr("helpStep1") }
@@ -197,10 +199,20 @@ struct L {
             .fr: "ouvrir/fermer", .ar: "فتح/إغلاق", .bn: "খুলুন/বন্ধ", .pt: "abrir/fechar",
             .ru: "открыть/закрыть", .ja: "開く/閉じる"
         ],
+        "pasteNth": [
+            .en: "paste Nth", .zh: "粘贴第N项", .hi: "N वां पेस्ट", .es: "pegar N.º",
+            .fr: "coller Nième", .ar: "لصق رقم N", .bn: "N নং পেস্ট",
+            .pt: "colar Nº", .ru: "вставить N-й", .ja: "N番を貼り付け"
+        ],
         "quickSelect": [
             .en: "quick select", .zh: "快速选择", .hi: "त्वरित चयन", .es: "selección rápida",
             .fr: "sélection rapide", .ar: "اختيار سريع", .bn: "দ্রুত নির্বাচন", .pt: "seleção rápida",
             .ru: "быстрый выбор", .ja: "クイック選択"
+        ],
+        "select": [
+            .en: "select", .zh: "选择", .hi: "चुनें", .es: "seleccionar",
+            .fr: "sélectionner", .ar: "تحديد", .bn: "নির্বাচন",
+            .pt: "selecionar", .ru: "выбрать", .ja: "選択"
         ],
         "noMatchesFound": [
             .en: "No matches found.", .zh: "未找到匹配项。", .hi: "कोई मिलान नहीं मिला।",
