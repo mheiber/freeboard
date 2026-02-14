@@ -25,6 +25,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     private var accessibilityHintButton: NSButton!
     private var permissionWarningButton: NSButton!
     private var helpButton: NSButton!
+    private var escCloseButton: NSButton!
     private var helpOverlay: NSView?
     private var helpFocusableItems: [NSButton] = []
     private var helpFocusIndex: Int = -1
@@ -183,6 +184,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         populateHelpBar()
         helpButton.attributedTitle = makeHelpButtonTitle()
         helpButton.setAccessibilityLabel(L.help)
+        escCloseButton.attributedTitle = makeEscCloseButtonTitle()
+        escCloseButton.setAccessibilityLabel("Esc \(L.close)")
         let warningAttrs: [NSAttributedString.Key: Any] = [
             .foregroundColor: NSColor.orange,
             .font: retroFontSmall
@@ -290,6 +293,12 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         helpButton.attributedTitle = makeHelpButtonTitle()
         helpButton.setAccessibilityLabel(L.help)
 
+        escCloseButton = NSButton(title: "", target: self, action: #selector(escCloseClicked))
+        escCloseButton.translatesAutoresizingMaskIntoConstraints = false
+        escCloseButton.isBordered = false
+        escCloseButton.attributedTitle = makeEscCloseButtonTitle()
+        escCloseButton.setAccessibilityLabel("Esc \(L.close)")
+
         permissionWarningButton = NSButton(title: "", target: self, action: #selector(permissionWarningClicked))
         permissionWarningButton.translatesAutoresizingMaskIntoConstraints = false
         permissionWarningButton.isBordered = false
@@ -315,6 +324,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         containerView.addSubview(helpLabel)
         containerView.addSubview(permissionWarningButton)
         containerView.addSubview(helpButton)
+        containerView.addSubview(escCloseButton)
 
         NSLayoutConstraint.activate([
             helpLabel.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -7),
@@ -327,13 +337,21 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             permissionWarningButton.heightAnchor.constraint(equalToConstant: 20),
 
             helpButton.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -5),
-            helpButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
+            helpButton.trailingAnchor.constraint(equalTo: escCloseButton.leadingAnchor, constant: -4),
             helpButton.heightAnchor.constraint(equalToConstant: 20),
+
+            escCloseButton.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -5),
+            escCloseButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
+            escCloseButton.heightAnchor.constraint(equalToConstant: 20),
         ])
     }
 
     @objc private func helpButtonClicked() {
         toggleHelp()
+    }
+
+    @objc private func escCloseClicked() {
+        historyDelegate?.didDismiss()
     }
 
     func toggleHelp() {
@@ -349,6 +367,22 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         overlay.autoresizingMask = [.width, .height]
         overlay.wantsLayer = true
         overlay.layer?.backgroundColor = NSColor(red: 0.01, green: 0.01, blue: 0.01, alpha: 0.95).cgColor
+
+        // Close help button at top left (like back buttons on sub-screens)
+        let bodyFont = L.current.usesSystemFont
+            ? NSFont.systemFont(ofSize: 14, weight: .regular)
+            : NSFont(name: "Menlo", size: 12) ?? NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
+        let closeHelpButton = NSButton(title: "", target: self, action: #selector(closeHelpClicked))
+        closeHelpButton.translatesAutoresizingMaskIntoConstraints = false
+        closeHelpButton.isBordered = false
+        let closeHelpAttrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: retroGreen.withAlphaComponent(0.8),
+            .font: bodyFont,
+            .underlineStyle: NSUnderlineStyle.single.rawValue
+        ]
+        closeHelpButton.attributedTitle = NSAttributedString(string: L.helpCloseHelp, attributes: closeHelpAttrs)
+        closeHelpButton.setAccessibilityLabel(L.helpCloseHelp)
+        overlay.addSubview(closeHelpButton)
 
         let helpContent = NSTextField(labelWithString: "")
         helpContent.translatesAutoresizingMaskIntoConstraints = false
@@ -416,9 +450,9 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         overlay.addSubview(dismissLabel)
 
         // Track focusable items for keyboard navigation
-        helpFocusableItems = [markdownLinkButton, editingLinkButton, settingsLinkButton]
+        helpFocusableItems = [closeHelpButton, markdownLinkButton, editingLinkButton, settingsLinkButton]
         helpFocusIndex = -1
-        helpHasBackButton = false
+        helpHasBackButton = true
 
         if !AXIsProcessTrusted() {
             let accessibilityButton = NSButton(title: "", target: self, action: #selector(helpAccessibilityClicked))
@@ -444,7 +478,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             overlay.addSubview(accessibilityButton)
 
             // Include accessibility button before the link buttons
-            helpFocusableItems = [accessibilityButton, markdownLinkButton, editingLinkButton, settingsLinkButton]
+            helpFocusableItems = [closeHelpButton, accessibilityButton, markdownLinkButton, editingLinkButton, settingsLinkButton]
 
             NSLayoutConstraint.activate([
                 accessibilityButton.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
@@ -488,6 +522,9 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         _ = effectsIndex // suppress warning
 
         NSLayoutConstraint.activate([
+            closeHelpButton.topAnchor.constraint(equalTo: overlay.topAnchor, constant: 16),
+            closeHelpButton.leadingAnchor.constraint(equalTo: overlay.leadingAnchor, constant: 24),
+
             helpContent.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
             helpContent.centerYAnchor.constraint(equalTo: overlay.centerYAnchor, constant: -60),
             helpContent.leadingAnchor.constraint(greaterThanOrEqualTo: overlay.leadingAnchor, constant: 60),
@@ -496,10 +533,6 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             dismissLabel.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
             dismissLabel.bottomAnchor.constraint(equalTo: overlay.bottomAnchor, constant: -24),
         ])
-
-        let clickGesture = NSClickGestureRecognizer(target: self, action: #selector(helpOverlayClicked))
-        clickGesture.delegate = self
-        overlay.addGestureRecognizer(clickGesture)
 
         helpOverlay = overlay
     }
@@ -560,6 +593,10 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     }
 
     @objc private func helpOverlayClicked() {
+        dismissHelp()
+    }
+
+    @objc private func closeHelpClicked() {
         dismissHelp()
     }
 
@@ -740,10 +777,6 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             dismissLabel.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
             dismissLabel.bottomAnchor.constraint(equalTo: overlay.bottomAnchor, constant: -24),
         ])
-
-        let clickGesture = NSClickGestureRecognizer(target: self, action: #selector(helpOverlayClicked))
-        clickGesture.delegate = self
-        overlay.addGestureRecognizer(clickGesture)
 
         helpOverlay = overlay
 
@@ -992,10 +1025,6 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             dismissLabel.bottomAnchor.constraint(equalTo: overlay.bottomAnchor, constant: -24),
         ])
 
-        let clickGesture = NSClickGestureRecognizer(target: self, action: #selector(helpOverlayClicked))
-        clickGesture.delegate = self
-        overlay.addGestureRecognizer(clickGesture)
-
         helpOverlay = overlay
     }
 
@@ -1140,10 +1169,6 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             dismissLabel.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
             dismissLabel.bottomAnchor.constraint(equalTo: overlay.bottomAnchor, constant: -24),
         ])
-
-        let clickGesture = NSClickGestureRecognizer(target: self, action: #selector(helpOverlayClicked))
-        clickGesture.delegate = self
-        overlay.addGestureRecognizer(clickGesture)
 
         helpOverlay = overlay
     }
@@ -1636,6 +1661,19 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         ]
         str.append(NSAttributedString(string: "? ", attributes: keyAttrs))
         str.append(NSAttributedString(string: L.help + "  ", attributes: dimAttrs))
+        return str
+    }
+
+    private func makeEscCloseButtonTitle() -> NSAttributedString {
+        let str = NSMutableAttributedString()
+        let keyAttrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: retroGreen.withAlphaComponent(0.6),
+            .font: retroFontSmall
+        ]
+        let dimAttrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: retroDimGreen.withAlphaComponent(0.6),
+            .font: retroFontSmall
+        ]
         str.append(NSAttributedString(string: "Esc ", attributes: keyAttrs))
         str.append(NSAttributedString(string: L.close, attributes: dimAttrs))
         return str
@@ -2384,6 +2422,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         searchField.isHidden = true
         helpLabel.isHidden = true
         helpButton.isHidden = true
+        escCloseButton.isHidden = true
         permissionWarningButton.isHidden = true
         dismissPermissionTooltip()
         emptyStateView?.isHidden = true
@@ -2418,6 +2457,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             searchField.isHidden = false
             helpLabel.isHidden = false
             helpButton.isHidden = false
+            escCloseButton.isHidden = false
             updateEmptyStateVisibility()
             updatePermissionWarning()
 

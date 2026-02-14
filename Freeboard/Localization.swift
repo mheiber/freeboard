@@ -146,6 +146,7 @@ struct L {
     static var accessibilityMarkdownText: String { tr("accessibilityMarkdownText") }
     static var markdownSupport: String { tr("markdownSupport") }
     static var helpDismissEsc: String { tr("helpDismissEsc") }
+    static var helpCloseHelp: String { tr("helpCloseHelp") }
     static var helpNavHint: String { tr("helpNavHint") }
     static var helpNavHintBack: String { tr("helpNavHintBack") }
     static var helpPowerFeatures: String { tr("helpPowerFeatures") }
@@ -578,29 +579,35 @@ struct L {
             .ar: "Esc لإغلاق المساعدة", .bn: "Esc সাহায্য বন্ধ করুন",
             .pt: "Esc para fechar ajuda", .ru: "Esc закрыть справку", .ja: "Esc でヘルプを閉じる"
         ],
+        "helpCloseHelp": [
+            .en: "\u{2190} Close help", .zh: "\u{2190} 关闭帮助", .hi: "\u{2190} सहायता बंद करें",
+            .es: "\u{2190} Cerrar ayuda", .fr: "\u{2190} Fermer l'aide",
+            .ar: "إغلاق المساعدة \u{2192}", .bn: "\u{2190} সাহায্য বন্ধ করুন",
+            .pt: "\u{2190} Fechar ajuda", .ru: "\u{2190} Закрыть справку", .ja: "\u{2190} ヘルプを閉じる"
+        ],
         "helpNavHint": [
-            .en: "j/k navigate  Enter follow  Esc close",
-            .zh: "j/k 导航  Enter 跟随  Esc 关闭",
-            .hi: "j/k नेविगेट  Enter अनुसरण  Esc बंद",
-            .es: "j/k navegar  Enter seguir  Esc cerrar",
-            .fr: "j/k naviguer  Enter suivre  Esc fermer",
-            .ar: "j/k تنقل  Enter متابعة  Esc إغلاق",
-            .bn: "j/k নেভিগেট  Enter অনুসরণ  Esc বন্ধ",
-            .pt: "j/k navegar  Enter seguir  Esc fechar",
-            .ru: "j/k навигация  Enter перейти  Esc закрыть",
-            .ja: "j/k 移動  Enter 開く  Esc 閉じる"
+            .en: "j/k navigate  Enter follow  Esc close help",
+            .zh: "j/k 导航  Enter 跟随  Esc 关闭帮助",
+            .hi: "j/k नेविगेट  Enter अनुसरण  Esc सहायता बंद",
+            .es: "j/k navegar  Enter seguir  Esc cerrar ayuda",
+            .fr: "j/k naviguer  Enter suivre  Esc fermer l'aide",
+            .ar: "j/k تنقل  Enter متابعة  Esc إغلاق المساعدة",
+            .bn: "j/k নেভিগেট  Enter অনুসরণ  Esc সাহায্য বন্ধ",
+            .pt: "j/k navegar  Enter seguir  Esc fechar ajuda",
+            .ru: "j/k навигация  Enter перейти  Esc закрыть справку",
+            .ja: "j/k 移動  Enter 開く  Esc ヘルプを閉じる"
         ],
         "helpNavHintBack": [
-            .en: "j/k navigate  Enter follow  Backspace back  Esc close",
-            .zh: "j/k 导航  Enter 跟随  Backspace 返回  Esc 关闭",
-            .hi: "j/k नेविगेट  Enter अनुसरण  Backspace वापस  Esc बंद",
-            .es: "j/k navegar  Enter seguir  Backspace volver  Esc cerrar",
-            .fr: "j/k naviguer  Enter suivre  Backspace retour  Esc fermer",
-            .ar: "j/k تنقل  Enter متابعة  Backspace رجوع  Esc إغلاق",
-            .bn: "j/k নেভিগেট  Enter অনুসরণ  Backspace পিছনে  Esc বন্ধ",
-            .pt: "j/k navegar  Enter seguir  Backspace voltar  Esc fechar",
-            .ru: "j/k навигация  Enter перейти  Backspace назад  Esc закрыть",
-            .ja: "j/k 移動  Enter 開く  Backspace 戻る  Esc 閉じる"
+            .en: "j/k navigate  Enter follow  Backspace back  Esc close help",
+            .zh: "j/k 导航  Enter 跟随  Backspace 返回  Esc 关闭帮助",
+            .hi: "j/k नेविगेट  Enter अनुसरण  Backspace वापस  Esc सहायता बंद",
+            .es: "j/k navegar  Enter seguir  Backspace volver  Esc cerrar ayuda",
+            .fr: "j/k naviguer  Enter suivre  Backspace retour  Esc fermer l'aide",
+            .ar: "j/k تنقل  Enter متابعة  Backspace رجوع  Esc إغلاق المساعدة",
+            .bn: "j/k নেভিগেট  Enter অনুসরণ  Backspace পিছনে  Esc সাহায্য বন্ধ",
+            .pt: "j/k navegar  Enter seguir  Backspace voltar  Esc fechar ajuda",
+            .ru: "j/k навигация  Enter перейти  Backspace назад  Esc закрыть справку",
+            .ja: "j/k 移動  Enter 開く  Backspace 戻る  Esc ヘルプを閉じる"
         ],
         "helpPowerFeatures": [
             .en: "POWER FEATURES", .zh: "高级功能", .hi: "पावर सुविधाएं",
