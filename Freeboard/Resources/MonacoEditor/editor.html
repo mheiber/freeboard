@@ -432,18 +432,34 @@
             // We wrap the text content *inside* modeInfoNode so StatusBar's
             // references remain valid.
             var modeInfoNode = statusEl.children[0]; // first child span
-            if (modeInfoNode && !statusEl.querySelector('input[type="text"]')) {
-                var modeText = modeInfoNode.textContent || '';
-                var modeMatch = modeText.match(/--(.*?)--/);
-                if (modeMatch && !modeInfoNode.querySelector('.vim-mode-toggle')) {
+            var inCommandMode = !!statusEl.querySelector('input[type="text"]');
+            if (modeInfoNode) {
+                if (inCommandMode) {
+                    // Hide the mode indicator (e.g. "-- NORMAL --") while the
+                    // command-line input is active — showing "[Normal]" during
+                    // command mode is confusing.
                     updatingStatus = true;
-                    // Wrap the text node inside modeInfoNode with a clickable span
-                    var wrapper = document.createElement('span');
-                    wrapper.className = 'vim-mode-toggle';
-                    wrapper.textContent = modeInfoNode.textContent;
-                    modeInfoNode.textContent = '';
-                    modeInfoNode.appendChild(wrapper);
+                    modeInfoNode.style.display = 'none';
                     updatingStatus = false;
+                } else {
+                    // Restore visibility when leaving command mode
+                    if (modeInfoNode.style.display === 'none') {
+                        updatingStatus = true;
+                        modeInfoNode.style.display = '';
+                        updatingStatus = false;
+                    }
+                    var modeText = modeInfoNode.textContent || '';
+                    var modeMatch = modeText.match(/--(.*?)--/);
+                    if (modeMatch && !modeInfoNode.querySelector('.vim-mode-toggle')) {
+                        updatingStatus = true;
+                        // Wrap the text node inside modeInfoNode with a clickable span
+                        var wrapper = document.createElement('span');
+                        wrapper.className = 'vim-mode-toggle';
+                        wrapper.textContent = modeInfoNode.textContent;
+                        modeInfoNode.textContent = '';
+                        modeInfoNode.appendChild(wrapper);
+                        updatingStatus = false;
+                    }
                 }
             }
 
