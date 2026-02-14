@@ -95,7 +95,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         refreshLocalization()
         reloadEntries()
         updateAccessibilityBanner()
-        view.window?.makeFirstResponder(self)
+        view.window?.makeFirstResponder(searchField)
     }
 
     func refreshLocalization() {
@@ -359,8 +359,6 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         ]
         str.append(NSAttributedString(string: "1-9 ", attributes: keyAttrs))
         str.append(NSAttributedString(string: L.quickSelect + "  ", attributes: dimAttrs))
-        str.append(NSAttributedString(string: "/ ", attributes: keyAttrs))
-        str.append(NSAttributedString(string: L.search + "  ", attributes: dimAttrs))
         str.append(NSAttributedString(string: "^N/^P ", attributes: keyAttrs))
         str.append(NSAttributedString(string: L.navigate + "  ", attributes: dimAttrs))
         str.append(NSAttributedString(string: "Enter ", attributes: keyAttrs))
@@ -691,13 +689,9 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         }
         if editingIndex != nil { super.keyDown(with: event); return } // Pass through when editing
 
-        // Normal mode (search field NOT focused): number keys quick select, / to search
+        // Normal mode (search field NOT focused): number keys quick select
         if !isSearchFieldFocused {
             if let chars = event.charactersIgnoringModifiers, flags.isEmpty || flags == .shift {
-                if chars == "/" {
-                    view.window?.makeFirstResponder(searchField)
-                    return
-                }
                 if let digit = chars.first, digit >= "1" && digit <= "9" {
                     let index = Int(String(digit))! - 1
                     selectCurrent(at: index)
