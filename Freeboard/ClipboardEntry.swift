@@ -7,6 +7,15 @@ enum EntryType: Equatable {
     case fileURL
 }
 
+/// Classification for markdown/rich text paste conversion.
+/// Determines what Shift+Enter does for a given entry.
+enum FormatCategory {
+    case richText       // Has rich data, not markdown → Shift pastes plain text
+    case plainMarkdown  // No rich data, is markdown → Shift pastes as rich text
+    case richMarkdown   // Has rich data AND is markdown → Shift pastes markdown source
+    case plainText      // No rich data, not markdown → Shift is no-op
+}
+
 struct ClipboardEntry: Identifiable, Equatable {
     let id: UUID
     let content: String  // For text: the text. For image: OCR text or "". For fileURL: the URL string.
@@ -74,6 +83,49 @@ struct ClipboardEntry: Identifiable, Equatable {
         if interval < 3600 { return L.accessibleMinutesAgo(Int(interval / 60)) }
         if interval < 86400 { return L.accessibleHoursAgo(Int(interval / 3600)) }
         return L.accessibleDaysAgo(Int(interval / 86400))
+    }
+
+    /// Whether this entry has rich pasteboard data (RTF or HTML).
+    var hasRichData: Bool {
+        guard let pbData = pasteboardData else { return false }
+        let richTypes: [NSPasteboard.PasteboardType] = [.rtf, .html,
+            NSPasteboard.PasteboardType("public.rtf"),
+            NSPasteboard.PasteboardType("public.html")]
+        return richTypes.contains { pbData[$0] != nil }
+    }
+
+    /// Whether the plain text content looks like markdown (stricter threshold for paste conversion).
+    var isMarkdownContent: Bool {
+        guard entryType == .text, !content.isEmpty else { return false }
+        return Self.markdownScore(content) >= 3
+    }
+
+    /// Classify this entry for paste conversion behavior.
+    var formatCategory: FormatCategory {
+        guard entryType == .text else { return .plainText }
+        let rich = hasRichData
+        let md = isMarkdownContent
+        if rich && md { return .richMarkdown }
+        if rich { return .richText }
+        if md { return .plainMarkdown }
+        return .plainText
+    }
+
+    /// Score text for markdown-likeness. Higher score = more likely markdown.
+    static func markdownScore(_ text: String) -> Int {
+        let lines = text.components(separatedBy: "\n")
+        var score = 0
+        for line in lines {
+            let ln = line.trimmingCharacters(in: .whitespaces)
+            if ln.range(of: "^#{1,6} ", options: .regularExpression) != nil { score += 2 }
+            if ln.hasPrefix("- ") || ln.hasPrefix("+ ") || (ln.hasPrefix("* ") && ln.count > 2) { score += 1 }
+            if ln.range(of: "^\\d+\\. ", options: .regularExpression) != nil { score += 1 }
+            if ln.hasPrefix("```") || ln.hasPrefix("~~~") { score += 2 }
+            if ln.hasPrefix("> ") { score += 1 }
+            if ln.contains("](") && ln.contains("[") { score += 2 }
+            if ln.contains("**") || ln.contains("__") { score += 1 }
+        }
+        return score
     }
 
     /// Generate a thumbnail for image entries. Caches lazily.
