@@ -1274,7 +1274,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         }
         str.append(NSAttributedString(string: editOrView + "  ", attributes: dimAttrs))
         str.append(NSAttributedString(string: "\u{2318}S ", attributes: keyAttrs))
-        str.append(NSAttributedString(string: L.star + "  ", attributes: dimAttrs))
+        let starLabel = entry?.isStarred == true ? L.unstar : L.star
+        str.append(NSAttributedString(string: starLabel + "  ", attributes: dimAttrs))
         str.append(NSAttributedString(string: "\u{2318}D ", attributes: keyAttrs))
         str.append(NSAttributedString(string: L.delete, attributes: dimAttrs))
         return str

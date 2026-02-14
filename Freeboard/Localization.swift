@@ -103,6 +103,7 @@ struct L {
     static var edit: String { tr("edit") }
     static var view: String { tr("view") }
     static var star: String { tr("star") }
+    static var unstar: String { tr("unstar") }
     static var quit: String { tr("quit") }
     static var quitFreeboard: String { tr("quitFreeboard") }
     static var justNow: String { tr("justNow") }
@@ -246,6 +247,10 @@ struct L {
         "star": [
             .en: "star", .zh: "收藏", .hi: "स्टार करें", .es: "destacar", .fr: "favori",
             .ar: "تمييز", .bn: "তারকা", .pt: "favoritar", .ru: "отметить", .ja: "スター"
+        ],
+        "unstar": [
+            .en: "unstar", .zh: "取消收藏", .hi: "स्टार हटाएं", .es: "quitar destacado", .fr: "retirer favori",
+            .ar: "إلغاء التمييز", .bn: "তারকা সরান", .pt: "remover favorito", .ru: "снять отметку", .ja: "スターを外す"
         ],
         "quit": [
             .en: "Quit", .zh: "退出", .hi: "छोड़ें", .es: "Salir", .fr: "Quitter",
