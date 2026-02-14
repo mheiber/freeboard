@@ -825,83 +825,80 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     }
 
     private func showSettingsArrowToStatusItem() {
-        // Only show arrow if we have our AppDelegate
-        guard NSApp.delegate is AppDelegate else { return }
-
-        // Access the status item button's window frame to find its screen position
-        // The statusItem is private, so we look for the status item button via accessibility
-        // Alternative: find the [F] button window in the status bar
-        let statusItemFrame: NSRect
-        if let buttonWindow = findStatusItemWindow() {
-            statusItemFrame = buttonWindow
-        } else {
-            // Fallback: approximate position in the top-right area of the screen
-            guard let screen = NSScreen.main else { return }
-            statusItemFrame = NSRect(
-                x: screen.frame.maxX - 100,
-                y: screen.frame.maxY - 22,
-                width: 40,
-                height: 22
-            )
-        }
-
+        guard let appDelegate = NSApp.delegate as? AppDelegate else { return }
+        guard let screen = NSScreen.main else { return }
         guard let popupWindow = self.view.window else { return }
-        let popupFrame = popupWindow.frame
 
-        // Calculate arrow endpoints:
-        // Start from top-center of popup window, end near the status item
-        let startX = popupFrame.midX
-        let startY = popupFrame.maxY
-        let endX = statusItemFrame.midX
-        let endY = statusItemFrame.minY
+        if let statusFrame = appDelegate.statusItemFrame() {
+            // We have a reliable status item position — draw the arrow directly to it
+            let popupFrame = popupWindow.frame
 
-        // Create a window that covers the area between popup top and status item
-        let minX = min(startX, endX) - 30
-        let maxX = max(startX, endX) + 30
-        let minY = startY
-        let maxY = endY + 10
+            let startX = popupFrame.midX
+            let startY = popupFrame.maxY
+            let endX = statusFrame.midX
+            let endY = statusFrame.minY
 
-        guard maxY > minY else { return }
+            let minX = min(startX, endX) - 30
+            let maxX = max(startX, endX) + 30
+            let minY = startY
+            let maxY = endY + 10
 
-        let arrowWindowFrame = NSRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
+            guard maxY > minY else { return }
 
-        let arrowWindow = NSWindow(
-            contentRect: arrowWindowFrame,
-            styleMask: .borderless,
-            backing: .buffered,
-            defer: false
-        )
-        arrowWindow.isOpaque = false
-        arrowWindow.backgroundColor = .clear
-        arrowWindow.ignoresMouseEvents = true
-        arrowWindow.level = .floating
-        arrowWindow.hasShadow = false
+            let arrowWindowFrame = NSRect(x: minX, y: minY, width: maxX - minX, height: maxY - minY)
 
-        let arrowView = SettingsArrowView(frame: NSRect(origin: .zero, size: arrowWindowFrame.size))
-        arrowView.startPoint = CGPoint(x: startX - minX, y: 0)
-        arrowView.endPoint = CGPoint(x: endX - minX, y: arrowWindowFrame.height)
-        arrowView.arrowColor = retroGreen
-        arrowWindow.contentView = arrowView
+            let arrowWindow = NSWindow(
+                contentRect: arrowWindowFrame,
+                styleMask: .borderless,
+                backing: .buffered,
+                defer: false
+            )
+            arrowWindow.isOpaque = false
+            arrowWindow.backgroundColor = .clear
+            arrowWindow.ignoresMouseEvents = true
+            arrowWindow.level = .floating
+            arrowWindow.hasShadow = false
 
-        arrowWindow.orderFront(nil)
-        settingsArrowWindow = arrowWindow
-    }
+            let arrowView = SettingsArrowView(frame: NSRect(origin: .zero, size: arrowWindowFrame.size))
+            arrowView.startPoint = CGPoint(x: startX - minX, y: 0)
+            arrowView.endPoint = CGPoint(x: endX - minX, y: arrowWindowFrame.height)
+            arrowView.arrowColor = retroGreen
+            arrowWindow.contentView = arrowView
 
-    private func findStatusItemWindow() -> NSRect? {
-        // Look through all windows for the status item button
-        for window in NSApp.windows {
-            // Status bar button windows have a specific class and are in the menu bar area
-            if let screen = NSScreen.main,
-               window.frame.maxY >= screen.frame.maxY - 30,
-               window.frame.height <= 30 {
-                // Check if this window contains our [F] button
-                if let button = window.contentView as? NSStatusBarButton,
-                   button.title.contains("F") || (button.attributedTitle.string.contains("F")) {
-                    return window.frame
-                }
-            }
+            arrowWindow.orderFront(nil)
+            settingsArrowWindow = arrowWindow
+        } else {
+            // Fallback: draw a green underline across the entire menu bar area
+            let menuBarHeight: CGFloat = NSStatusBar.system.thickness
+            let lineHeight: CGFloat = 2.0
+            let lineY = screen.frame.maxY - menuBarHeight - lineHeight
+
+            let lineWindowFrame = NSRect(
+                x: screen.frame.minX,
+                y: lineY,
+                width: screen.frame.width,
+                height: lineHeight
+            )
+
+            let lineWindow = NSWindow(
+                contentRect: lineWindowFrame,
+                styleMask: .borderless,
+                backing: .buffered,
+                defer: false
+            )
+            lineWindow.isOpaque = false
+            lineWindow.backgroundColor = .clear
+            lineWindow.ignoresMouseEvents = true
+            lineWindow.level = .floating
+            lineWindow.hasShadow = false
+
+            let lineView = MenuBarUnderlineView(frame: NSRect(origin: .zero, size: lineWindowFrame.size))
+            lineView.lineColor = retroGreen
+            lineWindow.contentView = lineView
+
+            lineWindow.orderFront(nil)
+            settingsArrowWindow = lineWindow
         }
-        return nil
     }
 
     func showMarkdownHelpScreen() {
@@ -2806,5 +2803,19 @@ class SettingsArrowView: NSView {
         context.addLine(to: rightPoint)
         context.closePath()
         context.fillPath()
+    }
+}
+
+// MARK: - Menu Bar Underline View
+
+class MenuBarUnderlineView: NSView {
+    var lineColor: NSColor = NSColor(red: 0.0, green: 1.0, blue: 0.25, alpha: 1.0)
+
+    override func draw(_ dirtyRect: NSRect) {
+        super.draw(dirtyRect)
+        guard let context = NSGraphicsContext.current?.cgContext else { return }
+
+        context.setFillColor(lineColor.withAlphaComponent(0.6).cgColor)
+        context.fill(bounds)
     }
 }

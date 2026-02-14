@@ -83,6 +83,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
 
     // MARK: - Popup
 
+    /// Returns the screen frame of the status item button, if available.
+    func statusItemFrame() -> NSRect? {
+        return statusItem.button?.window?.frame
+    }
+
     @objc private func statusItemClicked(_ sender: NSStatusBarButton) {
         let event = NSApp.currentEvent!
         if event.type == .rightMouseUp {
