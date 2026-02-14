@@ -28,6 +28,7 @@
 		FA0000000000000000000402 /* ClipboardManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000302 /* ClipboardManagerTests.swift */; };
 		FA0000000000000000000403 /* IntegrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000303 /* IntegrationTests.swift */; };
 		FA0000000000000000000404 /* EmptyStateTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000304 /* EmptyStateTests.swift */; };
+		FA0000000000000000000405 /* MarkdownConversionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000305 /* MarkdownConversionTests.swift */; };
 		FA0000000000000000000502 /* ClipboardEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000102 /* ClipboardEntry.swift */; };
 		FA0000000000000000000503 /* ClipboardManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000103 /* ClipboardManager.swift */; };
 		FA0000000000000000000504 /* PasswordDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA0000000000000000000104 /* PasswordDetector.swift */; };
@@ -73,6 +74,7 @@
 		FA0000000000000000000302 /* ClipboardManagerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ClipboardManagerTests.swift; sourceTree = "<group>"; };
 		FA0000000000000000000303 /* IntegrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IntegrationTests.swift; sourceTree = "<group>"; };
 		FA0000000000000000000304 /* EmptyStateTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStateTests.swift; sourceTree = "<group>"; };
+		FA0000000000000000000305 /* MarkdownConversionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkdownConversionTests.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -145,6 +147,7 @@
 				FA0000000000000000000302 /* ClipboardManagerTests.swift */,
 				FA0000000000000000000303 /* IntegrationTests.swift */,
 				FA0000000000000000000304 /* EmptyStateTests.swift */,
+				FA0000000000000000000305 /* MarkdownConversionTests.swift */,
 			);
 			path = FreeboardTests;
 			sourceTree = "<group>";
@@ -264,6 +267,7 @@
 				FA0000000000000000000402 /* ClipboardManagerTests.swift in Sources */,
 				FA0000000000000000000403 /* IntegrationTests.swift in Sources */,
 				FA0000000000000000000404 /* EmptyStateTests.swift in Sources */,
+				FA0000000000000000000405 /* MarkdownConversionTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
