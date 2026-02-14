@@ -995,6 +995,56 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
                     nl.centerYAnchor.constraint(equalTo: indicator.centerYAnchor),
                 ])
             }
+
+            // Stats label on expanded rows
+            if isExpanded {
+                let statsText: String
+                let accessibleStats: String
+                switch entry.entryType {
+                case .text:
+                    let charCount = entry.content.count
+                    let wordCount = entry.content.split(whereSeparator: { $0.isWhitespace || $0.isNewline }).count
+                    statsText = "\(charCount)c \(wordCount)w"
+                    accessibleStats = "\(charCount) characters, \(wordCount) words"
+                case .image:
+                    if let data = entry.imageData, let image = NSImage(data: data) {
+                        let w = Int(image.size.width)
+                        let h = Int(image.size.height)
+                        statsText = "\(w)×\(h)"
+                        accessibleStats = "\(w) by \(h) pixels"
+                    } else {
+                        statsText = ""
+                        accessibleStats = ""
+                    }
+                case .fileURL:
+                    if let url = entry.fileURL,
+                       let attrs = try? FileManager.default.attributesOfItem(atPath: url.path),
+                       let size = attrs[.size] as? UInt64 {
+                        statsText = ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .file)
+                        accessibleStats = statsText
+                    } else {
+                        statsText = ""
+                        accessibleStats = ""
+                    }
+                }
+
+                if !statsText.isEmpty {
+                    let statsLabel = NSTextField(labelWithString: statsText)
+                    statsLabel.translatesAutoresizingMaskIntoConstraints = false
+                    statsLabel.font = retroFontSmall
+                    statsLabel.textColor = retroDimGreen.withAlphaComponent(0.4)
+                    statsLabel.backgroundColor = .clear
+                    statsLabel.isBezeled = false
+                    statsLabel.alignment = .right
+                    statsLabel.setAccessibilityLabel(accessibleStats)
+                    cell.addSubview(statsLabel)
+
+                    NSLayoutConstraint.activate([
+                        statsLabel.trailingAnchor.constraint(equalTo: deleteButton.leadingAnchor, constant: -6),
+                        statsLabel.bottomAnchor.constraint(equalTo: cell.bottomAnchor, constant: -4),
+                    ])
+                }
+            }
         }
 
         return cell
