@@ -6,10 +6,10 @@ INSTALL_DIR = /Applications
 .PHONY: build run prod clean kill
 
 build:
-	xcodebuild -project $(APP_NAME).xcodeproj -scheme $(APP_NAME) -configuration Debug SYMROOT=$(CURDIR)/build
+	xcodebuild -project $(APP_NAME).xcodeproj -scheme $(APP_NAME) -configuration Debug SYMROOT=$(CURDIR)/build ENABLE_APP_SANDBOX=NO
 
 run: kill build
-	open $(APP_BUNDLE)
+	$(APP_BUNDLE)/Contents/MacOS/$(APP_NAME) &
 
 kill:
 	-killall $(APP_NAME) 2>/dev/null; sleep 0.5

@@ -33,6 +33,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     private var editingIndex: Int? = nil
     private var editTextView: NSTextView? = nil
     private var monacoEditorView: MonacoEditorView? = nil
+    private var preloadedMonacoEditor: MonacoEditorView? = nil
     private var monacoEditingIndex: Int? = nil
     private var searchQuery: String = ""
     private var hoveredRow: Int? = nil
@@ -112,6 +113,15 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     override func viewDidLoad() {
         super.viewDidLoad()
         reloadEntries()
+        preloadMonacoEditor()
+    }
+
+    private func preloadMonacoEditor() {
+        let editor = MonacoEditorView(frame: NSRect(x: 0, y: 0, width: 1, height: 1))
+        editor.isHidden = true
+        view.addSubview(editor)
+        editor.loadEditor()
+        preloadedMonacoEditor = editor
     }
 
     override var acceptsFirstResponder: Bool { true }
@@ -1219,19 +1229,31 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         guard selectedIndex < filteredEntries.count else { return }
         let entry = filteredEntries[selectedIndex]
         guard !entry.isPassword else { return }
-        NSLog("[DEBUG VC] enterEditMode: index=\(selectedIndex), type=\(entry.entryType), contentLen=\(entry.content.count)")
 
         switch entry.entryType {
         case .text:
             monacoEditingIndex = selectedIndex
-            let editorView = MonacoEditorView(frame: .zero)
+
+            // Reuse preloaded editor or create a new one
+            let editorView: MonacoEditorView
+            if let preloaded = preloadedMonacoEditor {
+                editorView = preloaded
+                preloadedMonacoEditor = nil
+                editorView.removeFromSuperview()
+                editorView.frame = .zero
+            } else {
+                editorView = MonacoEditorView(frame: .zero)
+                editorView.loadEditor()
+            }
+
             editorView.translatesAutoresizingMaskIntoConstraints = false
             editorView.delegate = self
             editorView.wantsLayer = true
             editorView.layer?.cornerRadius = 4
-            NSLog("[DEBUG VC] adding editor view to containerView")
+            editorView.isHidden = false
 
-            containerView.addSubview(editorView, positioned: .below, relativeTo: effectsView)
+            containerView.addSubview(editorView, positioned: .above, relativeTo: effectsView)
+            effectsView.isHidden = true
 
             NSLayoutConstraint.activate([
                 editorView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 8),
@@ -1250,10 +1272,14 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             emptyStateView?.isHidden = true
 
             monacoEditorView = editorView
-            editorView.loadEditor()
 
             let language = MonacoEditorView.detectLanguage(entry.content)
             editorView.setContent(entry.content, language: language)
+
+            // Ensure WKWebView gets keyboard focus after layout pass
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                editorView.focusEditor()
+            }
         case .image:
             openImageInEditor(entry)
         case .fileURL:
@@ -1331,14 +1357,18 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     }
 
     private func exitEditMode() {
-        NSLog("[DEBUG VC] exitEditMode called")
         // Monaco editor path
         if let editorView = monacoEditorView {
-            NSLog("[DEBUG VC] removing editor view, restoring UI")
             editorView.cleanup()
             editorView.removeFromSuperview()
             monacoEditorView = nil
             monacoEditingIndex = nil
+            effectsView.isHidden = false
+
+            // Preload a fresh editor for next time
+            if preloadedMonacoEditor == nil {
+                preloadMonacoEditor()
+            }
 
             // Restore UI elements
             scrollView.isHidden = false
@@ -1375,21 +1405,16 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     // MARK: - MonacoEditorDelegate
 
     func editorDidSave(content: String) {
-        NSLog("[DEBUG VC] editorDidSave: \(content.count) chars")
         if let idx = monacoEditingIndex, idx < filteredEntries.count {
             let entry = filteredEntries[idx]
             if !content.isEmpty && content != entry.content {
-                NSLog("[DEBUG VC] content changed — updating entry \(entry.id)")
                 clipboardManager?.updateEntryContent(id: entry.id, newContent: content)
-            } else {
-                NSLog("[DEBUG VC] content unchanged — no update needed")
             }
         }
         exitEditMode()
     }
 
     func editorDidClose() {
-        NSLog("[DEBUG VC] editorDidClose")
         exitEditMode()
     }
 
@@ -1406,8 +1431,6 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             if helpOverlay?.superview != nil {
                 dismissHelp()
             } else if monacoEditorView != nil {
-                // Native editor: save and close (fallback if text view didn't handle Esc)
-                NSLog("[DEBUG VC] Esc reached VC while editor open — triggering save+close")
                 monacoEditorView?.triggerSaveAndClose()
             } else if editingIndex != nil {
                 exitEditMode()

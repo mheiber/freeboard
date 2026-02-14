@@ -14,45 +14,61 @@
     }
     #editor-container {
         width: 100%;
-        height: 100%;
+        height: calc(100% - 22px);
     }
-    /* Vim mode indicator */
-    #vim-status {
-        display: none;
+    #status-bar {
         position: fixed;
         bottom: 0;
         left: 0;
         right: 0;
         height: 22px;
         background: #1e1e1e;
-        color: #00ff40;
         font-family: Menlo, monospace;
-        font-size: 12px;
+        font-size: 11px;
         line-height: 22px;
         padding: 0 8px;
         z-index: 1000;
         border-top: 1px solid #333;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
     }
-    #vim-status.normal { color: #569cd6; }
-    #vim-status.insert { color: #00ff40; }
-    #vim-status.command { color: #dcdcaa; }
+    #vim-status {
+        color: #d4d4d4;
+        flex-shrink: 0;
+    }
+    #editor-hints {
+        color: #00c030;
+        opacity: 0.5;
+        white-space: nowrap;
+    }
+    #editor-hints .key {
+        color: #00ff40;
+        opacity: 1;
+    }
 </style>
 </head>
 <body>
 <div id="editor-container"></div>
-<div id="vim-status"></div>
+<div id="status-bar">
+    <div id="vim-status"></div>
+    <div id="editor-hints"></div>
+</div>
 
 <script src="vs/loader.js"></script>
 <script src="vs/editor/editor.main.nls.js"></script>
 <script src="vs/editor/editor.main.js"></script>
+<!-- Load monaco-vim with AMD hidden so it uses global assignment path -->
+<script>var __define = define; define = undefined;</script>
+<script src="monaco-vim.js"></script>
+<script>define = __define;</script>
 <script>
 (function() {
     var editor = null;
     var vimEnabled = false;
-    var vimMode = 'insert'; // 'insert' or 'normal'
-    var commandBuffer = '';
-    var jkTimer = null;
+    var vimModeInstance = null;
     var statusEl = document.getElementById('vim-status');
+    var hintsEl = document.getElementById('editor-hints');
     var editorContainerEl = document.getElementById('editor-container');
 
     function postMessage(msg) {
@@ -61,40 +77,17 @@
         }
     }
 
-    function updateVimStatus() {
+    function updateHints() {
         if (!vimEnabled) {
-            statusEl.style.display = 'none';
-            editorContainerEl.style.height = '100%';
+            hintsEl.innerHTML = '<span class="key">Esc</span> save+close';
             return;
         }
-        statusEl.style.display = 'block';
-        editorContainerEl.style.height = 'calc(100% - 22px)';
-        if (vimMode === 'normal') {
-            statusEl.textContent = '-- NORMAL --' + (commandBuffer ? '  ' + commandBuffer : '');
-            statusEl.className = 'normal';
+        var statusText = statusEl.textContent || '';
+        if (statusText.indexOf('INSERT') !== -1 || statusText.indexOf('REPLACE') !== -1) {
+            hintsEl.innerHTML = '<span class="key">jk</span> normal mode&nbsp;&nbsp;<span class="key">:x</span> save+close';
         } else {
-            statusEl.textContent = '-- INSERT --';
-            statusEl.className = 'insert';
+            hintsEl.innerHTML = '<span class="key">:x</span> save+close&nbsp;&nbsp;<span class="key">:q</span> close&nbsp;&nbsp;<span class="key">i</span> insert mode';
         }
-        if (editor) editor.layout();
-    }
-
-    function enterNormalMode() {
-        vimMode = 'normal';
-        commandBuffer = '';
-        if (editor) {
-            editor.updateOptions({ cursorStyle: 'block', readOnly: false });
-        }
-        updateVimStatus();
-    }
-
-    function enterInsertMode() {
-        vimMode = 'insert';
-        commandBuffer = '';
-        if (editor) {
-            editor.updateOptions({ cursorStyle: 'line', readOnly: false });
-        }
-        updateVimStatus();
     }
 
     function saveAndClose() {
@@ -105,14 +98,12 @@
 
     require.config({ paths: { vs: 'vs' } });
 
-    // editor.main.js is preloaded via script tag, so require should resolve immediately.
-    // If AMD resolution fails, retry with a timeout as fallback.
     function initEditor() {
         if (typeof monaco === 'undefined') {
             setTimeout(initEditor, 100);
             return;
         }
-        // Define a custom dark theme matching retro green aesthetic
+
         monaco.editor.defineTheme('freeboard-dark', {
             base: 'vs-dark',
             inherit: true,
@@ -150,210 +141,72 @@
             tabSize: 2
         });
 
-        // Key handling
-        editor.onKeyDown(function(e) {
+        // Non-vim Esc handling: save and close
+        editor.addCommand(monaco.KeyCode.Escape, function() {
             if (!vimEnabled) {
-                // Non-vim mode: Esc saves and closes
-                if (e.keyCode === monaco.KeyCode.Escape) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    saveAndClose();
-                    return;
-                }
-                return;
-            }
-
-            // Vim mode handling
-            if (vimMode === 'insert') {
-                if (e.keyCode === monaco.KeyCode.Escape) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    enterNormalMode();
-                    return;
-                }
-                // jk detection for exiting insert mode
-                if (e.browserEvent.key === 'j') {
-                    if (jkTimer) clearTimeout(jkTimer);
-                    jkTimer = setTimeout(function() { jkTimer = null; }, 200);
-                    return; // let j be typed
-                }
-                if (e.browserEvent.key === 'k' && jkTimer) {
-                    clearTimeout(jkTimer);
-                    jkTimer = null;
-                    e.preventDefault();
-                    e.stopPropagation();
-                    // Remove the 'j' that was just typed
-                    var model = editor.getModel();
-                    var pos = editor.getPosition();
-                    if (pos.column > 1) {
-                        var range = new monaco.Range(pos.lineNumber, pos.column - 1, pos.lineNumber, pos.column);
-                        model.pushEditOperations([], [{ range: range, text: '' }], function() { return null; });
-                    }
-                    enterNormalMode();
-                    return;
-                }
-                return;
-            }
-
-            // Normal mode
-            e.preventDefault();
-            e.stopPropagation();
-            var key = e.browserEvent.key;
-
-            // Command mode (after :)
-            if (commandBuffer.length > 0 && commandBuffer[0] === ':') {
-                if (e.keyCode === monaco.KeyCode.Escape) {
-                    commandBuffer = '';
-                    updateVimStatus();
-                    return;
-                }
-                if (e.keyCode === monaco.KeyCode.Enter) {
-                    if (commandBuffer === ':w' || commandBuffer === ':wq' || commandBuffer === ':x') {
-                        saveAndClose();
-                    } else if (commandBuffer === ':q' || commandBuffer === ':q!') {
-                        postMessage({ type: 'close' });
-                    }
-                    commandBuffer = '';
-                    updateVimStatus();
-                    return;
-                }
-                if (e.keyCode === monaco.KeyCode.Backspace) {
-                    commandBuffer = commandBuffer.slice(0, -1);
-                    if (commandBuffer === '') {
-                        updateVimStatus();
-                        return;
-                    }
-                } else {
-                    commandBuffer += key;
-                }
-                updateVimStatus();
-                return;
-            }
-
-            // Second Esc in normal mode -> save and close
-            if (e.keyCode === monaco.KeyCode.Escape) {
                 saveAndClose();
-                return;
             }
-
-            // Vim normal mode motions
-            var pos = editor.getPosition();
-            var model = editor.getModel();
-            switch (key) {
-                case ':':
-                    commandBuffer = ':';
-                    updateVimStatus();
-                    return;
-                case 'i':
-                    enterInsertMode();
-                    return;
-                case 'a':
-                    var lineLen = model.getLineLength(pos.lineNumber);
-                    editor.setPosition({ lineNumber: pos.lineNumber, column: Math.min(pos.column + 1, lineLen + 1) });
-                    enterInsertMode();
-                    return;
-                case 'A':
-                    var lineLen = model.getLineLength(pos.lineNumber);
-                    editor.setPosition({ lineNumber: pos.lineNumber, column: lineLen + 1 });
-                    enterInsertMode();
-                    return;
-                case 'I':
-                    var firstNonWhitespace = model.getLineFirstNonWhitespaceColumn(pos.lineNumber);
-                    editor.setPosition({ lineNumber: pos.lineNumber, column: firstNonWhitespace || 1 });
-                    enterInsertMode();
-                    return;
-                case 'o':
-                    var lineLen = model.getLineLength(pos.lineNumber);
-                    var range = new monaco.Range(pos.lineNumber, lineLen + 1, pos.lineNumber, lineLen + 1);
-                    model.pushEditOperations([], [{ range: range, text: '\n' }], function() { return null; });
-                    editor.setPosition({ lineNumber: pos.lineNumber + 1, column: 1 });
-                    enterInsertMode();
-                    return;
-                case 'O':
-                    var range = new monaco.Range(pos.lineNumber, 1, pos.lineNumber, 1);
-                    model.pushEditOperations([], [{ range: range, text: '\n' }], function() { return null; });
-                    editor.setPosition({ lineNumber: pos.lineNumber, column: 1 });
-                    enterInsertMode();
-                    return;
-                case 'h':
-                    editor.setPosition({ lineNumber: pos.lineNumber, column: Math.max(1, pos.column - 1) });
-                    return;
-                case 'j':
-                    var maxLine = model.getLineCount();
-                    editor.setPosition({ lineNumber: Math.min(maxLine, pos.lineNumber + 1), column: pos.column });
-                    return;
-                case 'k':
-                    editor.setPosition({ lineNumber: Math.max(1, pos.lineNumber - 1), column: pos.column });
-                    return;
-                case 'l':
-                    var lineLen = model.getLineLength(pos.lineNumber);
-                    editor.setPosition({ lineNumber: pos.lineNumber, column: Math.min(lineLen + 1, pos.column + 1) });
-                    return;
-                case 'w':
-                    var wordPos = model.findNextMatch('\\b\\w', pos, true, false, null, false);
-                    if (wordPos && (wordPos.range.startLineNumber > pos.lineNumber ||
-                        (wordPos.range.startLineNumber === pos.lineNumber && wordPos.range.startColumn > pos.column))) {
-                        editor.setPosition({ lineNumber: wordPos.range.startLineNumber, column: wordPos.range.startColumn });
-                    }
-                    return;
-                case 'b':
-                    // Simple word back
-                    var text = model.getLineContent(pos.lineNumber);
-                    var col = pos.column - 2;
-                    while (col > 0 && /\s/.test(text[col])) col--;
-                    while (col > 0 && /\w/.test(text[col - 1])) col--;
-                    editor.setPosition({ lineNumber: pos.lineNumber, column: col + 1 });
-                    return;
-                case '0':
-                    editor.setPosition({ lineNumber: pos.lineNumber, column: 1 });
-                    return;
-                case '$':
-                    var lineLen = model.getLineLength(pos.lineNumber);
-                    editor.setPosition({ lineNumber: pos.lineNumber, column: lineLen + 1 });
-                    return;
-                case 'g':
-                    commandBuffer += 'g';
-                    return;
-                case 'G':
-                    var maxLine = model.getLineCount();
-                    editor.setPosition({ lineNumber: maxLine, column: 1 });
-                    return;
-                case 'x':
-                    var lineLen = model.getLineLength(pos.lineNumber);
-                    if (pos.column <= lineLen) {
-                        var range = new monaco.Range(pos.lineNumber, pos.column, pos.lineNumber, pos.column + 1);
-                        model.pushEditOperations([], [{ range: range, text: '' }], function() { return null; });
-                    }
-                    return;
-                case 'u':
-                    editor.trigger('vim', 'undo', null);
-                    return;
-            }
-
-            // Handle gg
-            if (commandBuffer === 'g' && key === 'g') {
-                editor.setPosition({ lineNumber: 1, column: 1 });
-                commandBuffer = '';
-                return;
-            }
-            commandBuffer = '';
         });
 
         editor.focus();
-        updateVimStatus();
+        postMessage({ type: 'editorReady' });
     }
 
     require(['vs/editor/editor.main'], function() {
         initEditor();
     }, function(err) {
-        // AMD loading failed, try direct access (scripts were preloaded)
         initEditor();
     });
+
+    // Watch vim status changes to update hints
+    var observer = new MutationObserver(function() {
+        updateHints();
+    });
+    observer.observe(statusEl, { childList: true, characterData: true, subtree: true });
+
+    function enableVim() {
+        if (vimModeInstance) {
+            vimModeInstance.dispose();
+            vimModeInstance = null;
+        }
+
+        if (typeof MonacoVim !== 'undefined' && MonacoVim.initVimMode) {
+            vimModeInstance = MonacoVim.initVimMode(editor, statusEl);
+
+            MonacoVim.VimMode.Vim.defineEx('write', 'w', function() {
+                saveAndClose();
+            });
+            MonacoVim.VimMode.Vim.defineEx('quit', 'q', function() {
+                postMessage({ type: 'close' });
+            });
+            MonacoVim.VimMode.Vim.defineEx('wquit', 'wq', function() {
+                saveAndClose();
+            });
+            MonacoVim.VimMode.Vim.defineEx('x', 'x', function() {
+                saveAndClose();
+            });
+
+            MonacoVim.VimMode.Vim.map('jk', '<Esc>', 'insert');
+
+            MonacoVim.VimMode.Vim.mapCommand('<Esc>', '', '', function() {
+                saveAndClose();
+            }, { context: 'normal' });
+        }
+        updateHints();
+    }
+
+    function disableVim() {
+        if (vimModeInstance) {
+            vimModeInstance.dispose();
+            vimModeInstance = null;
+        }
+        statusEl.textContent = '';
+        updateHints();
+    }
 
     // Public API called from Swift
     window.setContent = function(text, language, isVimEnabled) {
         if (!editor) {
-            // Editor not ready yet, wait a bit
             setTimeout(function() { window.setContent(text, language, isVimEnabled); }, 100);
             return;
         }
@@ -362,10 +215,9 @@
         editor.setValue(text);
         vimEnabled = isVimEnabled;
         if (vimEnabled) {
-            enterInsertMode();
+            enableVim();
         } else {
-            vimMode = 'insert';
-            updateVimStatus();
+            disableVim();
         }
         editor.focus();
     };
@@ -373,6 +225,8 @@
     window.getContent = function() {
         return editor ? editor.getValue() : '';
     };
+
+    updateHints();
 })();
 </script>
 </body>
