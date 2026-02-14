@@ -1,0 +1,1 @@
+when we don't have permissions yet: we currently show an orange caution sign on the bottom right.  We should show "Needs Permissions" all in orange after the caution sign. Hovering it should explain what to do. Currently we have no hover tooltips for anything.
