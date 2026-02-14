@@ -1113,13 +1113,52 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
 
     private func enterEditMode() {
         guard selectedIndex < filteredEntries.count else { return }
-        guard !filteredEntries[selectedIndex].isPassword else { return } // Can't edit passwords
-        guard filteredEntries[selectedIndex].entryType == .text else { return } // Can't edit non-text
-        expandedIndex = selectedIndex
-        editingIndex = selectedIndex
-        tableView.noteHeightOfRows(withIndexesChanged: IndexSet(integer: selectedIndex))
-        tableView.reloadData()
-        tableView.scrollRowToVisible(selectedIndex)
+        let entry = filteredEntries[selectedIndex]
+        guard !entry.isPassword else { return }
+
+        switch entry.entryType {
+        case .text:
+            expandedIndex = selectedIndex
+            editingIndex = selectedIndex
+            tableView.noteHeightOfRows(withIndexesChanged: IndexSet(integer: selectedIndex))
+            tableView.reloadData()
+            tableView.scrollRowToVisible(selectedIndex)
+        case .image:
+            openImageInEditor(entry)
+        case .fileURL:
+            openFileInEditor(entry)
+        }
+    }
+
+    private func openImageInEditor(_ entry: ClipboardEntry) {
+        guard let data = entry.imageData else { return }
+        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent("freeboard")
+        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        let ext = imageExtension(for: data)
+        let tempFile = tempDir.appendingPathComponent("clipboard-\(entry.id.uuidString).\(ext)")
+        do {
+            try data.write(to: tempFile)
+            NSWorkspace.shared.open(tempFile)
+        } catch {
+            NSSound.beep()
+        }
+    }
+
+    private func openFileInEditor(_ entry: ClipboardEntry) {
+        guard let url = entry.fileURL else { return }
+        if FileManager.default.fileExists(atPath: url.path) {
+            NSWorkspace.shared.open(url)
+        } else {
+            NSSound.beep()
+        }
+    }
+
+    private func imageExtension(for data: Data) -> String {
+        guard data.count >= 4 else { return "tiff" }
+        let header = [UInt8](data.prefix(4))
+        if header[0] == 0x89 && header[1] == 0x50 { return "png" }
+        if header[0] == 0xFF && header[1] == 0xD8 { return "jpg" }
+        return "tiff"
     }
 
     private func exitEditMode() {
