@@ -44,9 +44,6 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     private var hoveredRow: Int? = nil
     private var mouseInIndicatorZone: Bool = false
     private var keyMonitor: Any?
-    private var imageEditSource: DispatchSourceFileSystemObject?
-    private var imageEditFileDescriptor: Int32 = -1
-    private var imageEditEntryId: UUID?
 
     private let retroGreen = NSColor(red: 0.0, green: 1.0, blue: 0.25, alpha: 1.0)
     private let retroDimGreen = NSColor(red: 0.0, green: 0.75, blue: 0.19, alpha: 1.0)
@@ -168,7 +165,6 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         super.viewWillDisappear()
         dismissHelp()
         dismissPermissionTooltip()
-        stopWatchingImageFile()
         if let monitor = keyMonitor {
             NSEvent.removeMonitor(monitor)
             keyMonitor = nil
@@ -1887,7 +1883,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
 
         menu.addItem(NSMenuItem.separator())
 
-        if !entry.isPassword {
+        if entry.entryType == .text && !entry.isPassword {
             addItem(L.contextEdit, hint: "^E", action: #selector(contextMenuEdit(_:)))
         }
 
@@ -1955,133 +1951,67 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         guard selectedIndex < filteredEntries.count else { return }
         let entry = filteredEntries[selectedIndex]
         guard !entry.isPassword else { return }
-
-        switch entry.entryType {
-        case .text:
-            monacoEditingIndex = selectedIndex
-
-            // Reuse preloaded editor or create a new one
-            let editorView: MonacoEditorView
-            if let preloaded = preloadedMonacoEditor {
-                editorView = preloaded
-                preloadedMonacoEditor = nil
-                editorView.removeFromSuperview()
-                editorView.frame = .zero
-            } else {
-                editorView = MonacoEditorView(frame: .zero)
-                editorView.loadEditor()
-            }
-
-            editorView.translatesAutoresizingMaskIntoConstraints = false
-            editorView.delegate = self
-            editorView.wantsLayer = true
-            editorView.layer?.cornerRadius = 4
-            editorView.isHidden = false
-            editorView.setAccessibilityIdentifier("MonacoEditor")
-
-            containerView.addSubview(editorView, positioned: .above, relativeTo: effectsView)
-            effectsView.isHidden = true
-
-            NSLayoutConstraint.activate([
-                editorView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 8),
-                editorView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 8),
-                editorView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -8),
-                editorView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -8),
-            ])
-
-            // Hide other elements
-            scrollView.isHidden = true
-            searchField.isHidden = true
-            helpLabel.isHidden = true
-            helpButton.isHidden = true
-            quitButton.isHidden = true
-            permissionWarningButton.isHidden = true
-            dismissPermissionTooltip()
-            emptyStateView?.isHidden = true
-
-            monacoEditorView = editorView
-
-            let language = MonacoEditorView.detectLanguage(entry.content)
-            editorView.setContent(entry.content, language: language)
-
-            // Ensure WKWebView gets keyboard focus after layout pass
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
-                editorView.focusEditor()
-            }
-        case .image:
-            openImageInEditor(entry)
-        case .fileURL:
-            openFileInEditor(entry)
-        }
-    }
-
-    private func openImageInEditor(_ entry: ClipboardEntry) {
-        guard let data = entry.imageData else { return }
-        let tempDir = FileManager.default.temporaryDirectory.appendingPathComponent("freeboard")
-        try? FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
-        let ext = imageExtension(for: data)
-        let tempFile = tempDir.appendingPathComponent("clipboard-\(entry.id.uuidString).\(ext)")
-        do {
-            try data.write(to: tempFile)
-            NSWorkspace.shared.open(tempFile)
-            watchImageFile(at: tempFile, entryId: entry.id)
-        } catch {
+        // Only text entries support in-app editing.
+        // Images/files would require writing to disk and round-tripping through
+        // external editors, which is broken under app sandbox (atomic saves
+        // invalidate file watchers, and sandboxed temp dirs are inaccessible to
+        // external apps). This also conflicts with the "instant and ephemeral"
+        // principle — no disk writes.
+        guard entry.entryType == .text else {
             NSSound.beep()
+            return
         }
-    }
 
-    private func watchImageFile(at url: URL, entryId: UUID) {
-        // Clean up any existing watcher
-        stopWatchingImageFile()
+        monacoEditingIndex = selectedIndex
 
-        let fd = open(url.path, O_EVTONLY)
-        guard fd >= 0 else { return }
-        imageEditFileDescriptor = fd
-        imageEditEntryId = entryId
-
-        let source = DispatchSource.makeFileSystemObjectSource(
-            fileDescriptor: fd,
-            eventMask: [.write, .rename, .delete],
-            queue: .main
-        )
-        source.setEventHandler { [weak self] in
-            guard let self = self, let eid = self.imageEditEntryId else { return }
-            // Small delay: Preview may write in stages
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-                guard let self = self else { return }
-                guard let newData = try? Data(contentsOf: url), !newData.isEmpty else { return }
-                self.clipboardManager?.updateEntryImageData(id: eid, newData: newData)
-            }
-        }
-        source.setCancelHandler { [fd] in
-            close(fd)
-        }
-        source.resume()
-        imageEditSource = source
-    }
-
-    private func stopWatchingImageFile() {
-        imageEditSource?.cancel()
-        imageEditSource = nil
-        imageEditFileDescriptor = -1
-        imageEditEntryId = nil
-    }
-
-    private func openFileInEditor(_ entry: ClipboardEntry) {
-        guard let url = entry.fileURL else { return }
-        if FileManager.default.fileExists(atPath: url.path) {
-            NSWorkspace.shared.open(url)
+        // Reuse preloaded editor or create a new one
+        let editorView: MonacoEditorView
+        if let preloaded = preloadedMonacoEditor {
+            editorView = preloaded
+            preloadedMonacoEditor = nil
+            editorView.removeFromSuperview()
+            editorView.frame = .zero
         } else {
-            NSSound.beep()
+            editorView = MonacoEditorView(frame: .zero)
+            editorView.loadEditor()
         }
-    }
 
-    private func imageExtension(for data: Data) -> String {
-        guard data.count >= 4 else { return "tiff" }
-        let header = [UInt8](data.prefix(4))
-        if header[0] == 0x89 && header[1] == 0x50 { return "png" }
-        if header[0] == 0xFF && header[1] == 0xD8 { return "jpg" }
-        return "tiff"
+        editorView.translatesAutoresizingMaskIntoConstraints = false
+        editorView.delegate = self
+        editorView.wantsLayer = true
+        editorView.layer?.cornerRadius = 4
+        editorView.isHidden = false
+        editorView.setAccessibilityIdentifier("MonacoEditor")
+
+        containerView.addSubview(editorView, positioned: .above, relativeTo: effectsView)
+        effectsView.isHidden = true
+
+        NSLayoutConstraint.activate([
+            editorView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 8),
+            editorView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 8),
+            editorView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -8),
+            editorView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -8),
+        ])
+
+        // Hide other elements
+        scrollView.isHidden = true
+        searchField.isHidden = true
+        helpLabel.isHidden = true
+        helpButton.isHidden = true
+        quitButton.isHidden = true
+        permissionWarningButton.isHidden = true
+        dismissPermissionTooltip()
+        emptyStateView?.isHidden = true
+
+        monacoEditorView = editorView
+
+        let language = MonacoEditorView.detectLanguage(entry.content)
+        editorView.setContent(entry.content, language: language)
+
+        // Ensure WKWebView gets keyboard focus after layout pass
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+            editorView.focusEditor()
+        }
     }
 
     private func exitEditMode() {
