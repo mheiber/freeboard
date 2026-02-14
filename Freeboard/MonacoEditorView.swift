@@ -34,12 +34,13 @@ private class MonacoSchemeHandler: NSObject, WKURLSchemeHandler {
         }
 
         let mimeType = Self.mimeType(for: fileURL.pathExtension)
+        let contentType = mimeType == "application/wasm" ? mimeType : "\(mimeType); charset=utf-8"
         let response = HTTPURLResponse(
             url: url,
             statusCode: 200,
             httpVersion: "HTTP/1.1",
             headerFields: [
-                "Content-Type": "\(mimeType); charset=utf-8",
+                "Content-Type": contentType,
                 "Content-Length": "\(data.count)",
                 "Access-Control-Allow-Origin": "*"
             ]
@@ -61,6 +62,7 @@ private class MonacoSchemeHandler: NSObject, WKURLSchemeHandler {
         case "ttf":         return "font/ttf"
         case "woff":        return "font/woff"
         case "woff2":       return "font/woff2"
+        case "wasm":        return "application/wasm"
         default:            return "application/octet-stream"
         }
     }

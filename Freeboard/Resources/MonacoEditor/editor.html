@@ -58,9 +58,11 @@
 <script src="vs/loader.js"></script>
 <script src="vs/editor/editor.main.nls.js"></script>
 <script src="vs/editor/editor.main.js"></script>
-<!-- Load monaco-vim with AMD hidden so it uses global assignment path -->
+<!-- Load UMD libraries with AMD hidden so they use global assignment path -->
 <script>var __define = define; define = undefined;</script>
 <script src="monaco-vim.js"></script>
+<script src="vscode-textmate.js"></script>
+<script src="vscode-oniguruma.js"></script>
 <script>define = __define;</script>
 <script>
 (function() {
@@ -114,6 +116,83 @@
         }, 2000);
     }
 
+    // TextMate grammar setup — loaded asynchronously, replaces Monaco's built-in
+    // Monarch tokenizer for markdown with VS Code's TextMate grammar.
+    var textmateReady = false;
+
+    function initTextMate() {
+        if (typeof vscodetextmate === 'undefined' || typeof onig === 'undefined') {
+            return; // Libraries not loaded, skip TextMate
+        }
+
+        fetch('monaco-editor://app/onig.wasm')
+            .then(function(response) { return response.arrayBuffer(); })
+            .then(function(wasmData) {
+                return onig.loadWASM(wasmData);
+            })
+            .then(function() {
+                var registry = new vscodetextmate.Registry({
+                    onigLib: Promise.resolve({
+                        createOnigScanner: function(patterns) { return onig.createOnigScanner(patterns); },
+                        createOnigString: function(str) { return onig.createOnigString(str); }
+                    }),
+                    loadGrammar: function(scopeName) {
+                        if (scopeName === 'text.html.markdown') {
+                            return fetch('monaco-editor://app/markdown.tmLanguage.json')
+                                .then(function(r) { return r.text(); })
+                                .then(function(grammarText) {
+                                    return vscodetextmate.parseRawGrammar(grammarText, 'markdown.tmLanguage.json');
+                                });
+                        }
+                        return Promise.resolve(null);
+                    }
+                });
+
+                return registry.loadGrammar('text.html.markdown');
+            })
+            .then(function(grammar) {
+                if (!grammar) return;
+
+                // State wrapper for Monaco's IState interface
+                function TMState(ruleStack) {
+                    this._ruleStack = ruleStack;
+                }
+                TMState.prototype.clone = function() {
+                    return new TMState(this._ruleStack);
+                };
+                TMState.prototype.equals = function(other) {
+                    return other instanceof TMState && other._ruleStack === this._ruleStack;
+                };
+
+                // Register TextMate-based token provider for markdown
+                monaco.languages.setTokensProvider('markdown', {
+                    getInitialState: function() {
+                        return new TMState(vscodetextmate.INITIAL);
+                    },
+                    tokenize: function(line, state) {
+                        var result = grammar.tokenizeLine(line, state._ruleStack);
+                        var tokens = [];
+                        for (var i = 0; i < result.tokens.length; i++) {
+                            var t = result.tokens[i];
+                            tokens.push({
+                                startIndex: t.startIndex,
+                                scopes: t.scopes[t.scopes.length - 1]
+                            });
+                        }
+                        return {
+                            tokens: tokens,
+                            endState: new TMState(result.ruleStack)
+                        };
+                    }
+                });
+
+                textmateReady = true;
+            })
+            .catch(function(err) {
+                // TextMate init failed — fall back to Monaco's built-in tokenizer silently
+            });
+    }
+
     require.config({ paths: { vs: 'vs' } });
 
     function initEditor() {
@@ -125,7 +204,23 @@
         monaco.editor.defineTheme('freeboard-dark', {
             base: 'vs-dark',
             inherit: true,
-            rules: [],
+            rules: [
+                // TextMate scope mappings for markdown
+                { token: 'markup.heading', foreground: '569cd6', fontStyle: 'bold' },
+                { token: 'entity.name.section', foreground: '569cd6' },
+                { token: 'punctuation.definition.heading', foreground: '569cd6' },
+                { token: 'markup.bold', fontStyle: 'bold' },
+                { token: 'markup.italic', fontStyle: 'italic' },
+                { token: 'markup.inline.raw', foreground: 'ce9178' },
+                { token: 'markup.fenced_code', foreground: 'ce9178' },
+                { token: 'markup.raw', foreground: 'ce9178' },
+                { token: 'string.other.link', foreground: '4ec9b0' },
+                { token: 'markup.underline.link', foreground: '4ec9b0' },
+                { token: 'comment.block.html', foreground: '6a9955' },
+                { token: 'punctuation.definition.list', foreground: '569cd6' },
+                { token: 'meta.separator', foreground: '569cd6' },
+                { token: 'markup.quote', foreground: '6a9955' },
+            ],
             colors: {
                 'editor.background': '#0a0a0a',
                 'editor.foreground': '#d4d4d4',
@@ -168,6 +263,9 @@
 
         // Don't focus here — only focus when setContent is called
         postMessage({ type: 'editorReady' });
+
+        // Initialize TextMate grammar (async, non-blocking)
+        initTextMate();
     }
 
     require(['vs/editor/editor.main'], function() {
