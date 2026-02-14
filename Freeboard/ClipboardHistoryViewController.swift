@@ -35,9 +35,30 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     private var keyMonitor: Any?
 
     private let retroGreen = NSColor(red: 0.0, green: 1.0, blue: 0.25, alpha: 1.0)
-    private let retroDimGreen = NSColor(red: 0.0, green: 0.6, blue: 0.15, alpha: 1.0)
+    private let retroDimGreen = NSColor(red: 0.0, green: 0.75, blue: 0.19, alpha: 1.0)
     private let retroBg = NSColor(red: 0.02, green: 0.02, blue: 0.02, alpha: 0.88)
     private let retroSelectionBg = NSColor(red: 0.0, green: 0.2, blue: 0.05, alpha: 0.9)
+
+    private var effectiveRetroGreen: NSColor {
+        if NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast {
+            return NSColor(red: 0.0, green: 1.0, blue: 0.25, alpha: 1.0)
+        }
+        return retroGreen
+    }
+
+    private var effectiveDimGreen: NSColor {
+        if NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast {
+            return NSColor(red: 0.0, green: 1.0, blue: 0.25, alpha: 1.0)
+        }
+        return retroDimGreen
+    }
+
+    private var effectiveBg: NSColor {
+        if NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency {
+            return NSColor(red: 0.02, green: 0.02, blue: 0.02, alpha: 1.0)
+        }
+        return retroBg
+    }
     private var retroFont: NSFont {
         if L.current.usesSystemFont {
             return NSFont.systemFont(ofSize: 20, weight: .regular)
@@ -55,7 +76,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         let frame = NSRect(x: 0, y: 0, width: 900, height: 750)
         let mainView = NSView(frame: frame)
         mainView.wantsLayer = true
-        mainView.layer?.backgroundColor = retroBg.cgColor
+        mainView.layer?.backgroundColor = effectiveBg.cgColor
         mainView.layer?.cornerRadius = 8
         mainView.layer?.borderColor = retroGreen.withAlphaComponent(0.3).cgColor
         mainView.layer?.borderWidth = 1
@@ -104,6 +125,10 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
                 self.toggleStarOnSelected()
                 return nil
             }
+            if flags == .command, event.charactersIgnoringModifiers == "d", self.editingIndex == nil {
+                self.deleteSelected()
+                return nil
+            }
             return event
         }
     }
@@ -146,8 +171,9 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         searchField.drawsBackground = true
         searchField.isBezeled = true
         searchField.bezelStyle = .roundedBezel
-        searchField.focusRingType = .none
+        searchField.focusRingType = .default
         searchField.delegate = self
+        searchField.setAccessibilityLabel(L.accessibilitySearchField)
 
         let placeholderAttrs: [NSAttributedString.Key: Any] = [
             .foregroundColor: retroDimGreen.withAlphaComponent(0.5),
@@ -491,6 +517,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         asciiLabel.maximumNumberOfLines = 0
         asciiLabel.lineBreakMode = .byClipping
         asciiLabel.tag = 102
+        asciiLabel.setAccessibilityElement(false)
 
         let hintLabel = NSTextField(labelWithString: "")
         hintLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -644,7 +671,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             .font: retroFontSmall
         ]
         let dimAttrs: [NSAttributedString.Key: Any] = [
-            .foregroundColor: retroDimGreen.withAlphaComponent(0.4),
+            .foregroundColor: retroDimGreen.withAlphaComponent(0.6),
             .font: retroFontSmall
         ]
         str.append(NSAttributedString(string: "1-9 ", attributes: keyAttrs))
@@ -659,6 +686,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         str.append(NSAttributedString(string: L.edit + "  ", attributes: dimAttrs))
         str.append(NSAttributedString(string: "⌘S ", attributes: keyAttrs))
         str.append(NSAttributedString(string: L.star + "  ", attributes: dimAttrs))
+        str.append(NSAttributedString(string: "⌘D ", attributes: keyAttrs))
+        str.append(NSAttributedString(string: L.delete + "  ", attributes: dimAttrs))
         str.append(NSAttributedString(string: "Esc ", attributes: keyAttrs))
         str.append(NSAttributedString(string: L.close, attributes: dimAttrs))
         return str
@@ -702,6 +731,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         let cell = NSView(frame: NSRect(x: 0, y: 0, width: tableView.bounds.width, height: rowHeight))
         cell.wantsLayer = true
         cell.layer?.backgroundColor = isSelected ? retroSelectionBg.cgColor : NSColor.clear.cgColor
+        cell.setAccessibilityRole(.row)
+        cell.setAccessibilityRoleDescription("clipboard entry")
 
         let indicatorTitle: String
         if entry.isStarred {
@@ -722,6 +753,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         indicator.font = retroFont
         indicator.contentTintColor = retroGreen
         indicator.tag = row
+        indicator.setAccessibilityLabel(entry.isStarred ? L.accessibilityStarred : L.accessibilityStar)
         cell.addSubview(indicator)
 
         // Number label for quick-select (rows 0–8 → keys 1–9)
@@ -733,6 +765,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             nl.textColor = retroGreen.withAlphaComponent(0.7)
             nl.backgroundColor = .clear
             nl.isBezeled = false
+            nl.setAccessibilityElement(false)
             cell.addSubview(nl)
             numberLabel = nl
         } else {
@@ -742,10 +775,11 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         let timeLabel = NSTextField(labelWithString: entry.timeAgo)
         timeLabel.translatesAutoresizingMaskIntoConstraints = false
         timeLabel.font = retroFontSmall
-        timeLabel.textColor = retroDimGreen.withAlphaComponent(0.4)
+        timeLabel.textColor = retroDimGreen.withAlphaComponent(0.6)
         timeLabel.backgroundColor = .clear
         timeLabel.isBezeled = false
         timeLabel.alignment = .right
+        timeLabel.setAccessibilityLabel(entry.accessibleTimeAgo)
         cell.addSubview(timeLabel)
 
         let deleteButton = NSButton(title: "×", target: self, action: #selector(deleteClicked(_:)))
@@ -754,6 +788,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         deleteButton.font = NSFont(name: "Menlo", size: 18) ?? NSFont.monospacedSystemFont(ofSize: 18, weight: .regular)
         deleteButton.contentTintColor = retroDimGreen.withAlphaComponent(0.5)
         deleteButton.tag = row
+        deleteButton.setAccessibilityLabel(L.accessibilityDelete)
         cell.addSubview(deleteButton)
 
         if isEditing {
@@ -834,6 +869,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
                     .replacingOccurrences(of: "\t", with: "→ ")
                 contentLabel.stringValue = displayText
             }
+            contentLabel.setAccessibilityLabel(entry.isPassword ? L.accessibilityPasswordHidden : entry.content)
             cell.addSubview(contentLabel)
 
             NSLayoutConstraint.activate([
@@ -909,6 +945,11 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     private func toggleStarOnSelected() {
         guard selectedIndex < filteredEntries.count else { return }
         clipboardManager?.toggleStar(id: filteredEntries[selectedIndex].id)
+    }
+
+    private func deleteSelected() {
+        guard selectedIndex < filteredEntries.count else { return }
+        historyDelegate?.didDeleteEntry(filteredEntries[selectedIndex])
     }
 
     override func mouseMoved(with event: NSEvent) {

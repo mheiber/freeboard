@@ -107,4 +107,22 @@ class EmptyStateTests: XCTestCase {
         XCTAssertNil(Lang.fromLocaleIdentifier("de-DE"))
         XCTAssertNil(Lang.fromLocaleIdentifier("ko-KR"))
     }
+
+    // MARK: - Accessibility strings
+
+    func testAccessibilityStrings() {
+        let saved = L.current
+        defer { L.current = saved }
+        L.current = .en
+
+        XCTAssertEqual(L.accessibilityStarred, "Starred")
+        XCTAssertEqual(L.accessibilityStar, "Star")
+        XCTAssertEqual(L.accessibilityDelete, "Delete clipboard entry")
+        XCTAssertEqual(L.accessibilityPasswordHidden, "Password (hidden)")
+        XCTAssertEqual(L.accessibilitySearchField, "Search clipboard history")
+        XCTAssertEqual(L.delete, "delete")
+        XCTAssertEqual(L.accessibleMinutesAgo(5), "5 minutes ago")
+        XCTAssertEqual(L.accessibleHoursAgo(2), "2 hours ago")
+        XCTAssertEqual(L.accessibleDaysAgo(3), "3 days ago")
+    }
 }

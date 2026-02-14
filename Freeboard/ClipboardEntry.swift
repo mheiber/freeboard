@@ -34,6 +34,14 @@ struct ClipboardEntry: Identifiable, Equatable {
         return L.daysAgo(Int(interval / 86400))
     }
 
+    var accessibleTimeAgo: String {
+        let interval = Date().timeIntervalSince(timestamp)
+        if interval < 60 { return L.justNow }
+        if interval < 3600 { return L.accessibleMinutesAgo(Int(interval / 60)) }
+        if interval < 86400 { return L.accessibleHoursAgo(Int(interval / 3600)) }
+        return L.accessibleDaysAgo(Int(interval / 86400))
+    }
+
     static func == (lhs: ClipboardEntry, rhs: ClipboardEntry) -> Bool {
         lhs.id == rhs.id
     }

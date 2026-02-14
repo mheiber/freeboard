@@ -122,6 +122,22 @@ struct L {
     static var helpAccessibility: String { tr("helpAccessibility") }
     static var helpAccessibilityLink: String { tr("helpAccessibilityLink") }
     static var helpAccessibilitySteps: String { tr("helpAccessibilitySteps") }
+    static var accessibilityStarred: String { tr("accessibilityStarred") }
+    static var accessibilityStar: String { tr("accessibilityStar") }
+    static var accessibilityDelete: String { tr("accessibilityDelete") }
+    static var accessibilityPasswordHidden: String { tr("accessibilityPasswordHidden") }
+    static var accessibilitySearchField: String { tr("accessibilitySearchField") }
+    static var delete: String { tr("delete") }
+
+    static func accessibleMinutesAgo(_ n: Int) -> String {
+        String(format: tr("accessibleMinutesAgo"), n)
+    }
+    static func accessibleHoursAgo(_ n: Int) -> String {
+        String(format: tr("accessibleHoursAgo"), n)
+    }
+    static func accessibleDaysAgo(_ n: Int) -> String {
+        String(format: tr("accessibleDaysAgo"), n)
+    }
 
     static func minutesAgo(_ n: Int) -> String {
         String(format: tr("minutesAgo"), n)
@@ -321,6 +337,59 @@ struct L {
             .en: "%dd ago", .zh: "%d天前", .hi: "%d दिन पहले", .es: "hace %dd",
             .fr: "il y a %d j", .ar: "منذ %d ي", .bn: "%d দিন আগে",
             .pt: "há %d d", .ru: "%d д", .ja: "%d日前"
+        ],
+        "accessibilityStarred": [
+            .en: "Starred", .zh: "已收藏", .hi: "स्टार किया गया", .es: "Destacado",
+            .fr: "Favori", .ar: "مميز", .bn: "তারকা দেওয়া", .pt: "Favoritado",
+            .ru: "Отмечено", .ja: "スター付き"
+        ],
+        "accessibilityStar": [
+            .en: "Star", .zh: "收藏", .hi: "स्टार करें", .es: "Destacar",
+            .fr: "Ajouter aux favoris", .ar: "تمييز", .bn: "তারকা দিন", .pt: "Favoritar",
+            .ru: "Отметить", .ja: "スターを付ける"
+        ],
+        "accessibilityDelete": [
+            .en: "Delete clipboard entry", .zh: "删除剪贴板条目", .hi: "क्लिपबोर्ड प्रविष्टि हटाएं",
+            .es: "Eliminar entrada del portapapeles", .fr: "Supprimer l'entrée du presse-papiers",
+            .ar: "حذف عنصر الحافظة", .bn: "ক্লিপবোর্ড এন্ট্রি মুছুন",
+            .pt: "Excluir entrada da área de transferência", .ru: "Удалить запись буфера обмена",
+            .ja: "クリップボード項目を削除"
+        ],
+        "accessibilityPasswordHidden": [
+            .en: "Password (hidden)", .zh: "密码（已隐藏）", .hi: "पासवर्ड (छिपा हुआ)",
+            .es: "Contraseña (oculta)", .fr: "Mot de passe (masqué)",
+            .ar: "كلمة المرور (مخفية)", .bn: "পাসওয়ার্ড (লুকানো)",
+            .pt: "Senha (oculta)", .ru: "Пароль (скрыт)", .ja: "パスワード（非表示）"
+        ],
+        "accessibilitySearchField": [
+            .en: "Search clipboard history", .zh: "搜索剪贴板历史", .hi: "क्लिपबोर्ड हिस्ट्री खोजें",
+            .es: "Buscar en historial del portapapeles", .fr: "Rechercher dans l'historique du presse-papiers",
+            .ar: "البحث في سجل الحافظة", .bn: "ক্লিপবোর্ড ইতিহাস অনুসন্ধান",
+            .pt: "Pesquisar histórico da área de transferência", .ru: "Поиск в буфере обмена",
+            .ja: "クリップボード履歴を検索"
+        ],
+        "delete": [
+            .en: "delete", .zh: "删除", .hi: "हटाएं", .es: "eliminar",
+            .fr: "supprimer", .ar: "حذف", .bn: "মুছুন", .pt: "excluir",
+            .ru: "удалить", .ja: "削除"
+        ],
+        "accessibleMinutesAgo": [
+            .en: "%d minutes ago", .zh: "%d分钟前", .hi: "%d मिनट पहले",
+            .es: "hace %d minutos", .fr: "il y a %d minutes", .ar: "منذ %d دقائق",
+            .bn: "%d মিনিট আগে", .pt: "há %d minutos", .ru: "%d минут назад",
+            .ja: "%d分前"
+        ],
+        "accessibleHoursAgo": [
+            .en: "%d hours ago", .zh: "%d小时前", .hi: "%d घंटे पहले",
+            .es: "hace %d horas", .fr: "il y a %d heures", .ar: "منذ %d ساعات",
+            .bn: "%d ঘণ্টা আগে", .pt: "há %d horas", .ru: "%d часов назад",
+            .ja: "%d時間前"
+        ],
+        "accessibleDaysAgo": [
+            .en: "%d days ago", .zh: "%d天前", .hi: "%d दिन पहले",
+            .es: "hace %d días", .fr: "il y a %d jours", .ar: "منذ %d أيام",
+            .bn: "%d দিন আগে", .pt: "há %d dias", .ru: "%d дней назад",
+            .ja: "%d日前"
         ],
     ]
 }

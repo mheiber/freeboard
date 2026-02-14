@@ -20,6 +20,7 @@ class ScreenOverlayWindow: NSWindow {
         let overlayView = CrackedOverlayView(frame: screen.frame)
         overlayView.autoresizingMask = [.width, .height]
         self.contentView = overlayView
+        self.setAccessibilityRole(.unknown)
     }
 }
 
@@ -38,6 +39,7 @@ class CrackedOverlayView: NSView {
     override init(frame: NSRect) {
         super.init(frame: frame)
         generateCracks()
+        setAccessibilityElement(false)
     }
 
     required init?(coder: NSCoder) {
@@ -130,6 +132,9 @@ class CrackedOverlayView: NSView {
 
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
+        if NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency {
+            return
+        }
         guard let context = NSGraphicsContext.current?.cgContext else { return }
 
         // Subtle darkening — enough to set the popup apart without obscuring content

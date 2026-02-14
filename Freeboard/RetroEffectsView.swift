@@ -4,6 +4,7 @@ class RetroEffectsView: NSView {
     override init(frame: NSRect) {
         super.init(frame: frame)
         wantsLayer = true
+        setAccessibilityElement(false)
     }
 
     required init?(coder: NSCoder) {
@@ -17,6 +18,9 @@ class RetroEffectsView: NSView {
 
     override func draw(_ dirtyRect: NSRect) {
         super.draw(dirtyRect)
+        if NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency {
+            return // Skip all CRT effects
+        }
         guard let context = NSGraphicsContext.current?.cgContext else { return }
 
         // Scanlines
