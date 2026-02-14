@@ -21,6 +21,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     private var emptyStateView: NSView!
     private var clearSearchButton: NSButton!
     private var accessibilityHintButton: NSButton!
+    private var permissionWarningButton: NSButton!
     private var helpButton: NSButton!
     private var helpOverlay: NSView?
 
@@ -116,6 +117,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         refreshLocalization()
         reloadEntries()
         updateAccessibilityHint()
+        updatePermissionWarning()
         view.window?.makeFirstResponder(self)
 
         keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
@@ -156,6 +158,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         helpButton.font = retroFontSmall
         quitButton.title = L.quit
         quitButton.font = retroFontSmall
+        permissionWarningButton.toolTip = L.permissionWarningTooltip
+        permissionWarningButton.setAccessibilityLabel(L.permissionWarningLabel)
         updateEmptyStateStrings()
         tableView?.reloadData()
     }
@@ -256,7 +260,17 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         quitButton.font = retroFontSmall
         quitButton.contentTintColor = retroDimGreen.withAlphaComponent(0.5)
 
+        permissionWarningButton = NSButton(title: "⚠", target: self, action: #selector(permissionWarningClicked))
+        permissionWarningButton.translatesAutoresizingMaskIntoConstraints = false
+        permissionWarningButton.isBordered = false
+        permissionWarningButton.font = retroFontSmall
+        permissionWarningButton.contentTintColor = NSColor.orange
+        permissionWarningButton.toolTip = L.permissionWarningTooltip
+        permissionWarningButton.setAccessibilityLabel(L.permissionWarningLabel)
+        permissionWarningButton.isHidden = true
+
         containerView.addSubview(helpLabel)
+        containerView.addSubview(permissionWarningButton)
         containerView.addSubview(helpButton)
         containerView.addSubview(quitButton)
 
@@ -264,6 +278,10 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             helpLabel.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -7),
             helpLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
             helpLabel.heightAnchor.constraint(equalToConstant: 18),
+
+            permissionWarningButton.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -5),
+            permissionWarningButton.trailingAnchor.constraint(equalTo: helpButton.leadingAnchor, constant: -6),
+            permissionWarningButton.heightAnchor.constraint(equalToConstant: 20),
 
             helpButton.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -5),
             helpButton.trailingAnchor.constraint(equalTo: quitButton.leadingAnchor, constant: -8),
@@ -494,6 +512,23 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         accessibilityHintButton?.isHidden = AXIsProcessTrusted()
     }
 
+    private func updatePermissionWarning() {
+        let hasItems = !(clipboardManager?.entries.isEmpty ?? true)
+        permissionWarningButton?.isHidden = AXIsProcessTrusted() || !hasItems
+    }
+
+    @objc private func permissionWarningClicked() {
+        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+        if AXIsProcessTrustedWithOptions(options) {
+            updatePermissionWarning()
+            return
+        }
+        let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
+        if !NSWorkspace.shared.open(url) {
+            NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/System Settings.app"))
+        }
+    }
+
     private func setupEmptyState() {
         emptyStateView = NSView(frame: .zero)
         emptyStateView.translatesAutoresizingMaskIntoConstraints = false
@@ -710,9 +745,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             tableView?.scrollRowToVisible(selectedIndex)
         }
         updateEmptyStateVisibility()
-    }
-
-    // MARK: - NSTableViewDataSource
+        updatePermissionWarning()
+    }    // MARK: - NSTableViewDataSource
 
     func numberOfRows(in tableView: NSTableView) -> Int {
         filteredEntries.count

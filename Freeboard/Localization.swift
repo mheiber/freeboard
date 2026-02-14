@@ -128,6 +128,8 @@ struct L {
     static var accessibilityPasswordHidden: String { tr("accessibilityPasswordHidden") }
     static var accessibilitySearchField: String { tr("accessibilitySearchField") }
     static var delete: String { tr("delete") }
+    static var permissionWarningLabel: String { tr("permissionWarningLabel") }
+    static var permissionWarningTooltip: String { tr("permissionWarningTooltip") }
 
     static func accessibleMinutesAgo(_ n: Int) -> String {
         String(format: tr("accessibleMinutesAgo"), n)
@@ -390,6 +392,30 @@ struct L {
             .es: "hace %d días", .fr: "il y a %d jours", .ar: "منذ %d أيام",
             .bn: "%d দিন আগে", .pt: "há %d dias", .ru: "%d дней назад",
             .ja: "%d日前"
+        ],
+        "permissionWarningLabel": [
+            .en: "Accessibility Permission needed to paste",
+            .zh: "需要辅助功能权限才能粘贴",
+            .hi: "पेस्ट करने के लिए सुलभता अनुमति चाहिए",
+            .es: "Se necesita permiso de accesibilidad para pegar",
+            .fr: "Permission d'accessibilité requise pour coller",
+            .ar: "يلزم إذن إمكانية الوصول للصق",
+            .bn: "পেস্ট করতে অ্যাক্সেসিবিলিটি অনুমতি দরকার",
+            .pt: "Permissão de acessibilidade necessária para colar",
+            .ru: "Для вставки нужно разрешение Универсального доступа",
+            .ja: "貼り付けにはアクセシビリティの許可が必要です"
+        ],
+        "permissionWarningTooltip": [
+            .en: "Go to System Settings → Privacy & Security → Accessibility,\nclick [+], add Freeboard, and make sure it is enabled [✓]",
+            .zh: "前往系统设置 → 隐私与安全性 → 辅助功能，\n点击 [+]，添加 Freeboard，并确保已启用 [✓]",
+            .hi: "सिस्टम सेटिंग्स → गोपनीयता → सुलभता पर जाएं，\n[+] क्लिक करें, Freeboard जोड़ें, सक्षम करें [✓]",
+            .es: "Ve a Ajustes del Sistema → Privacidad → Accesibilidad,\nhaz clic en [+], añade Freeboard y actívalo [✓]",
+            .fr: "Allez dans Réglages Système → Confidentialité → Accessibilité,\ncliquez sur [+], ajoutez Freeboard et activez-le [✓]",
+            .ar: "انتقل إلى إعدادات النظام ← الخصوصية ← إمكانية الوصول،\nانقر [+]، أضف Freeboard، وفعّله [✓]",
+            .bn: "সিস্টেম সেটিংস → প্রাইভেসি → অ্যাক্সেসিবিলিটি-তে যান，\n[+] ক্লিক করুন, Freeboard যোগ করুন, সক্রিয় করুন [✓]",
+            .pt: "Vá para Ajustes do Sistema → Privacidade → Acessibilidade,\nclique em [+], adicione o Freeboard e ative-o [✓]",
+            .ru: "Откройте Системные настройки → Конфиденциальность → Универсальный доступ,\nнажмите [+], добавьте Freeboard и включите [✓]",
+            .ja: "システム設定 → プライバシー → アクセシビリティを開き、\n[+] をクリックして Freeboard を追加し、有効にしてください [✓]"
         ],
     ]
 }
