@@ -1189,6 +1189,14 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         if event.keyCode == 125 { moveSelection(by: 1); return }
         if event.keyCode == 126 { moveSelection(by: -1); return }
 
+        // Delete/Backspace: refocus search field if there's an active search query
+        if event.keyCode == 51, !isSearchFieldFocused, !searchQuery.isEmpty { // 51 = Delete/Backspace
+            view.window?.makeFirstResponder(searchField)
+            searchField.currentEditor()?.moveToEndOfLine(nil)
+            searchField.currentEditor()?.deleteBackward(nil)
+            return
+        }
+
         // ? key toggles help overlay
         if let chars = event.characters, chars == "?", flags.isEmpty || flags == .shift {
             toggleHelp()
