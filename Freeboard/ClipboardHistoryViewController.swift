@@ -405,9 +405,11 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         case .hidden:
             emptyStateView?.isHidden = true
             scrollView?.isHidden = false
+            searchField?.isHidden = false
         case .noItems:
             emptyStateView?.isHidden = false
             scrollView?.isHidden = true
+            searchField?.isHidden = true
             if let asciiLabel = emptyStateView?.viewWithTag(102) {
                 asciiLabel.isHidden = false
             }
@@ -422,18 +424,22 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         case .noSearchResults:
             emptyStateView?.isHidden = false
             scrollView?.isHidden = true
+            searchField?.isHidden = false
             if let asciiLabel = emptyStateView?.viewWithTag(102) {
                 asciiLabel.isHidden = true
             }
             if let hintLabel = emptyStateView?.viewWithTag(100) as? NSTextField {
                 hintLabel.stringValue = L.noMatchesFound
-                hintLabel.font = retroFont
+                let largeFont = L.current == .zh
+                    ? NSFont.systemFont(ofSize: 28, weight: .regular)
+                    : NSFont(name: "Menlo", size: 24) ?? NSFont.monospacedSystemFont(ofSize: 24, weight: .regular)
+                hintLabel.font = largeFont
             }
             if let hotkeyLabel = emptyStateView?.viewWithTag(101) {
                 hotkeyLabel.isHidden = true
             }
             clearSearchButton?.title = L.clearSearch
-            clearSearchButton?.font = retroFontSmall
+            clearSearchButton?.font = retroFont
             clearSearchButton?.isHidden = false
         }
     }
