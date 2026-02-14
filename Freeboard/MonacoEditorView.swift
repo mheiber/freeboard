@@ -105,6 +105,13 @@ class MonacoEditorView: NSView, WKScriptMessageHandler, WKNavigationDelegate {
         }
     }
 
+    /// Save content and close the editor (used by Tab key shortcut)
+    func triggerSaveAndClose() {
+        getContent { [weak self] content in
+            self?.delegate?.editorDidSave(content: content)
+        }
+    }
+
     // MARK: - Cleanup
 
     func cleanup() {

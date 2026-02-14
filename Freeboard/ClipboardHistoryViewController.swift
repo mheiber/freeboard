@@ -1420,7 +1420,13 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             }
             return
         }
-        if monacoEditorView != nil { return } // Monaco handles its own keys
+        if monacoEditorView != nil {
+            if event.keyCode == 48 { // Tab: save and close Monaco editor
+                monacoEditorView?.triggerSaveAndClose()
+                return
+            }
+            return // Monaco handles its own keys
+        }
         if editingIndex != nil { super.keyDown(with: event); return } // Pass through when editing
 
         // Normal mode (search field NOT focused): number keys quick select
