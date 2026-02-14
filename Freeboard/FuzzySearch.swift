@@ -52,7 +52,15 @@ struct FuzzySearch {
 
         let scored = entries
             .compactMap { entry -> (ClipboardEntry, Int)? in
-                let searchText = entry.isPassword ? "" : entry.content
+                let searchText: String
+                switch entry.entryType {
+                case .text:
+                    searchText = entry.isPassword ? "" : entry.content
+                case .image:
+                    searchText = entry.content  // OCR text
+                case .fileURL:
+                    searchText = entry.content  // filename
+                }
                 guard let s = score(query: query, in: searchText) else { return nil }
                 return (entry, s)
             }

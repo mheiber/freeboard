@@ -884,6 +884,32 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
                 tv.selectAll(nil)
             }
         } else {
+            // Image view for image/fileURL entries
+            var imageView: NSImageView? = nil
+            if entry.entryType == .image, let data = entry.imageData, let image = NSImage(data: data) {
+                let iv = NSImageView()
+                iv.translatesAutoresizingMaskIntoConstraints = false
+                iv.image = image
+                iv.imageScaling = .scaleProportionallyUpOrDown
+                iv.wantsLayer = true
+                iv.layer?.cornerRadius = 4
+                iv.layer?.borderColor = retroDimGreen.withAlphaComponent(0.3).cgColor
+                iv.layer?.borderWidth = 1
+                cell.addSubview(iv)
+                imageView = iv
+            } else if entry.entryType == .fileURL {
+                let iv = NSImageView()
+                iv.translatesAutoresizingMaskIntoConstraints = false
+                if let url = entry.fileURL {
+                    iv.image = NSWorkspace.shared.icon(forFile: url.path)
+                } else {
+                    iv.image = NSWorkspace.shared.icon(for: .item)
+                }
+                iv.imageScaling = .scaleProportionallyUpOrDown
+                cell.addSubview(iv)
+                imageView = iv
+            }
+
             let contentLabel = NSTextField(labelWithString: "")
             contentLabel.translatesAutoresizingMaskIntoConstraints = false
             contentLabel.font = retroFont
@@ -899,32 +925,68 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
                 contentLabel.lineBreakMode = .byTruncatingTail
                 contentLabel.maximumNumberOfLines = 1
                 let displayText = entry.displayContent
-                    .replacingOccurrences(of: "\n", with: "↵ ")
-                    .replacingOccurrences(of: "\t", with: "→ ")
+                    .replacingOccurrences(of: "\n", with: "\u{21B5} ")
+                    .replacingOccurrences(of: "\t", with: "\u{2192} ")
                 contentLabel.stringValue = displayText
             }
-            contentLabel.setAccessibilityLabel(entry.isPassword ? L.accessibilityPasswordHidden : entry.content)
+
+            if entry.entryType == .image {
+                contentLabel.setAccessibilityLabel(entry.content.isEmpty ? L.imageEntry : entry.content)
+            } else if entry.entryType == .fileURL {
+                contentLabel.setAccessibilityLabel(entry.displayContent)
+            } else {
+                contentLabel.setAccessibilityLabel(entry.isPassword ? L.accessibilityPasswordHidden : entry.content)
+            }
             cell.addSubview(contentLabel)
 
-            NSLayoutConstraint.activate([
-                indicator.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 34),
-                indicator.topAnchor.constraint(equalTo: cell.topAnchor, constant: 14),
-                indicator.widthAnchor.constraint(equalToConstant: 16),
+            if let iv = imageView {
+                let thumbSize: CGFloat = isExpanded ? min(200, tableView.bounds.width - 200) : 36
 
-                contentLabel.leadingAnchor.constraint(equalTo: indicator.trailingAnchor, constant: 6),
-                contentLabel.topAnchor.constraint(equalTo: cell.topAnchor, constant: 8),
-                contentLabel.bottomAnchor.constraint(lessThanOrEqualTo: cell.bottomAnchor, constant: -8),
-                contentLabel.trailingAnchor.constraint(equalTo: timeLabel.leadingAnchor, constant: -10),
+                NSLayoutConstraint.activate([
+                    indicator.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 34),
+                    indicator.topAnchor.constraint(equalTo: cell.topAnchor, constant: 14),
+                    indicator.widthAnchor.constraint(equalToConstant: 16),
 
-                timeLabel.trailingAnchor.constraint(equalTo: deleteButton.leadingAnchor, constant: -6),
-                timeLabel.topAnchor.constraint(equalTo: cell.topAnchor, constant: 14),
-                timeLabel.widthAnchor.constraint(equalToConstant: 70),
+                    iv.leadingAnchor.constraint(equalTo: indicator.trailingAnchor, constant: 6),
+                    iv.topAnchor.constraint(equalTo: cell.topAnchor, constant: 7),
+                    iv.widthAnchor.constraint(equalToConstant: thumbSize),
+                    iv.heightAnchor.constraint(equalToConstant: thumbSize),
 
-                deleteButton.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -10),
-                deleteButton.topAnchor.constraint(equalTo: cell.topAnchor, constant: 12),
-                deleteButton.widthAnchor.constraint(equalToConstant: 24),
-                deleteButton.heightAnchor.constraint(equalToConstant: 24)
-            ])
+                    contentLabel.leadingAnchor.constraint(equalTo: iv.trailingAnchor, constant: 8),
+                    contentLabel.topAnchor.constraint(equalTo: cell.topAnchor, constant: 8),
+                    contentLabel.bottomAnchor.constraint(lessThanOrEqualTo: cell.bottomAnchor, constant: -8),
+                    contentLabel.trailingAnchor.constraint(equalTo: timeLabel.leadingAnchor, constant: -10),
+
+                    timeLabel.trailingAnchor.constraint(equalTo: deleteButton.leadingAnchor, constant: -6),
+                    timeLabel.topAnchor.constraint(equalTo: cell.topAnchor, constant: 14),
+                    timeLabel.widthAnchor.constraint(equalToConstant: 70),
+
+                    deleteButton.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -10),
+                    deleteButton.topAnchor.constraint(equalTo: cell.topAnchor, constant: 12),
+                    deleteButton.widthAnchor.constraint(equalToConstant: 24),
+                    deleteButton.heightAnchor.constraint(equalToConstant: 24)
+                ])
+            } else {
+                NSLayoutConstraint.activate([
+                    indicator.leadingAnchor.constraint(equalTo: cell.leadingAnchor, constant: 34),
+                    indicator.topAnchor.constraint(equalTo: cell.topAnchor, constant: 14),
+                    indicator.widthAnchor.constraint(equalToConstant: 16),
+
+                    contentLabel.leadingAnchor.constraint(equalTo: indicator.trailingAnchor, constant: 6),
+                    contentLabel.topAnchor.constraint(equalTo: cell.topAnchor, constant: 8),
+                    contentLabel.bottomAnchor.constraint(lessThanOrEqualTo: cell.bottomAnchor, constant: -8),
+                    contentLabel.trailingAnchor.constraint(equalTo: timeLabel.leadingAnchor, constant: -10),
+
+                    timeLabel.trailingAnchor.constraint(equalTo: deleteButton.leadingAnchor, constant: -6),
+                    timeLabel.topAnchor.constraint(equalTo: cell.topAnchor, constant: 14),
+                    timeLabel.widthAnchor.constraint(equalToConstant: 70),
+
+                    deleteButton.trailingAnchor.constraint(equalTo: cell.trailingAnchor, constant: -10),
+                    deleteButton.topAnchor.constraint(equalTo: cell.topAnchor, constant: 12),
+                    deleteButton.widthAnchor.constraint(equalToConstant: 24),
+                    deleteButton.heightAnchor.constraint(equalToConstant: 24)
+                ])
+            }
 
             if let nl = numberLabel {
                 NSLayoutConstraint.activate([
@@ -952,6 +1014,9 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         }
         guard row == expandedIndex else { return 50 }
         let entry = filteredEntries[row]
+        if entry.entryType == .image {
+            return 220  // Room for larger image preview
+        }
         let maxWidth = tableView.bounds.width - 140
         let text = entry.displayContent as NSString
         let boundingRect = text.boundingRect(
@@ -1049,6 +1114,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     private func enterEditMode() {
         guard selectedIndex < filteredEntries.count else { return }
         guard !filteredEntries[selectedIndex].isPassword else { return } // Can't edit passwords
+        guard filteredEntries[selectedIndex].entryType == .text else { return } // Can't edit non-text
         expandedIndex = selectedIndex
         editingIndex = selectedIndex
         tableView.noteHeightOfRows(withIndexesChanged: IndexSet(integer: selectedIndex))

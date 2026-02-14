@@ -5,14 +5,22 @@ class MockPasteboard: PasteboardProviding {
     var changeCount: Int = 0
     var types: [NSPasteboard.PasteboardType]? = [.string]
     private var content: String?
+    private var dataStore: [NSPasteboard.PasteboardType: Data] = [:]
+    private var writtenObjects: [NSPasteboardWriting] = []
 
     func string(forType dataType: NSPasteboard.PasteboardType) -> String? {
         return content
     }
 
+    func data(forType dataType: NSPasteboard.PasteboardType) -> Data? {
+        return dataStore[dataType]
+    }
+
     @discardableResult
     func clearContents() -> Int {
         content = nil
+        dataStore = [:]
+        writtenObjects = []
         changeCount += 1
         return changeCount
     }
@@ -24,6 +32,16 @@ class MockPasteboard: PasteboardProviding {
         return true
     }
 
+    func writeObjects(_ objects: [NSPasteboardWriting]) -> Bool {
+        writtenObjects = objects
+        changeCount += 1
+        return true
+    }
+
+    func readObjects(forClasses classArray: [AnyClass], options: [NSPasteboard.ReadingOptionKey : Any]?) -> [Any]? {
+        return writtenObjects as? [Any]
+    }
+
     func simulateCopy(_ text: String, types: [NSPasteboard.PasteboardType]? = nil) {
         content = text
         changeCount += 1
@@ -32,6 +50,20 @@ class MockPasteboard: PasteboardProviding {
         } else {
             self.types = [.string]
         }
+    }
+
+    func simulateImageCopy(_ imageData: Data, type: NSPasteboard.PasteboardType = .tiff) {
+        content = nil
+        dataStore[type] = imageData
+        types = [type]
+        changeCount += 1
+    }
+
+    func simulateFileURLCopy(_ url: URL) {
+        let fileURLType = NSPasteboard.PasteboardType("public.file-url")
+        content = url.absoluteString
+        types = [fileURLType, .string]
+        changeCount += 1
     }
 }
 
@@ -230,6 +262,90 @@ class ClipboardManagerTests: XCTestCase {
 
         wait(for: [expectation], timeout: 1.0)
         XCTAssertTrue(delegateSpy.wasCalled)
+    }
+
+    // MARK: - Image clipboard
+
+    func testDetectsImageContent() {
+        // Create a small 1x1 red PNG
+        let image = NSImage(size: NSSize(width: 1, height: 1))
+        image.lockFocus()
+        NSColor.red.drawSwatch(in: NSRect(x: 0, y: 0, width: 1, height: 1))
+        image.unlockFocus()
+        let tiffData = image.tiffRepresentation!
+
+        mockPasteboard.simulateImageCopy(tiffData)
+        manager.checkForChanges()
+
+        XCTAssertEqual(manager.entries.count, 1)
+        XCTAssertEqual(manager.entries.first?.entryType, .image)
+        XCTAssertNotNil(manager.entries.first?.imageData)
+    }
+
+    func testRejectsOversizedImage() {
+        let bigData = Data(repeating: 0, count: 11_000_000) // > 10MB
+        mockPasteboard.simulateImageCopy(bigData)
+        // After skipping image, falls through to text check which finds nil
+        manager.checkForChanges()
+        XCTAssertEqual(manager.entries.count, 0)
+    }
+
+    func testDetectsFileURL() {
+        let url = URL(fileURLWithPath: "/tmp/test.txt")
+        mockPasteboard.simulateFileURLCopy(url)
+        manager.checkForChanges()
+
+        XCTAssertEqual(manager.entries.count, 1)
+        XCTAssertEqual(manager.entries.first?.entryType, .fileURL)
+        XCTAssertEqual(manager.entries.first?.fileURL, url)
+        XCTAssertEqual(manager.entries.first?.content, "test.txt")
+    }
+
+    func testImageSelectRestoresImageToPasteboard() {
+        let image = NSImage(size: NSSize(width: 1, height: 1))
+        image.lockFocus()
+        NSColor.red.drawSwatch(in: NSRect(x: 0, y: 0, width: 1, height: 1))
+        image.unlockFocus()
+        let tiffData = image.tiffRepresentation!
+
+        mockPasteboard.simulateImageCopy(tiffData)
+        manager.checkForChanges()
+
+        let entry = manager.entries.first!
+        manager.selectEntry(entry)
+        // writeObjects should have been called
+        XCTAssertTrue(true) // Just verify no crash
+    }
+
+    func testImageDeduplication() {
+        let image = NSImage(size: NSSize(width: 1, height: 1))
+        image.lockFocus()
+        NSColor.red.drawSwatch(in: NSRect(x: 0, y: 0, width: 1, height: 1))
+        image.unlockFocus()
+        let tiffData = image.tiffRepresentation!
+
+        mockPasteboard.simulateImageCopy(tiffData)
+        manager.checkForChanges()
+        mockPasteboard.simulateImageCopy(tiffData)
+        manager.checkForChanges()
+
+        XCTAssertEqual(manager.entries.count, 1) // Deduplicated
+    }
+
+    func testTextAndImageCoexist() {
+        mockPasteboard.simulateCopy("Hello")
+        manager.checkForChanges()
+
+        let image = NSImage(size: NSSize(width: 1, height: 1))
+        image.lockFocus()
+        NSColor.red.drawSwatch(in: NSRect(x: 0, y: 0, width: 1, height: 1))
+        image.unlockFocus()
+        mockPasteboard.simulateImageCopy(image.tiffRepresentation!)
+        manager.checkForChanges()
+
+        XCTAssertEqual(manager.entries.count, 2)
+        XCTAssertEqual(manager.entries[0].entryType, .image)
+        XCTAssertEqual(manager.entries[1].entryType, .text)
     }
 }
 

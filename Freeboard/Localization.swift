@@ -128,6 +128,7 @@ struct L {
     static var accessibilityPasswordHidden: String { tr("accessibilityPasswordHidden") }
     static var accessibilitySearchField: String { tr("accessibilitySearchField") }
     static var delete: String { tr("delete") }
+    static var imageEntry: String { tr("imageEntry") }
     static var permissionWarningLabel: String { tr("permissionWarningLabel") }
     static var permissionWarningTooltip: String { tr("permissionWarningTooltip") }
 
@@ -392,6 +393,11 @@ struct L {
             .es: "hace %d días", .fr: "il y a %d jours", .ar: "منذ %d أيام",
             .bn: "%d দিন আগে", .pt: "há %d dias", .ru: "%d дней назад",
             .ja: "%d日前"
+        ],
+        "imageEntry": [
+            .en: "Image", .zh: "图片", .hi: "चित्र", .es: "Imagen",
+            .fr: "Image", .ar: "صورة", .bn: "ছবি", .pt: "Imagem",
+            .ru: "Изображение", .ja: "画像"
         ],
         "permissionWarningLabel": [
             .en: "Accessibility Permission needed to paste",
