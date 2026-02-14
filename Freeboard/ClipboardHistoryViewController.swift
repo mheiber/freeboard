@@ -1130,7 +1130,9 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         }
 
         // Type-ahead: any printable character focuses the search field and starts a search
+        // Skip when clipboard history is empty — there's nothing to search
         if !isSearchFieldFocused,
+           !(clipboardManager?.entries.isEmpty ?? true),
            let chars = event.characters,
            let first = chars.unicodeScalars.first,
            flags.isEmpty || flags == .shift,
