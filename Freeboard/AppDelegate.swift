@@ -100,19 +100,16 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
         menu.addItem(NSMenuItem.separator())
 
         // Language submenu
-        let langItem = NSMenuItem(title: L.current == .zh ? "语言" : "Language", action: nil, keyEquivalent: "")
+        let langItem = NSMenuItem(title: L.language, action: nil, keyEquivalent: "")
+        langItem.image = NSImage(systemSymbolName: "globe", accessibilityDescription: "Language")
         let langMenu = NSMenu()
-
-        let enItem = NSMenuItem(title: L.english, action: #selector(switchToEnglish), keyEquivalent: "")
-        enItem.target = self
-        if L.current == .en { enItem.state = .on }
-        langMenu.addItem(enItem)
-
-        let zhItem = NSMenuItem(title: L.chinese, action: #selector(switchToChinese), keyEquivalent: "")
-        zhItem.target = self
-        if L.current == .zh { zhItem.state = .on }
-        langMenu.addItem(zhItem)
-
+        for lang in Lang.allCases {
+            let item = NSMenuItem(title: lang.nativeName, action: #selector(switchLanguage(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = lang
+            if lang == L.current { item.state = .on }
+            langMenu.addItem(item)
+        }
         langItem.submenu = langMenu
         menu.addItem(langItem)
 
@@ -146,13 +143,9 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
         }
     }
 
-    @objc private func switchToEnglish() {
-        L.current = .en
-        historyVC.refreshLocalization()
-    }
-
-    @objc private func switchToChinese() {
-        L.current = .zh
+    @objc private func switchLanguage(_ sender: NSMenuItem) {
+        guard let lang = sender.representedObject as? Lang else { return }
+        L.current = lang
         historyVC.refreshLocalization()
     }
 

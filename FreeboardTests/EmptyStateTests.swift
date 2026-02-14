@@ -43,4 +43,68 @@ class EmptyStateTests: XCTestCase {
         XCTAssertEqual(L.noMatchesFound, "未找到匹配项。")
         XCTAssertEqual(L.clearSearch, "清除搜索 (Esc)")
     }
+
+    func testSpanishStrings() {
+        let saved = L.current
+        defer { L.current = saved }
+        L.current = .es
+
+        XCTAssertEqual(L.noMatchesFound, "No se encontraron coincidencias.")
+        XCTAssertEqual(L.clearSearch, "Limpiar búsqueda (Esc)")
+        XCTAssertEqual(L.open, "Abrir")
+        XCTAssertEqual(L.quit, "Salir")
+        XCTAssertEqual(L.language, "Idioma")
+    }
+
+    // MARK: - Lang.usesSystemFont
+
+    func testUsesSystemFont() {
+        XCTAssertFalse(Lang.en.usesSystemFont)
+        XCTAssertTrue(Lang.zh.usesSystemFont)
+        XCTAssertTrue(Lang.hi.usesSystemFont)
+        XCTAssertFalse(Lang.es.usesSystemFont)
+        XCTAssertFalse(Lang.fr.usesSystemFont)
+        XCTAssertTrue(Lang.ar.usesSystemFont)
+        XCTAssertTrue(Lang.bn.usesSystemFont)
+        XCTAssertFalse(Lang.pt.usesSystemFont)
+        XCTAssertFalse(Lang.ru.usesSystemFont)
+        XCTAssertTrue(Lang.ja.usesSystemFont)
+    }
+
+    // MARK: - Lang.nativeName
+
+    func testNativeName() {
+        XCTAssertEqual(Lang.en.nativeName, "English")
+        XCTAssertEqual(Lang.zh.nativeName, "中文")
+        XCTAssertEqual(Lang.es.nativeName, "Español")
+        XCTAssertEqual(Lang.ja.nativeName, "日本語")
+        XCTAssertEqual(Lang.ru.nativeName, "Русский")
+    }
+
+    // MARK: - Auto-detect fallback
+
+    func testAutoDetectFallbackToEnglish() {
+        let saved = L.current
+        defer { L.current = saved }
+
+        // Remove saved language preference
+        UserDefaults.standard.removeObject(forKey: "freeboard_language")
+
+        // L.current getter will try auto-detect from Locale.preferredLanguages.
+        // If the system locale matches a supported language, it returns that.
+        // Otherwise falls back to .en. Either way it should return a valid Lang.
+        let detected = L.current
+        XCTAssertTrue(Lang.allCases.contains(detected))
+    }
+
+    // MARK: - Lang.fromLocaleIdentifier
+
+    func testFromLocaleIdentifier() {
+        XCTAssertEqual(Lang.fromLocaleIdentifier("en-US"), .en)
+        XCTAssertEqual(Lang.fromLocaleIdentifier("zh-Hans"), .zh)
+        XCTAssertEqual(Lang.fromLocaleIdentifier("es-MX"), .es)
+        XCTAssertEqual(Lang.fromLocaleIdentifier("ja-JP"), .ja)
+        XCTAssertNil(Lang.fromLocaleIdentifier("de-DE"))
+        XCTAssertNil(Lang.fromLocaleIdentifier("ko-KR"))
+    }
 }

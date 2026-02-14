@@ -39,13 +39,13 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     private let retroBg = NSColor(red: 0.02, green: 0.02, blue: 0.02, alpha: 0.88)
     private let retroSelectionBg = NSColor(red: 0.0, green: 0.2, blue: 0.05, alpha: 0.9)
     private var retroFont: NSFont {
-        if L.current == .zh {
+        if L.current.usesSystemFont {
             return NSFont.systemFont(ofSize: 20, weight: .regular)
         }
         return NSFont(name: "Menlo", size: 16) ?? NSFont.monospacedSystemFont(ofSize: 16, weight: .regular)
     }
     private var retroFontSmall: NSFont {
-        if L.current == .zh {
+        if L.current.usesSystemFont {
             return NSFont.systemFont(ofSize: 15, weight: .regular)
         }
         return NSFont(name: "Menlo", size: 12) ?? NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
@@ -296,7 +296,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             let accessibilityButton = NSButton(title: "", target: self, action: #selector(helpAccessibilityClicked))
             accessibilityButton.translatesAutoresizingMaskIntoConstraints = false
             accessibilityButton.isBordered = false
-            let dimFont = L.current == .zh
+            let dimFont = L.current.usesSystemFont
                 ? NSFont.systemFont(ofSize: 14, weight: .regular)
                 : NSFont(name: "Menlo", size: 12) ?? NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
             let hintAttrs: [NSAttributedString.Key: Any] = [
@@ -373,10 +373,10 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
 
     private func makeHelpContent() -> NSAttributedString {
         let str = NSMutableAttributedString()
-        let titleFont = L.current == .zh
+        let titleFont = L.current.usesSystemFont
             ? NSFont.systemFont(ofSize: 24, weight: .bold)
             : NSFont(name: "Menlo-Bold", size: 20) ?? NSFont.monospacedSystemFont(ofSize: 20, weight: .bold)
-        let stepFont = L.current == .zh
+        let stepFont = L.current.usesSystemFont
             ? NSFont.systemFont(ofSize: 18, weight: .regular)
             : NSFont(name: "Menlo", size: 16) ?? NSFont.monospacedSystemFont(ofSize: 16, weight: .regular)
 
@@ -432,7 +432,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     }
 
     private func makeDismissString() -> NSAttributedString {
-        let font = L.current == .zh
+        let font = L.current.usesSystemFont
             ? NSFont.systemFont(ofSize: 16, weight: .medium)
             : NSFont(name: "Menlo", size: 14) ?? NSFont.monospacedSystemFont(ofSize: 14, weight: .regular)
         let centered = NSMutableParagraphStyle()
@@ -622,7 +622,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             }
             if let hintLabel = emptyStateView?.viewWithTag(100) as? NSTextField {
                 hintLabel.stringValue = L.noMatchesFound
-                let largeFont = L.current == .zh
+                let largeFont = L.current.usesSystemFont
                     ? NSFont.systemFont(ofSize: 28, weight: .regular)
                     : NSFont(name: "Menlo", size: 24) ?? NSFont.monospacedSystemFont(ofSize: 24, weight: .regular)
                 hintLabel.font = largeFont
