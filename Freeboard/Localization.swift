@@ -167,7 +167,9 @@ struct L {
     static var markdownHelpHr: String { tr("markdownHelpHr") }
     static var editing: String { tr("editing") }
     static var helpEditingLink: String { tr("helpEditingLink") }
-    static var editingHelpCtrlE: String { tr("editingHelpCtrlE") }
+    static var editingHelpCtrlEText: String { tr("editingHelpCtrlEText") }
+    static var editingHelpCtrlEMultimedia: String { tr("editingHelpCtrlEMultimedia") }
+    static var editingHelpSeeAlsoMarkdown: String { tr("editingHelpSeeAlsoMarkdown") }
     static var editingHelpVimEnable: String { tr("editingHelpVimEnable") }
     static var editingHelpVimDisable: String { tr("editingHelpVimDisable") }
     static var contextPaste: String { tr("contextPaste") }
@@ -720,17 +722,41 @@ struct L {
             .en: "Editing →", .zh: "编辑 →", .hi: "संपादन →", .es: "Edición →", .fr: "Édition →",
             .ar: "→ تحرير", .bn: "সম্পাদনা →", .pt: "Edição →", .ru: "Редактирование →", .ja: "編集 →"
         ],
-        "editingHelpCtrlE": [
-            .en: "Press Ctrl+E on any clipboard item to open the editor",
-            .zh: "在任何剪贴板条目上按 Ctrl+E 打开编辑器",
-            .hi: "किसी भी क्लिपबोर्ड आइटम पर Ctrl+E दबाकर एडिटर खोलें",
-            .es: "Presiona Ctrl+E en cualquier elemento para abrir el editor",
-            .fr: "Appuyez sur Ctrl+E sur un élément pour ouvrir l'éditeur",
-            .ar: "اضغط Ctrl+E على أي عنصر لفتح المحرر",
-            .bn: "যেকোনো ক্লিপবোর্ড আইটেমে Ctrl+E চাপুন এডিটর খুলতে",
-            .pt: "Pressione Ctrl+E em qualquer item para abrir o editor",
-            .ru: "Нажмите Ctrl+E на любом элементе для открытия редактора",
-            .ja: "任意のクリップボード項目で Ctrl+E を押してエディタを開く"
+        "editingHelpCtrlEText": [
+            .en: "Ctrl+E  Edit text items",
+            .zh: "Ctrl+E  编辑文本条目",
+            .hi: "Ctrl+E  टेक्स्ट आइटम संपादित करें",
+            .es: "Ctrl+E  Editar elementos de texto",
+            .fr: "Ctrl+E  Modifier les éléments texte",
+            .ar: "Ctrl+E  تحرير العناصر النصية",
+            .bn: "Ctrl+E  টেক্সট আইটেম সম্পাদনা করুন",
+            .pt: "Ctrl+E  Editar itens de texto",
+            .ru: "Ctrl+E  Редактировать текстовые элементы",
+            .ja: "Ctrl+E  テキスト項目を編集"
+        ],
+        "editingHelpCtrlEMultimedia": [
+            .en: "Ctrl+E  View images and file URLs",
+            .zh: "Ctrl+E  查看图片和文件 URL",
+            .hi: "Ctrl+E  चित्र और फ़ाइल URL देखें",
+            .es: "Ctrl+E  Ver imágenes y URL de archivos",
+            .fr: "Ctrl+E  Afficher les images et URL de fichiers",
+            .ar: "Ctrl+E  عرض الصور وعناوين الملفات",
+            .bn: "Ctrl+E  ছবি এবং ফাইল URL দেখুন",
+            .pt: "Ctrl+E  Ver imagens e URLs de arquivos",
+            .ru: "Ctrl+E  Просмотр изображений и URL файлов",
+            .ja: "Ctrl+E  画像とファイルURLを表示"
+        ],
+        "editingHelpSeeAlsoMarkdown": [
+            .en: "See also: Markdown Support →",
+            .zh: "另见：Markdown 支持 →",
+            .hi: "यह भी देखें: Markdown सहायता →",
+            .es: "Ver también: Soporte Markdown →",
+            .fr: "Voir aussi : Support Markdown →",
+            .ar: "→ انظر أيضاً: دعم Markdown",
+            .bn: "আরও দেখুন: Markdown সমর্থন →",
+            .pt: "Veja também: Suporte Markdown →",
+            .ru: "См. также: Поддержка Markdown →",
+            .ja: "関連項目: Markdown サポート →"
         ],
         "editingHelpVimEnable": [
             .en: "Click here to enable vim-style editing",

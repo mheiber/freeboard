@@ -584,6 +584,11 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         showHelp()
     }
 
+    @objc private func editingSeeMarkdownClicked() {
+        dismissHelp()
+        showMarkdownHelp()
+    }
+
     @objc private func editingVimToggleClicked() {
         let current = UserDefaults.standard.bool(forKey: "vimModeEnabled")
         UserDefaults.standard.set(!current, forKey: "vimModeEnabled")
@@ -822,7 +827,9 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         str.append(NSAttributedString(string: "\n\n", attributes: bodyAttrs))
         str.append(NSAttributedString(string: L.markdownHelpBindings, attributes: sectionAttrs))
         str.append(NSAttributedString(string: "\n\n", attributes: bodyAttrs))
-        str.append(NSAttributedString(string: L.editingHelpCtrlE, attributes: bodyAttrs))
+        str.append(NSAttributedString(string: L.editingHelpCtrlEText, attributes: bodyAttrs))
+        str.append(NSAttributedString(string: "\n", attributes: bodyAttrs))
+        str.append(NSAttributedString(string: L.editingHelpCtrlEMultimedia, attributes: bodyAttrs))
 
         let helpContent = NSTextField(labelWithString: "")
         helpContent.translatesAutoresizingMaskIntoConstraints = false
@@ -833,6 +840,18 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         helpContent.lineBreakMode = .byWordWrapping
         helpContent.alignment = .left
         helpContent.attributedStringValue = str
+
+        // See also: Markdown Support link
+        let seeAlsoButton = NSButton(title: "", target: self, action: #selector(editingSeeMarkdownClicked))
+        seeAlsoButton.translatesAutoresizingMaskIntoConstraints = false
+        seeAlsoButton.isBordered = false
+        let seeAlsoLinkAttrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: retroGreen.withAlphaComponent(0.8),
+            .font: bodyFont,
+            .underlineStyle: NSUnderlineStyle.single.rawValue
+        ]
+        seeAlsoButton.attributedTitle = NSAttributedString(string: L.editingHelpSeeAlsoMarkdown, attributes: seeAlsoLinkAttrs)
+        seeAlsoButton.setAccessibilityLabel(L.markdownSupport)
 
         // Vim toggle button
         let vimEnabled = UserDefaults.standard.bool(forKey: "vimModeEnabled")
@@ -857,11 +876,12 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         dismissLabel.attributedStringValue = makeDismissString(withBackNav: true)
 
         overlay.addSubview(helpContent)
+        overlay.addSubview(seeAlsoButton)
         overlay.addSubview(vimToggleButton)
         overlay.addSubview(dismissLabel)
 
         // Track focusable items for keyboard navigation
-        helpFocusableItems = [backButton, vimToggleButton]
+        helpFocusableItems = [backButton, seeAlsoButton, vimToggleButton]
         helpFocusIndex = -1
         helpHasBackButton = true
 
@@ -876,7 +896,10 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             helpContent.leadingAnchor.constraint(equalTo: overlay.leadingAnchor, constant: 60),
             helpContent.trailingAnchor.constraint(equalTo: overlay.trailingAnchor, constant: -60),
 
-            vimToggleButton.topAnchor.constraint(equalTo: helpContent.bottomAnchor, constant: 16),
+            seeAlsoButton.topAnchor.constraint(equalTo: helpContent.bottomAnchor, constant: 16),
+            seeAlsoButton.leadingAnchor.constraint(equalTo: overlay.leadingAnchor, constant: 60),
+
+            vimToggleButton.topAnchor.constraint(equalTo: seeAlsoButton.bottomAnchor, constant: 8),
             vimToggleButton.leadingAnchor.constraint(equalTo: overlay.leadingAnchor, constant: 60),
 
             dismissLabel.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
