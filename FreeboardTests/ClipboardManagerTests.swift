@@ -32,6 +32,16 @@ class MockPasteboard: PasteboardProviding {
         return true
     }
 
+    @discardableResult
+    func setData(_ data: Data?, forType dataType: NSPasteboard.PasteboardType) -> Bool {
+        if let data = data {
+            dataStore[dataType] = data
+        } else {
+            dataStore.removeValue(forKey: dataType)
+        }
+        return true
+    }
+
     func writeObjects(_ objects: [NSPasteboardWriting]) -> Bool {
         writtenObjects = objects
         changeCount += 1
@@ -63,6 +73,13 @@ class MockPasteboard: PasteboardProviding {
         let fileURLType = NSPasteboard.PasteboardType("public.file-url")
         content = url.absoluteString
         types = [fileURLType, .string]
+        changeCount += 1
+    }
+
+    func simulateRichCopy(_ text: String, rtfData: Data) {
+        content = text
+        dataStore[.rtf] = rtfData
+        types = [.string, .rtf]
         changeCount += 1
     }
 }
@@ -346,6 +363,39 @@ class ClipboardManagerTests: XCTestCase {
         XCTAssertEqual(manager.entries.count, 2)
         XCTAssertEqual(manager.entries[0].entryType, .image)
         XCTAssertEqual(manager.entries[1].entryType, .text)
+    }
+
+    // MARK: - Rich text
+
+    func testRichTextDataCaptured() {
+        let rtfData = "{\\rtf1 Hello}".data(using: .utf8)!
+        mockPasteboard.simulateRichCopy("Hello", rtfData: rtfData)
+        manager.checkForChanges()
+
+        XCTAssertEqual(manager.entries.count, 1)
+        XCTAssertNotNil(manager.entries.first?.pasteboardData)
+        XCTAssertNotNil(manager.entries.first?.pasteboardData?[.rtf])
+    }
+
+    func testPlainTextPasteStripsRichData() {
+        let rtfData = "{\\rtf1 Hello}".data(using: .utf8)!
+        mockPasteboard.simulateRichCopy("Hello", rtfData: rtfData)
+        manager.checkForChanges()
+
+        let entry = manager.entries.first!
+        manager.selectEntryAsPlainText(entry)
+
+        // Should only have string, not RTF
+        XCTAssertEqual(mockPasteboard.string(forType: .string), "Hello")
+        XCTAssertNil(mockPasteboard.data(forType: .rtf))
+    }
+
+    func testPasswordsDoNotStoreRichData() {
+        let rtfData = "{\\rtf1 secret}".data(using: .utf8)!
+        mockPasteboard.simulateRichCopy("s3cur3!pass", rtfData: rtfData)
+        manager.checkForChanges()
+
+        XCTAssertNil(manager.entries.first?.pasteboardData)
     }
 }
 

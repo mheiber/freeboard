@@ -2,6 +2,7 @@ import Cocoa
 
 protocol ClipboardHistoryDelegate: AnyObject {
     func didSelectEntry(_ entry: ClipboardEntry)
+    func didSelectEntryAsPlainText(_ entry: ClipboardEntry)
     func didDeleteEntry(_ entry: ClipboardEntry)
     func didDismiss()
 }
@@ -1098,6 +1099,12 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         historyDelegate?.didSelectEntry(filteredEntries[idx])
     }
 
+    private func selectCurrentAsPlainText(at index: Int? = nil) {
+        let idx = index ?? selectedIndex
+        guard idx < filteredEntries.count else { return }
+        historyDelegate?.didSelectEntryAsPlainText(filteredEntries[idx])
+    }
+
     private func toggleExpand() {
         guard !filteredEntries.isEmpty else { return }
         if editingIndex != nil { return } // Don't toggle while editing
@@ -1205,19 +1212,25 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         }
         if event.keyCode == 36 { // Enter
             if editingIndex != nil { return } // Let text view handle it
-            handleEnter()
+            if event.modifierFlags.contains(.shift) {
+                selectCurrentAsPlainText()
+            } else {
+                handleEnter()
+            }
             return
         }
         if editingIndex != nil { super.keyDown(with: event); return } // Pass through when editing
 
         // Normal mode (search field NOT focused): number keys quick select
         if !isSearchFieldFocused {
-            if let chars = event.charactersIgnoringModifiers, flags.isEmpty || flags == .shift {
-                if let digit = chars.first, digit >= "1" && digit <= "9" {
-                    let index = Int(String(digit))! - 1
+            if let chars = event.charactersIgnoringModifiers, let digit = chars.first, digit >= "1" && digit <= "9" {
+                let index = Int(String(digit))! - 1
+                if flags == .shift {
+                    selectCurrentAsPlainText(at: index)
+                } else if flags.isEmpty {
                     selectCurrent(at: index)
-                    return
                 }
+                return
             }
         }
 

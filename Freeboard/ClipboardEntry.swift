@@ -17,13 +17,15 @@ struct ClipboardEntry: Identifiable, Equatable {
     let entryType: EntryType
     let imageData: Data?      // Raw image data (PNG/TIFF/JPEG), nil for non-image
     let fileURL: URL?         // File URL for file entries, nil otherwise
+    let pasteboardData: [NSPasteboard.PasteboardType: Data]?  // nil for image/file entries
 
     // Cached thumbnail -- not part of equality
     private var _thumbnail: NSImage?
 
     init(content: String, isPassword: Bool = false, isStarred: Bool = false,
          timestamp: Date = Date(), id: UUID = UUID(),
-         entryType: EntryType = .text, imageData: Data? = nil, fileURL: URL? = nil) {
+         entryType: EntryType = .text, imageData: Data? = nil, fileURL: URL? = nil,
+         pasteboardData: [NSPasteboard.PasteboardType: Data]? = nil) {
         self.id = id
         self.content = content
         self.timestamp = timestamp
@@ -33,6 +35,7 @@ struct ClipboardEntry: Identifiable, Equatable {
         self.entryType = entryType
         self.imageData = imageData
         self.fileURL = fileURL
+        self.pasteboardData = pasteboardData
     }
 
     var displayContent: String {

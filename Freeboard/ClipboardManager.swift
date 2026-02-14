@@ -8,6 +8,7 @@ protocol PasteboardProviding: AnyObject {
     func data(forType dataType: NSPasteboard.PasteboardType) -> Data?
     @discardableResult func clearContents() -> Int
     func setString(_ string: String, forType dataType: NSPasteboard.PasteboardType) -> Bool
+    @discardableResult func setData(_ data: Data?, forType dataType: NSPasteboard.PasteboardType) -> Bool
     func writeObjects(_ objects: [NSPasteboardWriting]) -> Bool
     func readObjects(forClasses classArray: [AnyClass], options: [NSPasteboard.ReadingOptionKey : Any]?) -> [Any]?
 }
@@ -106,7 +107,25 @@ class ClipboardManager {
         let isBitwarden = PasswordDetector.isBitwardenContent(pasteboardTypes: pasteboard.types)
         let isPassword = isBitwarden || PasswordDetector.isPasswordLike(content)
 
-        let entry = ClipboardEntry(content: content, isPassword: isPassword, isStarred: wasStarred)
+        // Capture rich text data (RTF, HTML) for non-password entries
+        var richPasteboardData: [NSPasteboard.PasteboardType: Data]? = nil
+        if !isPassword {
+            var richData: [NSPasteboard.PasteboardType: Data] = [:]
+            let richTypes: [NSPasteboard.PasteboardType] = [.rtf, .html,
+                NSPasteboard.PasteboardType("public.rtf"),
+                NSPasteboard.PasteboardType("public.html")]
+            for richType in richTypes {
+                if let data = pasteboard.data(forType: richType) {
+                    richData[richType] = data
+                }
+            }
+            if let stringData = content.data(using: .utf8) {
+                richData[.string] = stringData
+            }
+            richPasteboardData = richData.isEmpty ? nil : richData
+        }
+
+        let entry = ClipboardEntry(content: content, isPassword: isPassword, isStarred: wasStarred, pasteboardData: richPasteboardData)
         entries.insert(entry, at: 0)
         capEntries()
         delegate?.clipboardManagerDidUpdateEntries(self)
@@ -128,14 +147,14 @@ class ClipboardManager {
     func updateEntryContent(id: UUID, newContent: String) {
         guard let idx = entries.firstIndex(where: { $0.id == id }) else { return }
         let old = entries[idx]
-        entries[idx] = ClipboardEntry(content: newContent, isPassword: old.isPassword, isStarred: old.isStarred, timestamp: old.timestamp, id: old.id)
+        entries[idx] = ClipboardEntry(content: newContent, isPassword: old.isPassword, isStarred: old.isStarred, timestamp: old.timestamp, id: old.id, pasteboardData: old.pasteboardData)
         delegate?.clipboardManagerDidUpdateEntries(self)
     }
 
     func toggleStar(id: UUID) {
         guard let idx = entries.firstIndex(where: { $0.id == id }) else { return }
         let old = entries[idx]
-        entries[idx] = ClipboardEntry(content: old.content, isPassword: old.isPassword, isStarred: !old.isStarred, timestamp: old.timestamp, id: old.id, entryType: old.entryType, imageData: old.imageData, fileURL: old.fileURL)
+        entries[idx] = ClipboardEntry(content: old.content, isPassword: old.isPassword, isStarred: !old.isStarred, timestamp: old.timestamp, id: old.id, entryType: old.entryType, imageData: old.imageData, fileURL: old.fileURL, pasteboardData: old.pasteboardData)
         delegate?.clipboardManagerDidUpdateEntries(self)
     }
 
@@ -143,7 +162,17 @@ class ClipboardManager {
         pasteboard.clearContents()
         switch entry.entryType {
         case .text:
-            _ = pasteboard.setString(entry.content, forType: .string)
+            if let pbData = entry.pasteboardData {
+                for (type, data) in pbData {
+                    if type == .string {
+                        _ = pasteboard.setString(entry.content, forType: .string)
+                    } else {
+                        _ = pasteboard.setData(data, forType: type)
+                    }
+                }
+            } else {
+                _ = pasteboard.setString(entry.content, forType: .string)
+            }
         case .image:
             if let data = entry.imageData, let image = NSImage(data: data) {
                 _ = pasteboard.writeObjects([image])
@@ -153,6 +182,12 @@ class ClipboardManager {
                 _ = pasteboard.writeObjects([url as NSURL])
             }
         }
+        lastChangeCount = pasteboard.changeCount
+    }
+
+    func selectEntryAsPlainText(_ entry: ClipboardEntry) {
+        pasteboard.clearContents()
+        _ = pasteboard.setString(entry.content, forType: .string)
         lastChangeCount = pasteboard.changeCount
     }
 
