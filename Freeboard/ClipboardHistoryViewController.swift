@@ -737,14 +737,14 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         if let entry = entry, entry.entryType == .text {
             switch entry.formatCategory {
             case .richText:
-                str.append(NSAttributedString(string: "⇧ ", attributes: keyAttrs))
-                str.append(NSAttributedString(string: L.plain + "  ", attributes: dimAttrs))
+                str.append(NSAttributedString(string: "⇧Enter ", attributes: keyAttrs))
+                str.append(NSAttributedString(string: L.plainPaste + "  ", attributes: dimAttrs))
             case .plainMarkdown:
-                str.append(NSAttributedString(string: "⇧ ", attributes: keyAttrs))
-                str.append(NSAttributedString(string: L.rich + "  ", attributes: dimAttrs))
+                str.append(NSAttributedString(string: "⇧Enter ", attributes: keyAttrs))
+                str.append(NSAttributedString(string: L.richPaste + "  ", attributes: dimAttrs))
             case .richMarkdown:
-                str.append(NSAttributedString(string: "⇧ ", attributes: keyAttrs))
-                str.append(NSAttributedString(string: L.markdownFormat + "  ", attributes: dimAttrs))
+                str.append(NSAttributedString(string: "⇧Enter ", attributes: keyAttrs))
+                str.append(NSAttributedString(string: L.markdownPaste + "  ", attributes: dimAttrs))
             case .plainText:
                 break // No shift hint for plain text
             }

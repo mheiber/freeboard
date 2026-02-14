@@ -139,9 +139,9 @@ struct L {
     static var vimNormalMode: String { tr("vimNormalMode") }
     static var vimGoBack: String { tr("vimGoBack") }
     static var move: String { tr("move") }
-    static var plain: String { tr("plain") }
-    static var rich: String { tr("rich") }
-    static var markdownFormat: String { tr("markdownFormat") }
+    static var plainPaste: String { tr("plainPaste") }
+    static var richPaste: String { tr("richPaste") }
+    static var markdownPaste: String { tr("markdownPaste") }
     static var accessibilityRichText: String { tr("accessibilityRichText") }
     static var accessibilityMarkdownText: String { tr("accessibilityMarkdownText") }
     static var accessibilityRichMarkdown: String { tr("accessibilityRichMarkdown") }
@@ -485,23 +485,23 @@ struct L {
             .ar: "تحريك", .bn: "সরান",
             .pt: "mover", .ru: "двигаться", .ja: "移動"
         ],
-        "plain": [
-            .en: "plain", .zh: "纯文本", .hi: "सादा",
-            .es: "plano", .fr: "brut",
-            .ar: "نص عادي", .bn: "সাধারণ",
-            .pt: "simples", .ru: "текст", .ja: "テキスト"
+        "plainPaste": [
+            .en: "plain paste", .zh: "纯文本粘贴", .hi: "सादा पेस्ट",
+            .es: "pegar plano", .fr: "coller brut",
+            .ar: "لصق عادي", .bn: "সাধারণ পেস্ট",
+            .pt: "colar simples", .ru: "вставить текст", .ja: "テキスト貼り付け"
         ],
-        "rich": [
-            .en: "rich", .zh: "富文本", .hi: "रिच",
-            .es: "formato", .fr: "riche",
-            .ar: "منسق", .bn: "রিচ",
-            .pt: "formatado", .ru: "формат", .ja: "リッチ"
+        "richPaste": [
+            .en: "rich paste", .zh: "富文本粘贴", .hi: "रिच पेस्ट",
+            .es: "pegar formato", .fr: "coller riche",
+            .ar: "لصق منسق", .bn: "রিচ পেস্ট",
+            .pt: "colar formatado", .ru: "вставить формат", .ja: "リッチ貼り付け"
         ],
-        "markdownFormat": [
-            .en: "markdown", .zh: "markdown", .hi: "markdown",
-            .es: "markdown", .fr: "markdown",
-            .ar: "markdown", .bn: "markdown",
-            .pt: "markdown", .ru: "markdown", .ja: "markdown"
+        "markdownPaste": [
+            .en: "markdown paste", .zh: "markdown 粘贴", .hi: "markdown पेस्ट",
+            .es: "pegar markdown", .fr: "coller markdown",
+            .ar: "لصق markdown", .bn: "markdown পেস্ট",
+            .pt: "colar markdown", .ru: "вставить markdown", .ja: "markdown貼り付け"
         ],
         "accessibilityRichText": [
             .en: "Formatted text, Shift Enter to paste as plain text",
