@@ -38,20 +38,26 @@
         flex-shrink: 0;
         flex-grow: 1;
     }
-    /* Vim command-line input (created by monaco-vim inside #vim-status) */
+    /* Vim command-line input (created by monaco-vim inside #vim-status > secInfoNode) */
     #vim-status input[type="text"] {
-        background: #1e1e1e;
-        color: #d4d4d4;
-        border: none;
-        outline: none;
-        font-family: Menlo, monospace;
-        font-size: 11px;
-        line-height: 22px;
-        height: 20px;
-        width: 60%;
-        padding: 0;
-        margin: 0;
-        caret-color: #00ff40;
+        background: #1e1e1e !important;
+        color: #d4d4d4 !important;
+        border: none !important;
+        outline: none !important;
+        font-family: Menlo, monospace !important;
+        font-size: 11px !important;
+        line-height: 22px !important;
+        height: 20px !important;
+        width: 200px;
+        min-width: 100px;
+        max-width: 60%;
+        padding: 0 !important;
+        margin: 0 2px !important;
+        caret-color: #00ff40 !important;
+        display: inline-block !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        position: static !important;
     }
     #editor-hints {
         color: #00c030;
@@ -400,37 +406,56 @@
 
     // Watch vim status changes to update hints, ensure command-line
     // input gets focus, and make the mode indicator clickable.
+    //
+    // IMPORTANT: monaco-vim's StatusBar creates child spans inside statusEl
+    // (modeInfoNode, secInfoNode, notifNode, keyInfoNode) and holds references
+    // to them. We must NEVER replace statusEl.innerHTML because that detaches
+    // those nodes — the StatusBar would then write to orphaned DOM nodes and
+    // the command-line input would never appear on screen.
     var updatingStatus = false;
     var observer = new MutationObserver(function() {
         if (updatingStatus) return;
         updateHints();
 
-        // Make the vim mode indicator (e.g. "-- INSERT --" or "-- NORMAL --") clickable
-        // to toggle between modes.  Monaco-vim renders mode text as the first text node
-        // or inside a span within #vim-status.
         if (vimEnabled) {
-            var textContent = statusEl.textContent || '';
-            // Only wrap if there's a mode string and no input field present
-            // (input means the user is typing an ex command like :x)
-            var input = statusEl.querySelector('input[type="text"]');
-            if (!input) {
-                var modeMatch = textContent.match(/--(.*?)--/);
-                if (modeMatch) {
-                    // Check if we already wrapped it
-                    if (!statusEl.querySelector('.vim-mode-toggle')) {
-                        var modeText = modeMatch[0];
-                        var html = statusEl.innerHTML;
-                        updatingStatus = true;
-                        statusEl.innerHTML = html.replace(
-                            modeText,
-                            '<span class="vim-mode-toggle">' + modeText + '</span>'
-                        );
-                        updatingStatus = false;
-                    }
+            // Make the vim mode indicator (e.g. "-- NORMAL --") clickable
+            // by wrapping it in a span — but do so at the DOM level, never
+            // by setting innerHTML on statusEl.
+            //
+            // monaco-vim's StatusBar structure:
+            //   statusEl
+            //     └─ modeInfoNode (span) ← contains text like "-- NORMAL --"
+            //     └─ secInfoNode  (span) ← command-line input goes here
+            //     └─ notifNode    (span)
+            //     └─ keyInfoNode  (span)
+            //
+            // We wrap the text content *inside* modeInfoNode so StatusBar's
+            // references remain valid.
+            var modeInfoNode = statusEl.children[0]; // first child span
+            if (modeInfoNode && !statusEl.querySelector('input[type="text"]')) {
+                var modeText = modeInfoNode.textContent || '';
+                var modeMatch = modeText.match(/--(.*?)--/);
+                if (modeMatch && !modeInfoNode.querySelector('.vim-mode-toggle')) {
+                    updatingStatus = true;
+                    // Wrap the text node inside modeInfoNode with a clickable span
+                    var wrapper = document.createElement('span');
+                    wrapper.className = 'vim-mode-toggle';
+                    wrapper.textContent = modeInfoNode.textContent;
+                    modeInfoNode.textContent = '';
+                    modeInfoNode.appendChild(wrapper);
+                    updatingStatus = false;
                 }
             }
+
+            // Ensure command-line input gets focus (with retries for WKWebView)
+            var input = statusEl.querySelector('input[type="text"]');
             if (input && document.activeElement !== input) {
-                setTimeout(function() { input.focus(); }, 0);
+                // Multiple focus attempts with increasing delays to handle
+                // WKWebView's focus timing quirks
+                input.focus();
+                setTimeout(function() { if (document.activeElement !== input) input.focus(); }, 0);
+                setTimeout(function() { if (document.activeElement !== input) input.focus(); }, 50);
+                setTimeout(function() { if (document.activeElement !== input) input.focus(); }, 150);
             }
         }
     });
@@ -488,10 +513,13 @@
         // jk to exit insert mode
         Vim.map('jk', '<Esc>', 'insert');
 
-        // Esc in normal mode to save and close
-        Vim.mapCommand('<Esc>', '', '', function() {
+        // Esc in normal mode to save and close.
+        // Define a custom action and map it properly — mapCommand with
+        // an empty type string silently does nothing.
+        Vim.defineAction('saveAndClose', function() {
             saveAndClose();
-        }, { context: 'normal' });
+        });
+        Vim.mapCommand('<Esc>', 'action', 'saveAndClose', {}, { context: 'normal' });
     }
 
     function enableVim() {
