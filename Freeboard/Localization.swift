@@ -83,6 +83,28 @@ struct L {
     static var noMatchesFound: String { current == .zh ? "未找到匹配项。" : "No matches found." }
     static var clearSearch: String { current == .zh ? "清除搜索 (Esc)" : "Clear Search (Esc)" }
 
+    static var help: String { current == .zh ? "帮助" : "Help" }
+    static var helpTitle: String { current == .zh ? "FREEBOARD 帮助" : "FREEBOARD HELP" }
+    static var helpStep1: String { current == .zh ? "从任何应用程序复制文本，使用 ⌘c" : "Copy text from any application with ⌘c" }
+    static var helpStep2Suffix: String { current == .zh ? "打开 Freeboard" : "to open Freeboard" }
+    static var helpStep3a: String { current == .zh ? "按数字键 (1-9) 粘贴" : "Press a number (1-9) to paste" }
+    static var helpStep3b: String { current == .zh ? "或输入搜索，然后按 Enter" : "OR type to search, then Enter" }
+    static var helpDismiss: String { current == .zh ? "? 关闭帮助" : "? to close help" }
+
+    static var helpAccessibility: String {
+        current == .zh
+            ? "要粘贴到其他应用，Freeboard 需要辅助功能权限。\n请前往"
+            : "To paste into apps, Freeboard needs permission.\nPlease go to"
+    }
+    static var helpAccessibilityLink: String {
+        current == .zh ? "系统设置 → 辅助功能" : "Accessibility Permissions"
+    }
+    static var helpAccessibilitySteps: String {
+        current == .zh
+            ? "点击 [+]，添加 Freeboard，并确保已启用 [✓]"
+            : "click [+], add Freeboard, and make sure it is enabled [✓]"
+    }
+
     static func minutesAgo(_ n: Int) -> String {
         current == .zh ? "\(n)分钟前" : "\(n)m ago"
     }

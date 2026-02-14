@@ -6,7 +6,7 @@ protocol ClipboardHistoryDelegate: AnyObject {
     func didDismiss()
 }
 
-class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, NSTableViewDelegate, NSTextFieldDelegate, NSTextViewDelegate {
+class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, NSTableViewDelegate, NSTextFieldDelegate, NSTextViewDelegate, NSGestureRecognizerDelegate {
 
     weak var historyDelegate: ClipboardHistoryDelegate?
     var clipboardManager: ClipboardManager?
@@ -21,6 +21,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     private var emptyStateView: NSView!
     private var clearSearchButton: NSButton!
     private var accessibilityHintButton: NSButton!
+    private var helpButton: NSButton!
+    private var helpOverlay: NSView?
 
     private var filteredEntries: [ClipboardEntry] = []
     private var selectedIndex: Int = 0
@@ -108,6 +110,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
 
     override func viewWillDisappear() {
         super.viewWillDisappear()
+        dismissHelp()
         if let monitor = keyMonitor {
             NSEvent.removeMonitor(monitor)
             keyMonitor = nil
@@ -124,6 +127,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             string: L.searchPlaceholder, attributes: placeholderAttrs
         )
         helpLabel.attributedStringValue = makeHelpString()
+        helpButton.title = "[?]"
+        helpButton.font = retroFontSmall
         quitButton.title = L.quit
         quitButton.font = retroFontSmall
         updateEmptyStateStrings()
@@ -213,6 +218,12 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         helpLabel.alignment = .left
         helpLabel.attributedStringValue = makeHelpString()
 
+        helpButton = NSButton(title: "[?]", target: self, action: #selector(helpButtonClicked))
+        helpButton.translatesAutoresizingMaskIntoConstraints = false
+        helpButton.isBordered = false
+        helpButton.font = retroFontSmall
+        helpButton.contentTintColor = retroDimGreen.withAlphaComponent(0.5)
+
         quitButton = NSButton(title: L.quit, target: self, action: #selector(quitClicked))
         quitButton.translatesAutoresizingMaskIntoConstraints = false
         quitButton.isBordered = false
@@ -220,12 +231,17 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         quitButton.contentTintColor = retroDimGreen.withAlphaComponent(0.5)
 
         containerView.addSubview(helpLabel)
+        containerView.addSubview(helpButton)
         containerView.addSubview(quitButton)
 
         NSLayoutConstraint.activate([
             helpLabel.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -7),
             helpLabel.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: 12),
             helpLabel.heightAnchor.constraint(equalToConstant: 18),
+
+            helpButton.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -5),
+            helpButton.trailingAnchor.constraint(equalTo: quitButton.leadingAnchor, constant: -8),
+            helpButton.heightAnchor.constraint(equalToConstant: 20),
 
             quitButton.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -5),
             quitButton.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -12),
@@ -235,6 +251,198 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
 
     @objc private func quitClicked() {
         NSApp.terminate(nil)
+    }
+
+    @objc private func helpButtonClicked() {
+        toggleHelp()
+    }
+
+    func toggleHelp() {
+        if let overlay = helpOverlay, overlay.superview != nil {
+            dismissHelp()
+        } else {
+            showHelp()
+        }
+    }
+
+    private func showHelp() {
+        let overlay = NSView(frame: containerView.bounds)
+        overlay.autoresizingMask = [.width, .height]
+        overlay.wantsLayer = true
+        overlay.layer?.backgroundColor = NSColor(red: 0.01, green: 0.01, blue: 0.01, alpha: 0.95).cgColor
+
+        let helpContent = NSTextField(labelWithString: "")
+        helpContent.translatesAutoresizingMaskIntoConstraints = false
+        helpContent.backgroundColor = .clear
+        helpContent.isBezeled = false
+        helpContent.isEditable = false
+        helpContent.maximumNumberOfLines = 0
+        helpContent.lineBreakMode = .byWordWrapping
+        helpContent.alignment = .center
+        helpContent.attributedStringValue = makeHelpContent()
+
+        let dismissLabel = NSTextField(labelWithString: "")
+        dismissLabel.translatesAutoresizingMaskIntoConstraints = false
+        dismissLabel.backgroundColor = .clear
+        dismissLabel.isBezeled = false
+        dismissLabel.isEditable = false
+        dismissLabel.alignment = .center
+        dismissLabel.attributedStringValue = makeDismissString()
+
+        overlay.addSubview(helpContent)
+        overlay.addSubview(dismissLabel)
+
+        if !AXIsProcessTrusted() {
+            let accessibilityButton = NSButton(title: "", target: self, action: #selector(helpAccessibilityClicked))
+            accessibilityButton.translatesAutoresizingMaskIntoConstraints = false
+            accessibilityButton.isBordered = false
+            let dimFont = L.current == .zh
+                ? NSFont.systemFont(ofSize: 14, weight: .regular)
+                : NSFont(name: "Menlo", size: 12) ?? NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
+            let hintAttrs: [NSAttributedString.Key: Any] = [
+                .foregroundColor: retroDimGreen.withAlphaComponent(0.6),
+                .font: dimFont
+            ]
+            let linkAttrs: [NSAttributedString.Key: Any] = [
+                .foregroundColor: retroGreen.withAlphaComponent(0.8),
+                .font: dimFont,
+                .underlineStyle: NSUnderlineStyle.single.rawValue
+            ]
+            let attrStr = NSMutableAttributedString()
+            attrStr.append(NSAttributedString(string: L.helpAccessibility + " ", attributes: hintAttrs))
+            attrStr.append(NSAttributedString(string: L.helpAccessibilityLink, attributes: linkAttrs))
+            attrStr.append(NSAttributedString(string: ",\n" + L.helpAccessibilitySteps, attributes: hintAttrs))
+            accessibilityButton.attributedTitle = attrStr
+            overlay.addSubview(accessibilityButton)
+
+            NSLayoutConstraint.activate([
+                accessibilityButton.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
+                accessibilityButton.topAnchor.constraint(equalTo: helpContent.bottomAnchor, constant: 24),
+                accessibilityButton.leadingAnchor.constraint(greaterThanOrEqualTo: overlay.leadingAnchor, constant: 60),
+                accessibilityButton.trailingAnchor.constraint(lessThanOrEqualTo: overlay.trailingAnchor, constant: -60),
+            ])
+        }
+
+        // Insert below effectsView so CRT effects still show on top
+        let effectsIndex = containerView.subviews.firstIndex(of: effectsView) ?? containerView.subviews.count
+        containerView.addSubview(overlay, positioned: .below, relativeTo: effectsView)
+        _ = effectsIndex // suppress warning
+
+        NSLayoutConstraint.activate([
+            helpContent.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
+            helpContent.centerYAnchor.constraint(equalTo: overlay.centerYAnchor, constant: -40),
+            helpContent.leadingAnchor.constraint(greaterThanOrEqualTo: overlay.leadingAnchor, constant: 60),
+            helpContent.trailingAnchor.constraint(lessThanOrEqualTo: overlay.trailingAnchor, constant: -60),
+
+            dismissLabel.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
+            dismissLabel.bottomAnchor.constraint(equalTo: overlay.bottomAnchor, constant: -24),
+        ])
+
+        let clickGesture = NSClickGestureRecognizer(target: self, action: #selector(helpOverlayClicked))
+        clickGesture.delegate = self
+        overlay.addGestureRecognizer(clickGesture)
+
+        helpOverlay = overlay
+    }
+
+    private func dismissHelp() {
+        helpOverlay?.removeFromSuperview()
+        helpOverlay = nil
+    }
+
+    @objc private func helpOverlayClicked() {
+        dismissHelp()
+    }
+
+    func gestureRecognizerShouldBegin(_ gestureRecognizer: NSGestureRecognizer) -> Bool {
+        guard let overlay = helpOverlay else { return true }
+        let location = gestureRecognizer.location(in: overlay)
+        let hitView = overlay.hitTest(location)
+        // Don't dismiss if the click landed on a button
+        return !(hitView is NSButton || hitView?.superview is NSButton)
+    }
+
+    @objc private func helpAccessibilityClicked() {
+        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+        _ = AXIsProcessTrustedWithOptions(options)
+        let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
+        if !NSWorkspace.shared.open(url) {
+            NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/System Settings.app"))
+        }
+    }
+
+    private func makeHelpContent() -> NSAttributedString {
+        let str = NSMutableAttributedString()
+        let titleFont = L.current == .zh
+            ? NSFont.systemFont(ofSize: 24, weight: .bold)
+            : NSFont(name: "Menlo-Bold", size: 20) ?? NSFont.monospacedSystemFont(ofSize: 20, weight: .bold)
+        let stepFont = L.current == .zh
+            ? NSFont.systemFont(ofSize: 18, weight: .regular)
+            : NSFont(name: "Menlo", size: 16) ?? NSFont.monospacedSystemFont(ofSize: 16, weight: .regular)
+
+        let titlePara = NSMutableParagraphStyle()
+        titlePara.alignment = .center
+
+        let stepPara = NSMutableParagraphStyle()
+        stepPara.alignment = .center
+        stepPara.lineSpacing = 6
+        stepPara.paragraphSpacingBefore = 16
+
+        let subStepPara = NSMutableParagraphStyle()
+        subStepPara.alignment = .center
+        subStepPara.lineSpacing = 6
+        subStepPara.paragraphSpacingBefore = 4
+
+        let titleAttrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: retroGreen,
+            .font: titleFont,
+            .paragraphStyle: titlePara
+        ]
+        let stepAttrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: retroDimGreen,
+            .font: stepFont,
+            .paragraphStyle: stepPara
+        ]
+        let stepKeyAttrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: retroGreen,
+            .font: stepFont,
+            .paragraphStyle: stepPara
+        ]
+        let subStepAttrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: retroDimGreen,
+            .font: stepFont,
+            .paragraphStyle: subStepPara
+        ]
+
+        str.append(NSAttributedString(string: L.helpTitle, attributes: titleAttrs))
+
+        str.append(NSAttributedString(string: "\n1.  ", attributes: stepKeyAttrs))
+        str.append(NSAttributedString(string: L.helpStep1, attributes: stepAttrs))
+
+        str.append(NSAttributedString(string: "\n2.  ", attributes: stepKeyAttrs))
+        str.append(NSAttributedString(string: HotkeyChoice.current.displayName, attributes: stepKeyAttrs))
+        str.append(NSAttributedString(string: " " + L.helpStep2Suffix, attributes: stepAttrs))
+
+        str.append(NSAttributedString(string: "\n3.  ", attributes: stepKeyAttrs))
+        str.append(NSAttributedString(string: L.helpStep3a, attributes: stepAttrs))
+        str.append(NSAttributedString(string: "\n    ", attributes: subStepAttrs))
+        str.append(NSAttributedString(string: L.helpStep3b, attributes: subStepAttrs))
+
+        return str
+    }
+
+    private func makeDismissString() -> NSAttributedString {
+        let font = L.current == .zh
+            ? NSFont.systemFont(ofSize: 16, weight: .medium)
+            : NSFont(name: "Menlo", size: 14) ?? NSFont.monospacedSystemFont(ofSize: 14, weight: .regular)
+        let centered = NSMutableParagraphStyle()
+        centered.alignment = .center
+        let attrs: [NSAttributedString.Key: Any] = [
+            .foregroundColor: retroGreen.withAlphaComponent(0.5),
+            .font: font,
+            .paragraphStyle: centered
+        ]
+        return NSAttributedString(string: L.helpDismiss, attributes: attrs)
     }
 
     @objc private func clearSearchClicked() {
@@ -801,7 +1009,9 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
 
         if event.keyCode == 53 { // Esc
-            if editingIndex != nil {
+            if helpOverlay?.superview != nil {
+                dismissHelp()
+            } else if editingIndex != nil {
                 exitEditMode()
             } else if isSearchFieldFocused {
                 searchField.stringValue = ""
@@ -838,6 +1048,12 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         if event.keyCode == 125 { moveSelection(by: 1); return }
         if event.keyCode == 126 { moveSelection(by: -1); return }
 
+        // ? key toggles help overlay
+        if let chars = event.characters, chars == "?", flags.isEmpty || flags == .shift {
+            toggleHelp()
+            return
+        }
+
         // Type-ahead: any printable character focuses the search field and starts a search
         if !isSearchFieldFocused,
            let chars = event.characters,
@@ -869,6 +1085,18 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     // MARK: - NSTextFieldDelegate
 
     func controlTextDidChange(_ obj: Notification) {
+        // ? toggles help even when search field is focused
+        if searchField.stringValue.hasSuffix("?") {
+            let withoutQuestion = String(searchField.stringValue.dropLast())
+            searchField.stringValue = withoutQuestion
+            searchQuery = withoutQuestion
+            if searchQuery.isEmpty {
+                view.window?.makeFirstResponder(self)
+            }
+            reloadEntries()
+            toggleHelp()
+            return
+        }
         searchQuery = searchField.stringValue
         selectedIndex = 0
         expandedIndex = nil

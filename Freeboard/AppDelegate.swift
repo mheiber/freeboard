@@ -130,6 +130,11 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
         menu.addItem(shortcutItem)
 
         menu.addItem(NSMenuItem.separator())
+        let helpItem = NSMenuItem(title: L.help, action: #selector(showHelp), keyEquivalent: "")
+        helpItem.target = self
+        menu.addItem(helpItem)
+
+        menu.addItem(NSMenuItem.separator())
         let quitItem = NSMenuItem(title: L.quitFreeboard, action: #selector(quitApp), keyEquivalent: "q")
         quitItem.target = self
         menu.addItem(quitItem)
@@ -160,6 +165,13 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
 
     @objc private func openApp() {
         togglePopup()
+    }
+
+    @objc private func showHelp() {
+        if !popupWindow.isVisible {
+            showPopup()
+        }
+        historyVC.toggleHelp()
     }
 
     @objc private func quitApp() {
