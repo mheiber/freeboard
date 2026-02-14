@@ -9,7 +9,7 @@ protocol ClipboardHistoryDelegate: AnyObject {
     func didDismiss()
 }
 
-class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, NSTableViewDelegate, NSTextFieldDelegate, NSTextViewDelegate, NSGestureRecognizerDelegate, MonacoEditorDelegate {
+class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, NSTableViewDelegate, NSTextFieldDelegate, NSTextViewDelegate, NSGestureRecognizerDelegate, MonacoEditorDelegate, NSMenuDelegate {
 
     weak var historyDelegate: ClipboardHistoryDelegate?
     var clipboardManager: ClipboardManager?
@@ -264,6 +264,10 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             userInfo: nil
         )
         tableView.addTrackingArea(trackingArea)
+
+        let contextMenu = NSMenu()
+        contextMenu.delegate = self
+        tableView.menu = contextMenu
     }
 
     private func setupHelpLabel() {
@@ -1646,6 +1650,49 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         historyDelegate?.didDeleteEntry(filteredEntries[selectedIndex])
     }
 
+    // MARK: - Context menu actions
+
+    @objc private func contextMenuPaste(_ sender: NSMenuItem) {
+        selectCurrent(at: sender.tag)
+    }
+
+    @objc private func contextMenuPasteAlternate(_ sender: NSMenuItem) {
+        selectCurrentAlternateFormat(at: sender.tag)
+    }
+
+    @objc private func contextMenuEdit(_ sender: NSMenuItem) {
+        let row = sender.tag
+        guard row < filteredEntries.count else { return }
+        selectedIndex = row
+        enterEditMode()
+    }
+
+    @objc private func contextMenuToggleExpand(_ sender: NSMenuItem) {
+        let row = sender.tag
+        guard row < filteredEntries.count else { return }
+        selectedIndex = row
+        toggleExpand()
+    }
+
+    @objc private func contextMenuToggleStar(_ sender: NSMenuItem) {
+        let row = sender.tag
+        guard row < filteredEntries.count else { return }
+        clipboardManager?.toggleStar(id: filteredEntries[row].id)
+    }
+
+    @objc private func contextMenuDelete(_ sender: NSMenuItem) {
+        let row = sender.tag
+        guard row < filteredEntries.count else { return }
+        historyDelegate?.didDeleteEntry(filteredEntries[row])
+    }
+
+    @objc private func contextMenuRevealInFinder(_ sender: NSMenuItem) {
+        let row = sender.tag
+        guard row < filteredEntries.count else { return }
+        guard let url = filteredEntries[row].fileURL else { return }
+        NSWorkspace.shared.activateFileViewerSelecting([url])
+    }
+
     override func mouseMoved(with event: NSEvent) {
         let pointInTable = tableView.convert(event.locationInWindow, from: nil)
         let row = tableView.row(at: pointInTable)
@@ -1685,6 +1732,64 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             return
         }
         super.mouseEntered(with: event)
+    }
+
+    // MARK: - NSMenuDelegate
+
+    func menuNeedsUpdate(_ menu: NSMenu) {
+        menu.removeAllItems()
+
+        if editingIndex != nil || monacoEditorView != nil { return }
+
+        let row = tableView.clickedRow
+        guard row >= 0, row < filteredEntries.count else { return }
+
+        let entry = filteredEntries[row]
+
+        selectedIndex = row
+        tableView.reloadData()
+        updateHelpLabel()
+
+        func addItem(_ title: String, hint: String? = nil, action: Selector) {
+            let label = hint != nil ? "\(title)  (\(hint!))" : title
+            let item = NSMenuItem(title: label, action: action, keyEquivalent: "")
+            item.tag = row
+            item.target = self
+            menu.addItem(item)
+        }
+
+        addItem(L.contextPaste, hint: "Enter", action: #selector(contextMenuPaste(_:)))
+
+        if entry.entryType == .text && !entry.isPassword {
+            switch entry.formatCategory {
+            case .markdown:
+                addItem(L.contextPasteAsRichText, hint: "⇧Enter", action: #selector(contextMenuPasteAlternate(_:)))
+            case .other:
+                if entry.hasRichData {
+                    addItem(L.contextPasteAsPlainText, hint: "⇧Enter", action: #selector(contextMenuPasteAlternate(_:)))
+                }
+            }
+        }
+
+        menu.addItem(NSMenuItem.separator())
+
+        if !entry.isPassword {
+            addItem(L.contextEdit, hint: "^E", action: #selector(contextMenuEdit(_:)))
+        }
+
+        let expandTitle = expandedIndex == row ? L.contextCollapse : L.contextExpand
+        addItem(expandTitle, hint: "Tab", action: #selector(contextMenuToggleExpand(_:)))
+
+        let starTitle = entry.isStarred ? L.contextUnstar : L.contextStar
+        addItem(starTitle, hint: "⌘S", action: #selector(contextMenuToggleStar(_:)))
+
+        menu.addItem(NSMenuItem.separator())
+
+        if entry.entryType == .fileURL, entry.fileURL != nil {
+            addItem(L.contextRevealInFinder, action: #selector(contextMenuRevealInFinder(_:)))
+        }
+
+        addItem(L.contextDelete, hint: "⌘D", action: #selector(contextMenuDelete(_:)))
     }
 
     @objc private func tableClicked() {

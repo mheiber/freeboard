@@ -166,6 +166,17 @@ struct L {
     static var editingHelpCtrlE: String { tr("editingHelpCtrlE") }
     static var editingHelpVimEnable: String { tr("editingHelpVimEnable") }
     static var editingHelpVimDisable: String { tr("editingHelpVimDisable") }
+    static var contextPaste: String { tr("contextPaste") }
+    static var contextPasteAsPlainText: String { tr("contextPasteAsPlainText") }
+    static var contextPasteAsRichText: String { tr("contextPasteAsRichText") }
+    static var contextPasteAsMarkdown: String { tr("contextPasteAsMarkdown") }
+    static var contextEdit: String { tr("contextEdit") }
+    static var contextExpand: String { tr("contextExpand") }
+    static var contextCollapse: String { tr("contextCollapse") }
+    static var contextStar: String { tr("contextStar") }
+    static var contextUnstar: String { tr("contextUnstar") }
+    static var contextDelete: String { tr("contextDelete") }
+    static var contextRevealInFinder: String { tr("contextRevealInFinder") }
 
     static func accessibleMinutesAgo(_ n: Int) -> String {
         String(format: tr("accessibleMinutesAgo"), n)
@@ -707,6 +718,58 @@ struct L {
             .pt: "Clique aqui para desativar edição estilo Vim",
             .ru: "Нажмите, чтобы отключить редактирование в стиле Vim",
             .ja: "クリックして Vim スタイル編集を無効にする"
+        ],
+        "contextPaste": [
+            .en: "Paste", .zh: "粘贴", .hi: "पेस्ट करें", .es: "Pegar", .fr: "Coller",
+            .ar: "لصق", .bn: "পেস্ট", .pt: "Colar", .ru: "Вставить", .ja: "貼り付け"
+        ],
+        "contextPasteAsPlainText": [
+            .en: "Paste as Plain Text", .zh: "粘贴为纯文本", .hi: "सादा टेक्स्ट के रूप में पेस्ट करें",
+            .es: "Pegar como texto plano", .fr: "Coller en texte brut",
+            .ar: "لصق كنص عادي", .bn: "সাধারণ টেক্সট হিসেবে পেস্ট",
+            .pt: "Colar como texto simples", .ru: "Вставить как текст", .ja: "テキストとして貼り付け"
+        ],
+        "contextPasteAsRichText": [
+            .en: "Paste as Rich Text", .zh: "粘贴为富文本", .hi: "रिच टेक्स्ट के रूप में पेस्ट करें",
+            .es: "Pegar como texto enriquecido", .fr: "Coller en texte enrichi",
+            .ar: "لصق كنص منسق", .bn: "রিচ টেক্সট হিসেবে পেস্ট",
+            .pt: "Colar como texto formatado", .ru: "Вставить с форматированием", .ja: "リッチテキストとして貼り付け"
+        ],
+        "contextPasteAsMarkdown": [
+            .en: "Paste as Markdown", .zh: "粘贴为 Markdown", .hi: "Markdown के रूप में पेस्ट करें",
+            .es: "Pegar como Markdown", .fr: "Coller en Markdown",
+            .ar: "لصق كـ Markdown", .bn: "Markdown হিসেবে পেস্ট",
+            .pt: "Colar como Markdown", .ru: "Вставить как Markdown", .ja: "Markdownとして貼り付け"
+        ],
+        "contextEdit": [
+            .en: "Edit", .zh: "编辑", .hi: "संपादित करें", .es: "Editar", .fr: "Modifier",
+            .ar: "تحرير", .bn: "সম্পাদনা", .pt: "Editar", .ru: "Править", .ja: "編集"
+        ],
+        "contextExpand": [
+            .en: "Expand", .zh: "展开", .hi: "विस्तार करें", .es: "Expandir", .fr: "Développer",
+            .ar: "توسيع", .bn: "প্রসারিত", .pt: "Expandir", .ru: "Развернуть", .ja: "展開"
+        ],
+        "contextCollapse": [
+            .en: "Collapse", .zh: "折叠", .hi: "संक्षिप्त करें", .es: "Contraer", .fr: "Réduire",
+            .ar: "طي", .bn: "সঙ্কুচিত", .pt: "Recolher", .ru: "Свернуть", .ja: "折りたたむ"
+        ],
+        "contextStar": [
+            .en: "Star", .zh: "收藏", .hi: "स्टार करें", .es: "Destacar", .fr: "Ajouter aux favoris",
+            .ar: "تمييز", .bn: "তারকা দিন", .pt: "Favoritar", .ru: "Отметить", .ja: "スターを付ける"
+        ],
+        "contextUnstar": [
+            .en: "Unstar", .zh: "取消收藏", .hi: "स्टार हटाएं", .es: "Quitar destacado", .fr: "Retirer des favoris",
+            .ar: "إلغاء التمييز", .bn: "তারকা সরান", .pt: "Remover favorito", .ru: "Снять отметку", .ja: "スターを外す"
+        ],
+        "contextDelete": [
+            .en: "Delete", .zh: "删除", .hi: "हटाएं", .es: "Eliminar", .fr: "Supprimer",
+            .ar: "حذف", .bn: "মুছুন", .pt: "Excluir", .ru: "Удалить", .ja: "削除"
+        ],
+        "contextRevealInFinder": [
+            .en: "Reveal in Finder", .zh: "在 Finder 中显示", .hi: "Finder में दिखाएं",
+            .es: "Mostrar en Finder", .fr: "Afficher dans le Finder",
+            .ar: "عرض في Finder", .bn: "Finder-এ দেখান",
+            .pt: "Mostrar no Finder", .ru: "Показать в Finder", .ja: "Finderで表示"
         ],
     ]
 }
