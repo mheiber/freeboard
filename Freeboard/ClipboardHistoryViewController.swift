@@ -1325,6 +1325,23 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             numberLabel = nil
         }
 
+        // Markdown format indicator — subtle "md" tag for markdown entries
+        let mdLabel: NSTextField?
+        if entry.formatCategory == .markdown {
+            let ml = NSTextField(labelWithString: "md")
+            ml.translatesAutoresizingMaskIntoConstraints = false
+            ml.font = retroFontSmall
+            ml.textColor = retroDimGreen.withAlphaComponent(0.35)
+            ml.backgroundColor = .clear
+            ml.isBezeled = false
+            ml.alignment = .right
+            ml.setAccessibilityElement(false)
+            cell.addSubview(ml)
+            mdLabel = ml
+        } else {
+            mdLabel = nil
+        }
+
         let timeLabel = NSTextField(labelWithString: entry.timeAgo)
         timeLabel.translatesAutoresizingMaskIntoConstraints = false
         timeLabel.font = retroFontSmall
@@ -1378,7 +1395,6 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
                 scrollContainer.leadingAnchor.constraint(equalTo: indicator.trailingAnchor, constant: 6),
                 scrollContainer.topAnchor.constraint(equalTo: cell.topAnchor, constant: 4),
                 scrollContainer.bottomAnchor.constraint(equalTo: cell.bottomAnchor, constant: -4),
-                scrollContainer.trailingAnchor.constraint(equalTo: timeLabel.leadingAnchor, constant: -10),
 
                 timeLabel.trailingAnchor.constraint(equalTo: deleteButton.leadingAnchor, constant: -6),
                 timeLabel.topAnchor.constraint(equalTo: cell.topAnchor, constant: 14),
@@ -1389,6 +1405,16 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
                 deleteButton.widthAnchor.constraint(equalToConstant: 24),
                 deleteButton.heightAnchor.constraint(equalToConstant: 24)
             ])
+
+            if let ml = mdLabel {
+                NSLayoutConstraint.activate([
+                    ml.trailingAnchor.constraint(equalTo: timeLabel.leadingAnchor, constant: -4),
+                    ml.centerYAnchor.constraint(equalTo: timeLabel.centerYAnchor),
+                    scrollContainer.trailingAnchor.constraint(equalTo: ml.leadingAnchor, constant: -6),
+                ])
+            } else {
+                scrollContainer.trailingAnchor.constraint(equalTo: timeLabel.leadingAnchor, constant: -10).isActive = true
+            }
 
             if let nl = numberLabel {
                 NSLayoutConstraint.activate([
@@ -1479,7 +1505,6 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
 
                         contentLabel.leadingAnchor.constraint(equalTo: indicator.trailingAnchor, constant: 6),
                         contentLabel.topAnchor.constraint(equalTo: iv.bottomAnchor, constant: 4),
-                        contentLabel.trailingAnchor.constraint(equalTo: timeLabel.leadingAnchor, constant: -10),
 
                         timeLabel.trailingAnchor.constraint(equalTo: deleteButton.leadingAnchor, constant: -6),
                         timeLabel.topAnchor.constraint(equalTo: cell.topAnchor, constant: 14),
@@ -1506,7 +1531,6 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
                         contentLabel.leadingAnchor.constraint(equalTo: iv.trailingAnchor, constant: 8),
                         contentLabel.topAnchor.constraint(equalTo: cell.topAnchor, constant: 8),
                         contentLabel.bottomAnchor.constraint(lessThanOrEqualTo: cell.bottomAnchor, constant: -8),
-                        contentLabel.trailingAnchor.constraint(equalTo: timeLabel.leadingAnchor, constant: -10),
 
                         timeLabel.trailingAnchor.constraint(equalTo: deleteButton.leadingAnchor, constant: -6),
                         timeLabel.topAnchor.constraint(equalTo: cell.topAnchor, constant: 14),
@@ -1527,7 +1551,6 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
                     contentLabel.leadingAnchor.constraint(equalTo: indicator.trailingAnchor, constant: 6),
                     contentLabel.topAnchor.constraint(equalTo: cell.topAnchor, constant: 8),
                     contentLabel.bottomAnchor.constraint(lessThanOrEqualTo: cell.bottomAnchor, constant: -8),
-                    contentLabel.trailingAnchor.constraint(equalTo: timeLabel.leadingAnchor, constant: -10),
 
                     timeLabel.trailingAnchor.constraint(equalTo: deleteButton.leadingAnchor, constant: -6),
                     timeLabel.topAnchor.constraint(equalTo: cell.topAnchor, constant: 14),
@@ -1538,6 +1561,17 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
                     deleteButton.widthAnchor.constraint(equalToConstant: 24),
                     deleteButton.heightAnchor.constraint(equalToConstant: 24)
                 ])
+            }
+
+            // Connect content label trailing to md label or time label
+            if let ml = mdLabel {
+                NSLayoutConstraint.activate([
+                    ml.trailingAnchor.constraint(equalTo: timeLabel.leadingAnchor, constant: -4),
+                    ml.centerYAnchor.constraint(equalTo: timeLabel.centerYAnchor),
+                    contentLabel.trailingAnchor.constraint(equalTo: ml.leadingAnchor, constant: -6),
+                ])
+            } else {
+                contentLabel.trailingAnchor.constraint(equalTo: timeLabel.leadingAnchor, constant: -10).isActive = true
             }
 
             if let nl = numberLabel {
