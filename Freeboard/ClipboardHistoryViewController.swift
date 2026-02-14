@@ -34,6 +34,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     private var searchQuery: String = ""
     private var hoveredRow: Int? = nil
     private var mouseInIndicatorZone: Bool = false
+    private var keyMonitor: Any?
 
     private let retroGreen = NSColor(red: 0.0, green: 1.0, blue: 0.25, alpha: 1.0)
     private let retroDimGreen = NSColor(red: 0.0, green: 0.6, blue: 0.15, alpha: 1.0)
@@ -98,6 +99,24 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         reloadEntries()
         updateAccessibilityBanner()
         view.window?.makeFirstResponder(self)
+
+        keyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            guard let self = self else { return event }
+            let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
+            if flags == .command, event.charactersIgnoringModifiers == "s", self.editingIndex == nil {
+                self.toggleStarOnSelected()
+                return nil
+            }
+            return event
+        }
+    }
+
+    override func viewWillDisappear() {
+        super.viewWillDisappear()
+        if let monitor = keyMonitor {
+            NSEvent.removeMonitor(monitor)
+            keyMonitor = nil
+        }
     }
 
     func refreshLocalization() {
@@ -724,17 +743,6 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
 
     private var isSearchFieldFocused: Bool {
         view.window?.firstResponder === searchField.currentEditor()
-    }
-
-    override func performKeyEquivalent(with event: NSEvent) -> Bool {
-        let flags = event.modifierFlags.intersection(.deviceIndependentFlagsMask)
-        if flags == .command && event.charactersIgnoringModifiers == "s" {
-            if editingIndex == nil {
-                toggleStarOnSelected()
-                return true
-            }
-        }
-        return super.performKeyEquivalent(with: event)
     }
 
     override func keyDown(with event: NSEvent) {
