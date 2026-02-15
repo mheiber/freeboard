@@ -2764,7 +2764,12 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     func control(_ control: NSControl, textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
         if commandSelector == #selector(insertNewline(_:)) {
             if editingIndex != nil { return false } // Let text view handle newlines
-            handleEnter(); return true
+            if NSApp.currentEvent?.modifierFlags.contains(.shift) == true {
+                selectCurrentAlternateFormat()
+            } else {
+                handleEnter()
+            }
+            return true
         }
         if commandSelector == #selector(cancelOperation(_:)) {
             if editingIndex != nil {
