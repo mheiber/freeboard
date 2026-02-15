@@ -2850,6 +2850,11 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             // Arrow keys also work for navigation
             if event.keyCode == 125 { helpMoveFocus(by: 1); return } // Down
             if event.keyCode == 126 { helpMoveFocus(by: -1); return } // Up
+            // Tab / Shift+Tab
+            if event.keyCode == 48 {
+                helpMoveFocus(by: flags.contains(.shift) ? -1 : 1)
+                return
+            }
             // Swallow all other keys while help is open
             return
         }

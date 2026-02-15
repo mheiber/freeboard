@@ -8,6 +8,8 @@ The keyboard is always the fastest path. Every action has a key binding. Mouse w
 
 Hints are live. If the UI shows a shortcut like "^E edit" or ":x save+close", clicking that hint performs the action. A hint that describes something you can do should let you do it right there. No dead text.
 
+Discoverable layers. Standard keys (Tab, arrow keys) work everywhere a power user would expect them to, even when not documented. For example, Tab cycles through links in help screens alongside j/k -- users who expect it find it; users who don't aren't overwhelmed.
+
 ## 2. Terminal Power: Efficiency, pragmatism, beauty, soul
 
 PRACTICAL: no noise, no animations
