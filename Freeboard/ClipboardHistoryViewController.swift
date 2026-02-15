@@ -757,9 +757,6 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         let bodyFont = L.current.usesSystemFont
             ? NSFont.systemFont(ofSize: 14, weight: .regular)
             : NSFont(name: "Menlo", size: 12) ?? NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
-        let arrowFont = L.current.usesSystemFont
-            ? NSFont.systemFont(ofSize: 28, weight: .bold)
-            : NSFont(name: "Menlo-Bold", size: 24) ?? NSFont.monospacedSystemFont(ofSize: 24, weight: .bold)
 
         // Back button
         let backButton = NSButton(title: "", target: self, action: #selector(settingsBackClicked))
@@ -779,10 +776,6 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         leftPara.alignment = .left
         leftPara.lineSpacing = 4
 
-        let centerPara = NSMutableParagraphStyle()
-        centerPara.alignment = .center
-        centerPara.lineSpacing = 6
-
         let titleAttrs: [NSAttributedString.Key: Any] = [
             .foregroundColor: retroGreen,
             .font: titleFont,
@@ -793,18 +786,11 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             .font: bodyFont,
             .paragraphStyle: leftPara
         ]
-        let dimAttrs: [NSAttributedString.Key: Any] = [
-            .foregroundColor: retroDimGreen.withAlphaComponent(0.6),
-            .font: bodyFont,
-            .paragraphStyle: leftPara
-        ]
 
         let str = NSMutableAttributedString()
         str.append(NSAttributedString(string: L.settings.uppercased(), attributes: titleAttrs))
         str.append(NSAttributedString(string: "\n\n", attributes: bodyAttrs))
         str.append(NSAttributedString(string: L.settingsHelpRightClick, attributes: bodyAttrs))
-        str.append(NSAttributedString(string: "\n\n", attributes: bodyAttrs))
-        str.append(NSAttributedString(string: L.settingsHelpAvailable, attributes: dimAttrs))
 
         let helpContent = NSTextField(labelWithString: "")
         helpContent.translatesAutoresizingMaskIntoConstraints = false
@@ -816,29 +802,15 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         helpContent.alignment = .left
         helpContent.attributedStringValue = str
 
-        // Arrow pointing up toward the menu bar
-        let arrowAttrs: [NSAttributedString.Key: Any] = [
-            .foregroundColor: retroGreen,
-            .font: arrowFont,
-            .paragraphStyle: centerPara
-        ]
-        let arrowLabel = NSTextField(labelWithString: "")
-        arrowLabel.translatesAutoresizingMaskIntoConstraints = false
-        arrowLabel.backgroundColor = .clear
-        arrowLabel.isBezeled = false
-        arrowLabel.isEditable = false
-        arrowLabel.attributedStringValue = NSAttributedString(string: "[F]", attributes: arrowAttrs)
-
         let dismissLabel = NSTextField(labelWithString: "")
         dismissLabel.translatesAutoresizingMaskIntoConstraints = false
         dismissLabel.backgroundColor = .clear
         dismissLabel.isBezeled = false
         dismissLabel.isEditable = false
         dismissLabel.alignment = .center
-        dismissLabel.attributedStringValue = makeDismissString(withBackNav: true)
+        dismissLabel.attributedStringValue = makeDismissString(withBackNav: true, hasLinks: false)
 
         overlay.addSubview(helpContent)
-        overlay.addSubview(arrowLabel)
         overlay.addSubview(dismissLabel)
 
         // Track focusable items for keyboard navigation
@@ -857,9 +829,6 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             helpContent.leadingAnchor.constraint(equalTo: overlay.leadingAnchor, constant: 60),
             helpContent.trailingAnchor.constraint(equalTo: overlay.trailingAnchor, constant: -60),
 
-            arrowLabel.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
-            arrowLabel.topAnchor.constraint(equalTo: helpContent.bottomAnchor, constant: 24),
-
             dismissLabel.centerXAnchor.constraint(equalTo: overlay.centerXAnchor),
             dismissLabel.bottomAnchor.constraint(equalTo: overlay.bottomAnchor, constant: -24),
         ])
@@ -867,21 +836,41 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         helpOverlay = overlay
         NSAccessibility.post(element: overlay, notification: .layoutChanged)
 
-        // Show arrow window pointing to the status bar icon
-        showSettingsArrowToStatusItem()
+        // Show arrow window pointing to the status bar icon, originating from "[F]" in the text
+        showSettingsArrowToStatusItem(from: helpContent, attributedText: str, bodyFont: bodyFont)
     }
 
-    private func showSettingsArrowToStatusItem() {
+    private func showSettingsArrowToStatusItem(from helpContent: NSTextField, attributedText: NSAttributedString, bodyFont: NSFont) {
         guard let appDelegate = NSApp.delegate as? AppDelegate else { return }
         guard let screen = NSScreen.main else { return }
         guard let popupWindow = self.view.window else { return }
 
         if let statusFrame = appDelegate.statusItemFrame() {
-            // We have a reliable status item position — draw the arrow directly to it
+            // We have a reliable status item position -- draw the arrow directly to it
             let popupFrame = popupWindow.frame
 
-            let startX = popupFrame.midX
-            let startY = popupFrame.maxY
+            // Find the "[F]" text position within helpContent to use as the arrow origin
+            let fullString = attributedText.string
+            let fRange = (fullString as NSString).range(of: "[F]")
+            var startX = popupFrame.midX // fallback
+            var startY = popupFrame.maxY
+            if fRange.location != NSNotFound {
+                // Force layout so helpContent has its final frame
+                helpContent.superview?.layoutSubtreeIfNeeded()
+                // Measure the last line up to "[F]" center using the body font
+                let lastLineStart = (fullString as NSString).range(of: "\n", options: .backwards, range: NSRange(location: 0, length: fRange.location))
+                let lineStartIdx = lastLineStart.location != NSNotFound ? lastLineStart.location + 1 : 0
+                let prefixRange = NSRange(location: lineStartIdx, length: fRange.location - lineStartIdx)
+                let prefixStr = (fullString as NSString).substring(with: prefixRange)
+                let fStr = "[F]"
+                let prefixWidth = (prefixStr as NSString).size(withAttributes: [.font: bodyFont]).width
+                let fWidth = (fStr as NSString).size(withAttributes: [.font: bodyFont]).width
+                // Convert helpContent's frame origin to screen coordinates
+                let contentFrameInWindow = helpContent.convert(helpContent.bounds, to: nil)
+                let contentFrameOnScreen = popupWindow.convertToScreen(contentFrameInWindow)
+                startX = contentFrameOnScreen.origin.x + prefixWidth + fWidth / 2
+                startY = contentFrameOnScreen.maxY
+            }
             let endX = statusFrame.midX
             let endY = statusFrame.minY
 
@@ -1081,7 +1070,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         dismissLabel.isBezeled = false
         dismissLabel.isEditable = false
         dismissLabel.alignment = .center
-        dismissLabel.attributedStringValue = makeDismissString(withBackNav: true)
+        dismissLabel.attributedStringValue = makeDismissString(withBackNav: true, hasLinks: false)
 
         overlay.addSubview(scrollContainer)
         overlay.addSubview(dismissLabel)
@@ -1323,7 +1312,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         return str
     }
 
-    private func makeDismissString(withBackNav: Bool = false) -> NSAttributedString {
+    private func makeDismissString(withBackNav: Bool = false, hasLinks: Bool = true) -> NSAttributedString {
         let font = L.current.usesSystemFont
             ? NSFont.systemFont(ofSize: 16, weight: .medium)
             : NSFont(name: "Menlo", size: 14) ?? NSFont.monospacedSystemFont(ofSize: 14, weight: .regular)
@@ -1334,7 +1323,14 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             .font: font,
             .paragraphStyle: centered
         ]
-        let text = withBackNav ? L.helpNavHintBack : L.helpNavHint
+        let text: String
+        if withBackNav && !hasLinks {
+            text = L.helpNavHintBackOnly
+        } else if withBackNav {
+            text = L.helpNavHintBack
+        } else {
+            text = L.helpNavHint
+        }
         return NSAttributedString(string: text, attributes: attrs)
     }
 
@@ -1665,6 +1661,11 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         // Remove old hint buttons
         for view in helpLabel.arrangedSubviews { helpLabel.removeArrangedSubview(view); view.removeFromSuperview() }
 
+        let hasItems = !filteredEntries.isEmpty
+
+        // Only show item-specific shortcuts when there are clipboard items (liveness principle)
+        guard hasItems else { return }
+
         // "1-9 pasteNth" — informational only (no single action to trigger)
         helpLabel.addArrangedSubview(makeHintButton(shortcut: "1-9", label: L.pasteNth, tag: Self.hintTagNoAction))
         helpLabel.addArrangedSubview(makeHintSpacer())
@@ -1742,7 +1743,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             }
         }
 
-        // "^n/^p select" — navigate the clipboard list, displayed as a single
+        // "^p/^n select" — navigate the clipboard list, displayed as a single
         // visual unit but with individually-clickable halves.
         do {
             let hcAlpha: CGFloat = highContrast ? 1.0 : 0.6
@@ -1755,16 +1756,16 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
                 .font: retroFontSmall
             ]
 
-            // "^n" button (select next)
-            let nTitle = NSMutableAttributedString()
-            nTitle.append(NSAttributedString(string: "^n", attributes: keyAttrs))
-            let nBtn = HoverUnderlineButton(title: "", target: self, action: #selector(helpHintClicked(_:)))
-            nBtn.translatesAutoresizingMaskIntoConstraints = false
-            nBtn.isBordered = false
-            nBtn.attributedTitle = nTitle
-            nBtn.tag = Self.hintTagNextItem
-            nBtn.setAccessibilityLabel("^n \(L.select)")
-            helpLabel.addArrangedSubview(nBtn)
+            // "^p" button (select previous)
+            let pTitle = NSMutableAttributedString()
+            pTitle.append(NSAttributedString(string: "^p", attributes: keyAttrs))
+            let pBtn = HoverUnderlineButton(title: "", target: self, action: #selector(helpHintClicked(_:)))
+            pBtn.translatesAutoresizingMaskIntoConstraints = false
+            pBtn.isBordered = false
+            pBtn.attributedTitle = pTitle
+            pBtn.tag = Self.hintTagPrevItem
+            pBtn.setAccessibilityLabel("^p \(L.select)")
+            helpLabel.addArrangedSubview(pBtn)
 
             // "/" separator (non-clickable, no spacing)
             let slashLabel = NSTextField(labelWithString: "/")
@@ -1777,17 +1778,17 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             slashLabel.setAccessibilityElement(false)
             helpLabel.addArrangedSubview(slashLabel)
 
-            // "^p select" button (select previous, carries the shared label)
-            let pTitle = NSMutableAttributedString()
-            pTitle.append(NSAttributedString(string: "^p ", attributes: keyAttrs))
-            pTitle.append(NSAttributedString(string: L.select, attributes: dimAttrs))
-            let pBtn = HoverUnderlineButton(title: "", target: self, action: #selector(helpHintClicked(_:)))
-            pBtn.translatesAutoresizingMaskIntoConstraints = false
-            pBtn.isBordered = false
-            pBtn.attributedTitle = pTitle
-            pBtn.tag = Self.hintTagPrevItem
-            pBtn.setAccessibilityLabel("^p \(L.select)")
-            helpLabel.addArrangedSubview(pBtn)
+            // "^n select" button (select next, carries the shared label)
+            let nTitle = NSMutableAttributedString()
+            nTitle.append(NSAttributedString(string: "^n ", attributes: keyAttrs))
+            nTitle.append(NSAttributedString(string: L.select, attributes: dimAttrs))
+            let nBtn = HoverUnderlineButton(title: "", target: self, action: #selector(helpHintClicked(_:)))
+            nBtn.translatesAutoresizingMaskIntoConstraints = false
+            nBtn.isBordered = false
+            nBtn.attributedTitle = nTitle
+            nBtn.tag = Self.hintTagNextItem
+            nBtn.setAccessibilityLabel("^n \(L.select)")
+            helpLabel.addArrangedSubview(nBtn)
         }
         helpLabel.addArrangedSubview(makeHintSpacer())
 

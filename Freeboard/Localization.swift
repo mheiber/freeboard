@@ -149,6 +149,7 @@ struct L {
     static var helpCloseHelp: String { tr("helpCloseHelp") }
     static var helpNavHint: String { tr("helpNavHint") }
     static var helpNavHintBack: String { tr("helpNavHintBack") }
+    static var helpNavHintBackOnly: String { tr("helpNavHintBackOnly") }
     static var helpPowerFeatures: String { tr("helpPowerFeatures") }
     static var helpMarkdownLink: String { tr("helpMarkdownLink") }
     static var markdownHelpBack: String { tr("markdownHelpBack") }
@@ -176,7 +177,6 @@ struct L {
     static var settings: String { tr("settings") }
     static var helpSettingsLink: String { tr("helpSettingsLink") }
     static var settingsHelpRightClick: String { tr("settingsHelpRightClick") }
-    static var settingsHelpAvailable: String { tr("settingsHelpAvailable") }
     static var contextPaste: String { tr("contextPaste") }
     static var contextPasteAsPlainText: String { tr("contextPasteAsPlainText") }
     static var contextPasteAsRichText: String { tr("contextPasteAsRichText") }
@@ -628,6 +628,18 @@ struct L {
             .ru: "j/k навигация  Enter перейти  Backspace назад  Esc закрыть справку",
             .ja: "j/k 移動  Enter 開く  Backspace 戻る  Esc ヘルプを閉じる"
         ],
+        "helpNavHintBackOnly": [
+            .en: "Backspace back  Esc close help",
+            .zh: "Backspace 返回  Esc 关闭帮助",
+            .hi: "Backspace वापस  Esc सहायता बंद",
+            .es: "Backspace volver  Esc cerrar ayuda",
+            .fr: "Backspace retour  Esc fermer l'aide",
+            .ar: "Backspace رجوع  Esc إغلاق المساعدة",
+            .bn: "Backspace পিছনে  Esc সাহায্য বন্ধ",
+            .pt: "Backspace voltar  Esc fechar ajuda",
+            .ru: "Backspace назад  Esc закрыть справку",
+            .ja: "Backspace 戻る  Esc ヘルプを閉じる"
+        ],
         "helpPowerFeatures": [
             .en: "POWER FEATURES", .zh: "高级功能", .hi: "पावर सुविधाएं",
             .es: "FUNCIONES AVANZADAS", .fr: "FONCTIONS AVANCÉES",
@@ -821,28 +833,16 @@ struct L {
             .ar: "→ الإعدادات", .bn: "সেটিংস →", .pt: "Configurações →", .ru: "Настройки →", .ja: "設定 →"
         ],
         "settingsHelpRightClick": [
-            .en: "Right-click the [F] menu bar icon",
-            .zh: "右键点击菜单栏的 [F] 图标",
-            .hi: "मेनू बार में [F] आइकन पर राइट-क्लिक करें",
-            .es: "Haz clic derecho en el icono [F] de la barra de menú",
-            .fr: "Faites un clic droit sur l'icône [F] dans la barre de menus",
-            .ar: "انقر بزر الماوس الأيمن على أيقونة [F] في شريط القوائم",
-            .bn: "মেনু বারে [F] আইকনে ডান-ক্লিক করুন",
-            .pt: "Clique com o botão direito no ícone [F] na barra de menus",
-            .ru: "Нажмите правой кнопкой на значок [F] в строке меню",
-            .ja: "メニューバーの [F] アイコンを右クリック"
-        ],
-        "settingsHelpAvailable": [
-            .en: "Language, keyboard shortcut, launch at login, vim mode",
-            .zh: "语言、快捷键、登录时启动、Vim 模式",
-            .hi: "भाषा, कीबोर्ड शॉर्टकट, लॉगिन पर शुरू, Vim मोड",
-            .es: "Idioma, atajo de teclado, iniciar al acceder, modo Vim",
-            .fr: "Langue, raccourci clavier, ouvrir au démarrage, mode Vim",
-            .ar: "اللغة، اختصار لوحة المفاتيح، التشغيل عند الدخول، وضع Vim",
-            .bn: "ভাষা, কীবোর্ড শর্টকাট, লগইনে চালু, Vim মোড",
-            .pt: "Idioma, atalho de teclado, abrir ao iniciar, modo Vim",
-            .ru: "Язык, сочетание клавиш, запуск при входе, режим Vim",
-            .ja: "言語、キーボードショートカット、ログイン時起動、Vimモード"
+            .en: "Right-click the [F] icon in the menu bar to access settings",
+            .zh: "右键点击菜单栏中的 [F] 图标以访问设置",
+            .hi: "सेटिंग्स तक पहुँचने के लिए मेनू बार में [F] आइकन पर राइट-क्लिक करें",
+            .es: "Haz clic derecho en el icono [F] de la barra de menú para acceder a los ajustes",
+            .fr: "Faites un clic droit sur l'icône [F] dans la barre de menus pour accéder aux réglages",
+            .ar: "انقر بزر الماوس الأيمن على أيقونة [F] في شريط القوائم للوصول إلى الإعدادات",
+            .bn: "সেটিংস অ্যাক্সেস করতে মেনু বারে [F] আইকনে ডান-ক্লিক করুন",
+            .pt: "Clique com o botão direito no ícone [F] na barra de menus para acessar as configurações",
+            .ru: "Нажмите правой кнопкой на значок [F] в строке меню для доступа к настройкам",
+            .ja: "設定にアクセスするにはメニューバーの [F] アイコンを右クリック"
         ],
         "contextPaste": [
             .en: "Paste", .zh: "粘贴", .hi: "पेस्ट करें", .es: "Pegar", .fr: "Coller",
