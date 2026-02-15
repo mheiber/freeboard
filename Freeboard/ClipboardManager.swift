@@ -69,7 +69,26 @@ class ClipboardManager {
 
         let types = pasteboard.types ?? []
 
-        // Check for image data first (PNG, TIFF, JPEG)
+        // Check for file URLs first — when copying files from Finder, macOS puts both
+        // a file URL and an image (the file icon) on the pasteboard. Checking file URLs
+        // first ensures we store the file path, not the icon thumbnail.
+        if types.contains(NSPasteboard.PasteboardType("public.file-url")),
+           let urlString = pasteboard.string(forType: NSPasteboard.PasteboardType("public.file-url")),
+           let url = URL(string: urlString) {
+            let fileName = url.lastPathComponent
+            let wasStarred = entries.first(where: { $0.fileURL?.absoluteString == urlString })?.isStarred ?? false
+            entries.removeAll { $0.fileURL?.absoluteString == urlString }
+
+            let entry = ClipboardEntry(content: fileName, isStarred: wasStarred, entryType: .fileURL, fileURL: url)
+            entries.insert(entry, at: 0)
+            capEntries()
+            delegate?.clipboardManagerDidUpdateEntries(self)
+            saveToDisk()
+            return
+        }
+
+        // Check for image data (PNG, TIFF, JPEG) — only reached when there's no file URL,
+        // i.e. screenshots, browser image copies, etc.
         let imageTypes: [NSPasteboard.PasteboardType] = [.png, .tiff,
             NSPasteboard.PasteboardType("public.jpeg")]
         for imageType in imageTypes {
@@ -91,22 +110,6 @@ class ClipboardManager {
                 saveToDisk()
                 return
             }
-        }
-
-        // Check for file URLs
-        if types.contains(NSPasteboard.PasteboardType("public.file-url")),
-           let urlString = pasteboard.string(forType: NSPasteboard.PasteboardType("public.file-url")),
-           let url = URL(string: urlString) {
-            let fileName = url.lastPathComponent
-            let wasStarred = entries.first(where: { $0.fileURL?.absoluteString == urlString })?.isStarred ?? false
-            entries.removeAll { $0.fileURL?.absoluteString == urlString }
-
-            let entry = ClipboardEntry(content: fileName, isStarred: wasStarred, entryType: .fileURL, fileURL: url)
-            entries.insert(entry, at: 0)
-            capEntries()
-            delegate?.clipboardManagerDidUpdateEntries(self)
-            saveToDisk()
-            return
         }
 
         // Fall through to text
