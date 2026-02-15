@@ -231,9 +231,19 @@ class MonacoEditorView: NSView, WKScriptMessageHandler, WKNavigationDelegate {
     /// Heuristic language detection based on text content.
     /// This serves as a fallback hint for the JS-side detection in editor.html,
     /// which is the primary/authoritative detection engine.
-    static func detectLanguage(_ text: String) -> String {
-        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+    /// - Parameter maxLines: When non-nil, only examine the first N lines for performance.
+    ///   Used in the main view (non-editor) to avoid scanning huge clipboard entries.
+    static func detectLanguage(_ text: String, maxLines: Int? = nil) -> String {
+        var trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return "plaintext" }
+
+        // Performance: if maxLines is set, only look at the first N lines
+        if let limit = maxLines {
+            let allLines = trimmed.components(separatedBy: "\n")
+            if allLines.count > limit {
+                trimmed = allLines.prefix(limit).joined(separator: "\n")
+            }
+        }
 
         // JSON: starts with { or [
         if let first = trimmed.first, first == "{" || first == "[" {

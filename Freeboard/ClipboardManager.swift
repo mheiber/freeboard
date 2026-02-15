@@ -426,7 +426,13 @@ class ClipboardManager {
 
         // 3. Strings (double-quoted and single-quoted)
         patterns.append((#"&quot;(?:[^&]|&(?!quot;))*?&quot;"#, "#032f62"))
-        patterns.append((#"&#39;(?:[^&]|&(?!#39;))*?&#39;"#, "#032f62"))
+        // OCaml uses single-quotes for type variables ('a, 'b) and char literals ('x'),
+        // so skip the generic single-quote string pattern. Match only char literals.
+        if language == "ocaml" {
+            patterns.append((#"&#39;(?:[^&]|&(?!#39;))&#39;(?!\w)"#, "#032f62"))
+        } else {
+            patterns.append((#"&#39;(?:[^&]|&(?!#39;))*?&#39;"#, "#032f62"))
+        }
         // Backtick template literals for JS/TS (escaped as `)
         if language == "javascript" || language == "typescript" {
             patterns.append((#"`[^`]*`"#, "#032f62"))
@@ -470,6 +476,10 @@ class ClipboardManager {
         // Ruby symbols (:symbol)
         if language == "ruby" {
             patterns.append((#":\w+"#, "#0086b3"))
+        }
+        // OCaml: capitalized identifiers are module names / constructors
+        if language == "ocaml" {
+            patterns.append((#"\b[A-Z]\w*"#, "#6f42c1"))
         }
 
         // Combine all patterns into one regex with named groups

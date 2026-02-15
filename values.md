@@ -47,3 +47,9 @@ Every user-facing string lives in `Localization.swift` with translations in all 
 - Add an `accessibilityLabel` or `accessibilityHelp` for any new interactive or informational element so VoiceOver users know what Shift+Enter (or any alternate action) will do.
 - If the feature changes behavior based on content type (markdown, code, rich text), communicate that state to VoiceOver via `setAccessibilityHelp` on the row cell and `setAccessibilityLabel` on the hint bar.
 - Context menu items should mirror keyboard shortcuts with localized labels.
+
+## 8. Performance is invisible
+
+The app must feel instant, even with large or numerous clipboard entries. Any feature that processes content -- syntax highlighting, language detection, format classification -- must bound its work to what is actually visible on screen. Never scan an entire million-line entry when the user can only see a few lines. Never do O(n) work where O(1) suffices.
+
+Example: syntax highlighting in the main view only highlights text that is actually rendered. If 100 unexpanded entries each contain a million lines, total highlighting work stays around 700 lines (one line per unexpanded row, plus ~30 lines for one expanded row), not 100 million. Language detection examines at most 40 lines. These limits keep the popup responsive even with pathological clipboard content.

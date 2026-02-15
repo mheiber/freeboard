@@ -100,10 +100,12 @@ struct ClipboardEntry: Identifiable, Equatable {
     }
 
     /// Classify this entry for paste conversion behavior.
+    /// Uses a 40-line detection limit for performance — avoids scanning
+    /// huge clipboard entries just to determine the language.
     var formatCategory: FormatCategory {
         guard entryType == .text else { return .other }
         if isMarkdownContent { return .markdown }
-        let lang = MonacoEditorView.detectLanguage(content)
+        let lang = MonacoEditorView.detectLanguage(content, maxLines: 40)
         if lang != "plaintext" && lang != "markdown" {
             return .code(lang)
         }

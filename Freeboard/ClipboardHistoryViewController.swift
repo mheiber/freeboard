@@ -1917,6 +1917,23 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         NSColor(red: 0.9, green: 0.5, blue: 0.1, alpha: 1.0)
     }
 
+    /// Return a prefix of `text` containing at most `max` lines.
+    /// Returns the full text if it has fewer lines than the limit.
+    private func limitLines(_ text: String, max: Int) -> String {
+        var count = 0
+        var endIndex = text.startIndex
+        while endIndex < text.endIndex {
+            if text[endIndex] == "\n" {
+                count += 1
+                if count >= max {
+                    return String(text[text.startIndex...endIndex])
+                }
+            }
+            endIndex = text.index(after: endIndex)
+        }
+        return text
+    }
+
     /// Create a syntax-highlighted NSAttributedString for a code preview.
     /// Returns nil if no highlighting was applied (caller should fall back to plain text).
     private func syntaxHighlightedString(text: String, language: String, baseColor: NSColor, font: NSFont) -> NSAttributedString? {
@@ -1945,7 +1962,14 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
 
         // 3. Strings (double-quoted and single-quoted)
         patterns.append((#""(?:[^"\\]|\\.)*""#, syntaxStringColor))
-        patterns.append((#"'(?:[^'\\]|\\.)*'"#, syntaxStringColor))
+        // OCaml uses single-quotes for type variables ('a, 'b) and char literals ('x'),
+        // so skip the generic single-quote string pattern to avoid consuming type variables.
+        // Instead, match only char literals: exactly one char or escape between quotes.
+        if language == "ocaml" {
+            patterns.append((#"'(?:[^'\\]|\\.)'(?!\w)"#, syntaxStringColor))
+        } else {
+            patterns.append((#"'(?:[^'\\]|\\.)*'"#, syntaxStringColor))
+        }
         if language == "javascript" || language == "typescript" {
             patterns.append((#"`[^`]*`"#, syntaxStringColor))
         }
@@ -1974,6 +1998,10 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         }
         if language == "rust" {
             patterns.append((#"#!?\[[\w:(, )]*\]"#, syntaxDecoratorColor))
+        }
+        // OCaml: capitalized identifiers are module names / constructors
+        if language == "ocaml" {
+            patterns.append((#"\b[A-Z]\w*"#, syntaxTypeColor))
         }
 
         // Combine into one regex
@@ -2251,25 +2279,42 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             let contentLabel = NSTextField(labelWithString: "")
             contentLabel.translatesAutoresizingMaskIntoConstraints = false
             contentLabel.font = retroFont
-            contentLabel.textColor = isSelected ? retroGreen : retroDimGreen
             contentLabel.backgroundColor = .clear
             contentLabel.isBezeled = false
+            contentLabel.allowsEditingTextAttributes = true
+
+            let baseColor = isSelected ? retroGreen : retroDimGreen
 
             if isExpanded {
                 contentLabel.lineBreakMode = .byWordWrapping
                 contentLabel.maximumNumberOfLines = 0
-                let displayText = entry.displayContent
+                let fullText = entry.displayContent
+                // Performance: only highlight the first ~30 visible lines of expanded text
+                let maxExpandedHighlightLines = 30
+                let displayText = limitLines(fullText, max: maxExpandedHighlightLines)
                 // Apply syntax highlighting for code entries (not markdown, not passwords)
                 if case .code(let lang) = entry.formatCategory,
                    !entry.isPassword,
                    let highlighted = syntaxHighlightedString(
                        text: displayText,
                        language: lang,
-                       baseColor: isSelected ? retroGreen : retroDimGreen,
+                       baseColor: baseColor,
                        font: retroFont) {
-                    contentLabel.attributedStringValue = highlighted
+                    if displayText.count < fullText.count {
+                        // Append the unhighlighted remainder
+                        let remainder = String(fullText[displayText.endIndex...])
+                        let full = NSMutableAttributedString(attributedString: highlighted)
+                        full.append(NSAttributedString(string: remainder, attributes: [
+                            .foregroundColor: baseColor,
+                            .font: retroFont
+                        ]))
+                        contentLabel.attributedStringValue = full
+                    } else {
+                        contentLabel.attributedStringValue = highlighted
+                    }
                 } else {
-                    contentLabel.stringValue = displayText
+                    contentLabel.textColor = baseColor
+                    contentLabel.stringValue = fullText
                 }
             } else {
                 contentLabel.lineBreakMode = .byTruncatingTail
@@ -2277,16 +2322,29 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
                 let displayText = entry.displayContent
                     .replacingOccurrences(of: "\n", with: "\u{21B5} ")
                     .replacingOccurrences(of: "\t", with: "\u{2192} ")
+                // Performance: only highlight the first ~200 chars for single-line preview
+                let previewText = String(displayText.prefix(200))
                 // Apply syntax highlighting for code entries (not markdown, not passwords)
                 if case .code(let lang) = entry.formatCategory,
                    !entry.isPassword,
                    let highlighted = syntaxHighlightedString(
-                       text: displayText,
+                       text: previewText,
                        language: lang,
-                       baseColor: isSelected ? retroGreen : retroDimGreen,
+                       baseColor: baseColor,
                        font: retroFont) {
-                    contentLabel.attributedStringValue = highlighted
+                    if previewText.count < displayText.count {
+                        let remainder = String(displayText[previewText.endIndex...])
+                        let full = NSMutableAttributedString(attributedString: highlighted)
+                        full.append(NSAttributedString(string: remainder, attributes: [
+                            .foregroundColor: baseColor,
+                            .font: retroFont
+                        ]))
+                        contentLabel.attributedStringValue = full
+                    } else {
+                        contentLabel.attributedStringValue = highlighted
+                    }
                 } else {
+                    contentLabel.textColor = baseColor
                     contentLabel.stringValue = displayText
                 }
             }
