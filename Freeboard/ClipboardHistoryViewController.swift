@@ -199,6 +199,24 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
                 self.deleteSelected()
                 return nil
             }
+            // Shift+Enter: alternate format paste (rich paste).
+            // Handle here in the local monitor so it works regardless of
+            // whether the search field or the view controller is first
+            // responder.  The doCommandBy: / keyDown handlers cannot
+            // reliably detect Shift+Return on every macOS version because
+            // the key binding system may map Shift+Return to a selector
+            // other than insertNewline: (e.g. insertLineBreak: or noop:).
+            if (event.keyCode == 36 || event.keyCode == 76), // Return or numpad Enter
+               flags.contains(.shift),
+               !flags.contains(.command),
+               !flags.contains(.control),
+               !flags.contains(.option),
+               self.editingIndex == nil,
+               self.monacoEditorView == nil,
+               self.helpOverlay?.superview == nil {
+                self.selectCurrentAlternateFormat()
+                return nil
+            }
             return event
         }
     }
