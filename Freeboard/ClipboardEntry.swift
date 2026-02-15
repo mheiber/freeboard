@@ -102,13 +102,17 @@ struct ClipboardEntry: Identifiable, Equatable {
     /// Classify this entry for paste conversion behavior.
     /// Uses a 40-line detection limit for performance — avoids scanning
     /// huge clipboard entries just to determine the language.
+    ///
+    /// Detection order: code FIRST, then markdown. This prevents code that
+    /// happens to contain markdown-like patterns (e.g. `**`, `- `) from
+    /// being misclassified as markdown.
     var formatCategory: FormatCategory {
         guard entryType == .text else { return .other }
-        if isMarkdownContent { return .markdown }
         let lang = MonacoEditorView.detectLanguage(content, maxLines: 40)
         if lang != "plaintext" && lang != "markdown" {
             return .code(lang)
         }
+        if isMarkdownContent { return .markdown }
         return .other
     }
 

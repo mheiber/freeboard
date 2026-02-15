@@ -283,7 +283,9 @@ class MonacoEditorView: NSView, WKScriptMessageHandler, WKNavigationDelegate {
         if tomlKVs >= 3 && !trimmed.contains("function ") && !trimmed.contains("def ")
             && !trimmed.contains("class ") && !trimmed.contains("const ") { return "toml" }
 
-        // Markdown detection (HIGHER priority than code)
+        // Markdown detection — but only if content doesn't look like code.
+        // Code with incidental markdown-like patterns (**, -, etc.) should
+        // NOT be classified as markdown.
         let lines = trimmed.components(separatedBy: "\n")
         let sampleCount = min(lines.count, 100)
         var mdScore = 0
@@ -297,7 +299,21 @@ class MonacoEditorView: NSView, WKScriptMessageHandler, WKNavigationDelegate {
             if ln.contains("](") && ln.contains("[") { mdScore += 2 }
             if ln.contains("**") || ln.contains("__") { mdScore += 1 }
         }
-        if mdScore >= 3 { return "markdown" }
+        // Suppress markdown detection when text has strong code signals.
+        // These patterns are extremely unlikely in actual markdown prose.
+        let codeSignals = [
+            "import Foundation", "import UIKit", "import SwiftUI", "import Cocoa",
+            "import AppKit", "import Combine", "import CoreData",
+            "#include", "package main", "use std::", "use crate::",
+            "#!/bin/", "#!/usr/bin/env", "<?php",
+            "if __name__", "public static void main",
+            "Console.WriteLine", "System.out.println",
+            "func ", "fn ", "def ", "class ", "struct ", "enum ",
+            "pub fn ", "pub struct ", "pub enum ",
+            "guard let ", "if let ",
+        ]
+        let looksLikeCode = codeSignals.contains { trimmed.contains($0) }
+        if mdScore >= 3 && !looksLikeCode { return "markdown" }
 
         // Rust: (check before Swift because both use func/struct/enum)
         if trimmed.contains("use std::") || trimmed.contains("use crate::") { return "rust" }
