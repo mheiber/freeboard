@@ -23,6 +23,11 @@ class PopupWindow: NSPanel {
 
         // Allow key events
         self.becomesKeyOnlyIfNeeded = false
+
+        // Accessibility
+        setAccessibilityRole(.popover)
+        setAccessibilityLabel(L.accessibilityMainWindow)
+        setAccessibilityIdentifier("FreeboardPopupWindow")
     }
 
     override var canBecomeKey: Bool { true }

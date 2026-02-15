@@ -194,6 +194,20 @@ struct L {
     static var contextRevealInFinder: String { tr("contextRevealInFinder") }
     static var focusMode: String { tr("focusMode") }
     static var regularSize: String { tr("regularSize") }
+    static var accessibilityClipboardList: String { tr("accessibilityClipboardList") }
+    static var accessibilityEmptyClipboard: String { tr("accessibilityEmptyClipboard") }
+    static var accessibilityNoResults: String { tr("accessibilityNoResults") }
+    static var accessibilityHelpOverlay: String { tr("accessibilityHelpOverlay") }
+    static var accessibilityEditingEntry: String { tr("accessibilityEditingEntry") }
+    static var accessibilityImagePreview: String { tr("accessibilityImagePreview") }
+    static var accessibilityFileIcon: String { tr("accessibilityFileIcon") }
+    static var accessibilityKeyboardShortcuts: String { tr("accessibilityKeyboardShortcuts") }
+    static var accessibilityMainWindow: String { tr("accessibilityMainWindow") }
+    static var accessibilityClearSearch: String { tr("accessibilityClearSearch") }
+    static var accessibilityPermissionNeeded: String { tr("accessibilityPermissionNeeded") }
+    static func accessibilityEntryPosition(_ pos: Int, _ total: Int) -> String {
+        String(format: tr("accessibilityEntryPosition"), pos, total)
+    }
 
     static func accessibleMinutesAgo(_ n: Int) -> String {
         String(format: tr("accessibleMinutesAgo"), n)
@@ -921,6 +935,90 @@ struct L {
             .es: "tamaño normal", .fr: "taille normale",
             .ar: "الحجم العادي", .bn: "সাধারণ আকার",
             .pt: "tamanho normal", .ru: "обычный размер", .ja: "通常サイズ"
+        ],
+        "accessibilityClipboardList": [
+            .en: "Clipboard history list", .zh: "剪贴板历史列表", .hi: "क्लिपबोर्ड इतिहास सूची",
+            .es: "Lista del historial del portapapeles", .fr: "Liste de l'historique du presse-papiers",
+            .ar: "قائمة سجل الحافظة", .bn: "ক্লিপবোর্ড ইতিহাস তালিকা",
+            .pt: "Lista do histórico da área de transferência", .ru: "Список буфера обмена",
+            .ja: "クリップボード履歴リスト"
+        ],
+        "accessibilityEmptyClipboard": [
+            .en: "Clipboard is empty", .zh: "剪贴板为空", .hi: "क्लिपबोर्ड खाली है",
+            .es: "El portapapeles está vacío", .fr: "Le presse-papiers est vide",
+            .ar: "الحافظة فارغة", .bn: "ক্লিপবোর্ড খালি",
+            .pt: "A área de transferência está vazia", .ru: "Буфер обмена пуст",
+            .ja: "クリップボードは空です"
+        ],
+        "accessibilityNoResults": [
+            .en: "No search results", .zh: "无搜索结果", .hi: "कोई खोज परिणाम नहीं",
+            .es: "Sin resultados de búsqueda", .fr: "Aucun résultat de recherche",
+            .ar: "لا توجد نتائج بحث", .bn: "কোনো অনুসন্ধান ফলাফল নেই",
+            .pt: "Sem resultados de pesquisa", .ru: "Нет результатов поиска",
+            .ja: "検索結果なし"
+        ],
+        "accessibilityHelpOverlay": [
+            .en: "Help overlay", .zh: "帮助叠加层", .hi: "सहायता ओवरले",
+            .es: "Capa de ayuda", .fr: "Panneau d'aide",
+            .ar: "طبقة المساعدة", .bn: "সাহায্য ওভারলে",
+            .pt: "Painel de ajuda", .ru: "Панель справки",
+            .ja: "ヘルプオーバーレイ"
+        ],
+        "accessibilityEditingEntry": [
+            .en: "Editing clipboard entry", .zh: "编辑剪贴板条目", .hi: "क्लिपबोर्ड प्रविष्टि संपादन",
+            .es: "Editando entrada del portapapeles", .fr: "Modification de l'entrée du presse-papiers",
+            .ar: "تحرير عنصر الحافظة", .bn: "ক্লিপবোর্ড এন্ট্রি সম্পাদনা",
+            .pt: "Editando entrada da área de transferência", .ru: "Редактирование записи буфера обмена",
+            .ja: "クリップボード項目を編集中"
+        ],
+        "accessibilityImagePreview": [
+            .en: "Image preview", .zh: "图片预览", .hi: "चित्र पूर्वावलोकन",
+            .es: "Vista previa de imagen", .fr: "Aperçu de l'image",
+            .ar: "معاينة الصورة", .bn: "ছবি পূর্বরূপ",
+            .pt: "Pré-visualização da imagem", .ru: "Предварительный просмотр изображения",
+            .ja: "画像プレビュー"
+        ],
+        "accessibilityFileIcon": [
+            .en: "File icon", .zh: "文件图标", .hi: "फ़ाइल आइकन",
+            .es: "Icono de archivo", .fr: "Icône du fichier",
+            .ar: "أيقونة الملف", .bn: "ফাইল আইকন",
+            .pt: "Ícone do arquivo", .ru: "Значок файла",
+            .ja: "ファイルアイコン"
+        ],
+        "accessibilityKeyboardShortcuts": [
+            .en: "Keyboard shortcuts", .zh: "键盘快捷键", .hi: "कीबोर्ड शॉर्टकट",
+            .es: "Atajos de teclado", .fr: "Raccourcis clavier",
+            .ar: "اختصارات لوحة المفاتيح", .bn: "কীবোর্ড শর্টকাট",
+            .pt: "Atalhos de teclado", .ru: "Сочетания клавиш",
+            .ja: "キーボードショートカット"
+        ],
+        "accessibilityMainWindow": [
+            .en: "Freeboard clipboard manager", .zh: "Freeboard 剪贴板管理器", .hi: "Freeboard क्लिपबोर्ड प्रबंधक",
+            .es: "Gestor de portapapeles Freeboard", .fr: "Gestionnaire de presse-papiers Freeboard",
+            .ar: "مدير الحافظة Freeboard", .bn: "Freeboard ক্লিপবোর্ড ম্যানেজার",
+            .pt: "Gerenciador de área de transferência Freeboard", .ru: "Менеджер буфера обмена Freeboard",
+            .ja: "Freeboard クリップボードマネージャー"
+        ],
+        "accessibilityClearSearch": [
+            .en: "Clear search", .zh: "清除搜索", .hi: "खोज साफ़ करें",
+            .es: "Borrar búsqueda", .fr: "Effacer la recherche",
+            .ar: "مسح البحث", .bn: "অনুসন্ধান মুছুন",
+            .pt: "Limpar pesquisa", .ru: "Очистить поиск",
+            .ja: "検索をクリア"
+        ],
+        "accessibilityPermissionNeeded": [
+            .en: "Accessibility permission needed", .zh: "需要辅助功能权限", .hi: "सुलभता अनुमति आवश्यक",
+            .es: "Se necesita permiso de accesibilidad", .fr: "Permission d'accessibilité requise",
+            .ar: "إذن إمكانية الوصول مطلوب", .bn: "অ্যাক্সেসিবিলিটি অনুমতি প্রয়োজন",
+            .pt: "Permissão de acessibilidade necessária", .ru: "Требуется разрешение Универсального доступа",
+            .ja: "アクセシビリティの許可が必要"
+        ],
+        "accessibilityEntryPosition": [
+            .en: "Item %d of %d", .zh: "第 %d 项，共 %d 项", .hi: "%d में से %d आइटम",
+            .es: "Elemento %d de %d", .fr: "Élément %d sur %d",
+            .ar: "العنصر %d من %d", .bn: "%d এর মধ্যে %d আইটেম",
+            .pt: "Item %d de %d", .ru: "Элемент %d из %d",
+            .ja: "%d / %d 項目"
         ],
     ]
 }

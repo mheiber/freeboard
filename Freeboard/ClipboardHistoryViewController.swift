@@ -114,6 +114,10 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         }
         return retroBg
     }
+    /// Whether the system "Increase Contrast" accessibility setting is enabled.
+    private var highContrast: Bool {
+        NSWorkspace.shared.accessibilityDisplayShouldIncreaseContrast
+    }
     private var retroFont: NSFont {
         if L.current.usesSystemFont {
             return NSFont.systemFont(ofSize: 20, weight: .regular)
@@ -151,6 +155,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
 
         containerView = mainView
         containerView.setAccessibilityIdentifier("FreeboardContainer")
+        containerView.setAccessibilityRole(.group)
+        containerView.setAccessibilityLabel(L.accessibilityMainWindow)
         setupSearchField()
         setupTableView()
         setupHelpLabel()
@@ -306,6 +312,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         tableView.target = self
         tableView.action = #selector(tableClicked)
         tableView.setAccessibilityIdentifier("ClipboardHistoryTable")
+        tableView.setAccessibilityLabel(L.accessibilityClipboardList)
 
         let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("entry"))
         column.width = 876
@@ -346,6 +353,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         helpLabel.orientation = .horizontal
         helpLabel.spacing = 0
         helpLabel.alignment = .centerY
+        helpLabel.setAccessibilityRole(.toolbar)
+        helpLabel.setAccessibilityLabel(L.accessibilityKeyboardShortcuts)
         populateHelpBar()
 
         helpButton = NSButton(title: "", target: self, action: #selector(helpButtonClicked))
@@ -372,6 +381,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             attributes: warningAttrs
         )
         permissionWarningButton.setAccessibilityLabel(L.permissionWarningLabel)
+        permissionWarningButton.setAccessibilityIdentifier("PermissionWarningButton")
         permissionWarningButton.isHidden = true
 
         let warningTrackingArea = NSTrackingArea(
@@ -428,6 +438,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         overlay.autoresizingMask = [.width, .height]
         overlay.wantsLayer = true
         overlay.layer?.backgroundColor = NSColor(red: 0.01, green: 0.01, blue: 0.01, alpha: 0.95).cgColor
+        overlay.setAccessibilityRole(.group)
+        overlay.setAccessibilityLabel(L.accessibilityHelpOverlay)
 
         // Close help button at top left (like back buttons on sub-screens)
         let bodyFont = L.current.usesSystemFont
@@ -596,6 +608,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         ])
 
         helpOverlay = overlay
+        NSAccessibility.post(element: overlay, notification: .layoutChanged)
     }
 
     private func dismissHelp() {
@@ -606,6 +619,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         helpHasBackButton = false
         settingsArrowWindow?.orderOut(nil)
         settingsArrowWindow = nil
+        NSAccessibility.post(element: containerView as Any, notification: .layoutChanged)
     }
 
     private func helpMoveFocus(by delta: Int) {
@@ -725,6 +739,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         overlay.autoresizingMask = [.width, .height]
         overlay.wantsLayer = true
         overlay.layer?.backgroundColor = NSColor(red: 0.01, green: 0.01, blue: 0.01, alpha: 0.95).cgColor
+        overlay.setAccessibilityRole(.group)
+        overlay.setAccessibilityLabel(L.settings)
 
         let titleFont = L.current.usesSystemFont
             ? NSFont.systemFont(ofSize: 22, weight: .bold)
@@ -840,6 +856,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         ])
 
         helpOverlay = overlay
+        NSAccessibility.post(element: overlay, notification: .layoutChanged)
 
         // Show arrow window pointing to the status bar icon
         showSettingsArrowToStatusItem()
@@ -932,6 +949,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         overlay.autoresizingMask = [.width, .height]
         overlay.wantsLayer = true
         overlay.layer?.backgroundColor = NSColor(red: 0.01, green: 0.01, blue: 0.01, alpha: 0.95).cgColor
+        overlay.setAccessibilityRole(.group)
+        overlay.setAccessibilityLabel(L.markdownSupport)
 
         let titleFont = L.current.usesSystemFont
             ? NSFont.systemFont(ofSize: 22, weight: .bold)
@@ -1084,6 +1103,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         ])
 
         helpOverlay = overlay
+        NSAccessibility.post(element: overlay, notification: .layoutChanged)
     }
 
     private func showEditingHelp() {
@@ -1091,6 +1111,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         overlay.autoresizingMask = [.width, .height]
         overlay.wantsLayer = true
         overlay.layer?.backgroundColor = NSColor(red: 0.01, green: 0.01, blue: 0.01, alpha: 0.95).cgColor
+        overlay.setAccessibilityRole(.group)
+        overlay.setAccessibilityLabel(L.editing)
 
         let titleFont = L.current.usesSystemFont
             ? NSFont.systemFont(ofSize: 22, weight: .bold)
@@ -1229,6 +1251,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         ])
 
         helpOverlay = overlay
+        NSAccessibility.post(element: overlay, notification: .layoutChanged)
     }
 
     private func makeHelpContent() -> NSAttributedString {
@@ -1397,6 +1420,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         emptyStateView = NSView(frame: .zero)
         emptyStateView.translatesAutoresizingMaskIntoConstraints = false
         emptyStateView.isHidden = true
+        emptyStateView.setAccessibilityRole(.group)
+        emptyStateView.setAccessibilityLabel(L.accessibilityEmptyClipboard)
 
         let ascii = """
          _____ ____  _____ _____ ____   ___    _    ____  ____
@@ -1421,7 +1446,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         let hintLabel = NSTextField(labelWithString: "")
         hintLabel.translatesAutoresizingMaskIntoConstraints = false
         hintLabel.font = retroFont
-        hintLabel.textColor = retroDimGreen.withAlphaComponent(0.5)
+        hintLabel.textColor = retroDimGreen.withAlphaComponent(highContrast ? 1.0 : 0.5)
         hintLabel.backgroundColor = .clear
         hintLabel.isBezeled = false
         hintLabel.alignment = .center
@@ -1430,7 +1455,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         let hotkeyLabel = NSTextField(labelWithString: "")
         hotkeyLabel.translatesAutoresizingMaskIntoConstraints = false
         hotkeyLabel.font = retroFontSmall
-        hotkeyLabel.textColor = retroDimGreen.withAlphaComponent(0.35)
+        hotkeyLabel.textColor = retroDimGreen.withAlphaComponent(highContrast ? 1.0 : 0.35)
         hotkeyLabel.backgroundColor = .clear
         hotkeyLabel.isBezeled = false
         hotkeyLabel.alignment = .center
@@ -1446,6 +1471,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         clearSearchButton.font = retroFontSmall
         clearSearchButton.contentTintColor = retroGreen
         clearSearchButton.isHidden = true
+        clearSearchButton.setAccessibilityLabel(L.accessibilityClearSearch)
+        clearSearchButton.setAccessibilityIdentifier("ClearSearchButton")
 
         accessibilityHintButton = NSButton(title: "", target: self, action: #selector(accessibilityHintClicked))
         accessibilityHintButton.translatesAutoresizingMaskIntoConstraints = false
@@ -1465,6 +1492,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         hintStr.append(NSAttributedString(string: "Accessibility Permission", attributes: linkAttrs))
         hintStr.append(NSAttributedString(string: " to paste", attributes: hintAttrs))
         accessibilityHintButton.attributedTitle = hintStr
+        accessibilityHintButton.setAccessibilityLabel(L.accessibilityPermissionNeeded)
+        accessibilityHintButton.setAccessibilityIdentifier("AccessibilityHintButton")
         accessibilityHintButton.isHidden = true
 
         emptyStateView.addSubview(asciiLabel)
@@ -1539,6 +1568,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             }
             clearSearchButton?.isHidden = true
             updateAccessibilityHint()
+            emptyStateView?.setAccessibilityLabel(L.accessibilityEmptyClipboard)
+            NSAccessibility.post(element: emptyStateView as Any, notification: .layoutChanged)
         case .noSearchResults:
             emptyStateView?.isHidden = false
             scrollView?.isHidden = true
@@ -1560,6 +1591,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             clearSearchButton?.font = retroFont
             clearSearchButton?.isHidden = false
             accessibilityHintButton?.isHidden = true
+            emptyStateView?.setAccessibilityLabel(L.accessibilityNoResults)
+            NSAccessibility.post(element: emptyStateView as Any, notification: .layoutChanged)
         }
     }
 
@@ -1580,11 +1613,11 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     /// button triggers `helpHintClicked(_:)`.
     private func makeHintButton(shortcut: String, label: String, tag: Int) -> NSButton {
         let keyAttrs: [NSAttributedString.Key: Any] = [
-            .foregroundColor: retroGreen.withAlphaComponent(0.6),
+            .foregroundColor: retroGreen.withAlphaComponent(highContrast ? 1.0 : 0.6),
             .font: retroFontSmall
         ]
         let dimAttrs: [NSAttributedString.Key: Any] = [
-            .foregroundColor: retroDimGreen.withAlphaComponent(0.6),
+            .foregroundColor: retroDimGreen.withAlphaComponent(highContrast ? 1.0 : 0.6),
             .font: retroFontSmall
         ]
         let title = NSMutableAttributedString()
@@ -1614,6 +1647,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         spacer.backgroundColor = .clear
         spacer.isEditable = false
         spacer.isBezeled = false
+        spacer.setAccessibilityElement(false)
         return spacer
     }
 
@@ -1637,17 +1671,18 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
                 let shiftFont = L.current.usesSystemFont
                     ? NSFont.systemFont(ofSize: 18, weight: .medium)
                     : NSFont(name: "Menlo-Bold", size: 15) ?? NSFont.monospacedSystemFont(ofSize: 15, weight: .bold)
+                let hcAlpha: CGFloat = highContrast ? 1.0 : 0.6
                 let shiftAttrs: [NSAttributedString.Key: Any] = [
-                    .foregroundColor: retroGreen.withAlphaComponent(0.6),
+                    .foregroundColor: retroGreen.withAlphaComponent(hcAlpha),
                     .font: shiftFont,
                     .baselineOffset: -1
                 ]
                 let keyAttrs: [NSAttributedString.Key: Any] = [
-                    .foregroundColor: retroGreen.withAlphaComponent(0.6),
+                    .foregroundColor: retroGreen.withAlphaComponent(hcAlpha),
                     .font: retroFontSmall
                 ]
                 let dimAttrs: [NSAttributedString.Key: Any] = [
-                    .foregroundColor: retroDimGreen.withAlphaComponent(0.6),
+                    .foregroundColor: retroDimGreen.withAlphaComponent(hcAlpha),
                     .font: retroFontSmall
                 ]
                 // Build the rich paste button with mixed attributes for the shift symbol
@@ -1667,17 +1702,18 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
                 let shiftFont = L.current.usesSystemFont
                     ? NSFont.systemFont(ofSize: 18, weight: .medium)
                     : NSFont(name: "Menlo-Bold", size: 15) ?? NSFont.monospacedSystemFont(ofSize: 15, weight: .bold)
+                let hcAlpha: CGFloat = highContrast ? 1.0 : 0.6
                 let shiftAttrs: [NSAttributedString.Key: Any] = [
-                    .foregroundColor: retroGreen.withAlphaComponent(0.6),
+                    .foregroundColor: retroGreen.withAlphaComponent(hcAlpha),
                     .font: shiftFont,
                     .baselineOffset: -1
                 ]
                 let keyAttrs: [NSAttributedString.Key: Any] = [
-                    .foregroundColor: retroGreen.withAlphaComponent(0.6),
+                    .foregroundColor: retroGreen.withAlphaComponent(hcAlpha),
                     .font: retroFontSmall
                 ]
                 let dimAttrs: [NSAttributedString.Key: Any] = [
-                    .foregroundColor: retroDimGreen.withAlphaComponent(0.6),
+                    .foregroundColor: retroDimGreen.withAlphaComponent(hcAlpha),
                     .font: retroFontSmall
                 ]
                 let rpTitle = NSMutableAttributedString()
@@ -1700,12 +1736,13 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         // "^n/^p select" — navigate the clipboard list, displayed as a single
         // visual unit but with individually-clickable halves.
         do {
+            let hcAlpha: CGFloat = highContrast ? 1.0 : 0.6
             let keyAttrs: [NSAttributedString.Key: Any] = [
-                .foregroundColor: retroGreen.withAlphaComponent(0.6),
+                .foregroundColor: retroGreen.withAlphaComponent(hcAlpha),
                 .font: retroFontSmall
             ]
             let dimAttrs: [NSAttributedString.Key: Any] = [
-                .foregroundColor: retroDimGreen.withAlphaComponent(0.6),
+                .foregroundColor: retroDimGreen.withAlphaComponent(hcAlpha),
                 .font: retroFontSmall
             ]
 
@@ -1724,10 +1761,11 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             let slashLabel = NSTextField(labelWithString: "/")
             slashLabel.translatesAutoresizingMaskIntoConstraints = false
             slashLabel.font = retroFontSmall
-            slashLabel.textColor = retroGreen.withAlphaComponent(0.6)
+            slashLabel.textColor = retroGreen.withAlphaComponent(highContrast ? 1.0 : 0.6)
             slashLabel.backgroundColor = .clear
             slashLabel.isEditable = false
             slashLabel.isBezeled = false
+            slashLabel.setAccessibilityElement(false)
             helpLabel.addArrangedSubview(slashLabel)
 
             // "^p select" button (select previous, carries the shared label)
@@ -1792,12 +1830,13 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
 
     private func makeHelpButtonTitle() -> NSAttributedString {
         let str = NSMutableAttributedString()
+        let hcAlpha: CGFloat = highContrast ? 1.0 : 0.6
         let keyAttrs: [NSAttributedString.Key: Any] = [
-            .foregroundColor: retroGreen.withAlphaComponent(0.6),
+            .foregroundColor: retroGreen.withAlphaComponent(hcAlpha),
             .font: retroFontSmall
         ]
         let dimAttrs: [NSAttributedString.Key: Any] = [
-            .foregroundColor: retroDimGreen.withAlphaComponent(0.6),
+            .foregroundColor: retroDimGreen.withAlphaComponent(hcAlpha),
             .font: retroFontSmall
         ]
         str.append(NSAttributedString(string: "? ", attributes: keyAttrs))
@@ -1807,12 +1846,13 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
 
     private func makeEscCloseButtonTitle() -> NSAttributedString {
         let str = NSMutableAttributedString()
+        let hcAlpha: CGFloat = highContrast ? 1.0 : 0.6
         let keyAttrs: [NSAttributedString.Key: Any] = [
-            .foregroundColor: retroGreen.withAlphaComponent(0.6),
+            .foregroundColor: retroGreen.withAlphaComponent(hcAlpha),
             .font: retroFontSmall
         ]
         let dimAttrs: [NSAttributedString.Key: Any] = [
-            .foregroundColor: retroDimGreen.withAlphaComponent(0.6),
+            .foregroundColor: retroDimGreen.withAlphaComponent(hcAlpha),
             .font: retroFontSmall
         ]
         str.append(NSAttributedString(string: "Esc ", attributes: keyAttrs))
@@ -1978,6 +2018,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         updateEmptyStateVisibility()
         updatePermissionWarning()
         updateHelpLabel()
+        // Notify VoiceOver that content has changed
+        NSAccessibility.post(element: tableView as Any, notification: .layoutChanged)
     }    // MARK: - NSTableViewDataSource
 
     func numberOfRows(in tableView: NSTableView) -> Int {
@@ -1999,6 +2041,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         cell.layer?.backgroundColor = isSelected ? retroSelectionBg.cgColor : NSColor.clear.cgColor
         cell.setAccessibilityRole(.row)
         cell.setAccessibilityRoleDescription("clipboard entry")
+        cell.setAccessibilityIdentifier("ClipboardEntry_\(row)")
+        cell.setAccessibilityLabel(L.accessibilityEntryPosition(row + 1, filteredEntries.count))
 
         // Communicate format category to VoiceOver
         if entry.entryType == .text {
@@ -2040,7 +2084,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             let nl = NSTextField(labelWithString: "[\(row + 1)]")
             nl.translatesAutoresizingMaskIntoConstraints = false
             nl.font = retroFontSmall
-            nl.textColor = retroGreen.withAlphaComponent(0.7)
+            nl.textColor = retroGreen.withAlphaComponent(highContrast ? 1.0 : 0.7)
             nl.backgroundColor = .clear
             nl.isBezeled = false
             nl.setAccessibilityElement(false)
@@ -2065,7 +2109,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             let ml = NSTextField(labelWithString: tag)
             ml.translatesAutoresizingMaskIntoConstraints = false
             ml.font = retroFontSmall
-            ml.textColor = retroDimGreen.withAlphaComponent(0.35)
+            ml.textColor = retroDimGreen.withAlphaComponent(highContrast ? 0.9 : 0.35)
             ml.backgroundColor = .clear
             ml.isBezeled = false
             ml.alignment = .right
@@ -2079,7 +2123,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         let timeLabel = NSTextField(labelWithString: entry.timeAgo)
         timeLabel.translatesAutoresizingMaskIntoConstraints = false
         timeLabel.font = retroFontSmall
-        timeLabel.textColor = retroDimGreen.withAlphaComponent(0.6)
+        timeLabel.textColor = retroDimGreen.withAlphaComponent(highContrast ? 1.0 : 0.6)
         timeLabel.backgroundColor = .clear
         timeLabel.isBezeled = false
         timeLabel.alignment = .right
@@ -2090,7 +2134,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         deleteButton.translatesAutoresizingMaskIntoConstraints = false
         deleteButton.isBordered = false
         deleteButton.font = NSFont(name: "Menlo", size: 18) ?? NSFont.monospacedSystemFont(ofSize: 18, weight: .regular)
-        deleteButton.contentTintColor = retroDimGreen.withAlphaComponent(0.5)
+        deleteButton.contentTintColor = retroDimGreen.withAlphaComponent(highContrast ? 1.0 : 0.5)
         deleteButton.tag = row
         deleteButton.setAccessibilityLabel(L.accessibilityDelete)
         cell.addSubview(deleteButton)
@@ -2116,6 +2160,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             tv.isAutomaticDashSubstitutionEnabled = false
             tv.isAutomaticTextReplacementEnabled = false
             tv.textContainerInset = NSSize(width: 4, height: 4)
+            tv.setAccessibilityLabel(L.accessibilityTextEditor)
+            tv.setAccessibilityIdentifier("InlineEditor")
             scrollContainer.documentView = tv
             self.editTextView = tv
 
@@ -2174,6 +2220,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
                 iv.layer?.cornerRadius = 4
                 iv.layer?.borderColor = retroDimGreen.withAlphaComponent(0.3).cgColor
                 iv.layer?.borderWidth = 1
+                iv.setAccessibilityLabel(L.accessibilityImagePreview)
+                iv.setAccessibilityRole(.image)
                 cell.addSubview(iv)
                 imageView = iv
             } else if entry.entryType == .fileURL {
@@ -2185,6 +2233,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
                     iv.image = NSWorkspace.shared.icon(for: .item)
                 }
                 iv.imageScaling = .scaleProportionallyUpOrDown
+                iv.setAccessibilityLabel(L.accessibilityFileIcon)
+                iv.setAccessibilityRole(.image)
                 cell.addSubview(iv)
                 imageView = iv
             }
@@ -2374,7 +2424,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
                     let statsLabel = NSTextField(labelWithString: statsText)
                     statsLabel.translatesAutoresizingMaskIntoConstraints = false
                     statsLabel.font = retroFontSmall
-                    statsLabel.textColor = retroDimGreen.withAlphaComponent(0.4)
+                    statsLabel.textColor = retroDimGreen.withAlphaComponent(highContrast ? 1.0 : 0.4)
                     statsLabel.backgroundColor = .clear
                     statsLabel.isBezeled = false
                     statsLabel.alignment = .right
@@ -2708,6 +2758,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         editorView.layer?.cornerRadius = 4
         editorView.isHidden = false
         editorView.setAccessibilityIdentifier("MonacoEditor")
+        editorView.setAccessibilityLabel(L.accessibilityEditingEntry)
+        editorView.setAccessibilityRole(.group)
 
         containerView.addSubview(editorView, positioned: .above, relativeTo: effectsView)
         effectsView.isHidden = true
@@ -2970,6 +3022,10 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         tableView.reloadData()
         tableView.scrollRowToVisible(selectedIndex)
         updateHelpLabel()
+        // Notify VoiceOver of selected row change
+        if let rowView = tableView.rowView(atRow: selectedIndex, makeIfNecessary: false) {
+            NSAccessibility.post(element: rowView, notification: .selectedRowsChanged)
+        }
     }
 
     // MARK: - NSTextFieldDelegate
