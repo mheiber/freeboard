@@ -2265,13 +2265,24 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             } else if entry.entryType == .fileURL {
                 let iv = NSImageView()
                 iv.translatesAutoresizingMaskIntoConstraints = false
-                if let url = entry.fileURL {
+                if isExpanded, let fileImage = entry.loadImageFromFile() {
+                    // Show actual image preview for expanded image file entries
+                    iv.image = fileImage
+                    iv.imageScaling = .scaleProportionallyUpOrDown
+                    iv.wantsLayer = true
+                    iv.layer?.cornerRadius = 4
+                    iv.layer?.borderColor = retroDimGreen.withAlphaComponent(0.3).cgColor
+                    iv.layer?.borderWidth = 1
+                    iv.setAccessibilityLabel(L.accessibilityImagePreview)
+                } else if let url = entry.fileURL {
                     iv.image = NSWorkspace.shared.icon(forFile: url.path)
+                    iv.imageScaling = .scaleProportionallyUpOrDown
+                    iv.setAccessibilityLabel(L.accessibilityFileIcon)
                 } else {
                     iv.image = NSWorkspace.shared.icon(for: .item)
+                    iv.imageScaling = .scaleProportionallyUpOrDown
+                    iv.setAccessibilityLabel(L.accessibilityFileIcon)
                 }
-                iv.imageScaling = .scaleProportionallyUpOrDown
-                iv.setAccessibilityLabel(L.accessibilityFileIcon)
                 iv.setAccessibilityRole(.image)
                 cell.addSubview(iv)
                 imageView = iv
@@ -2360,7 +2371,17 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             cell.addSubview(contentLabel)
 
             if let iv = imageView {
-                if isExpanded && entry.entryType == .image, let data = entry.imageData, let img = NSImage(data: data) {
+                // Determine if we should show expanded Quick Look-style preview
+                let expandedImage: NSImage?
+                if isExpanded && entry.entryType == .image, let data = entry.imageData {
+                    expandedImage = NSImage(data: data)
+                } else if isExpanded && entry.isImageFile {
+                    expandedImage = entry.loadImageFromFile()
+                } else {
+                    expandedImage = nil
+                }
+
+                if let img = expandedImage {
                     // Large Quick Look-style display for expanded images
                     let maxW: CGFloat = tableView.bounds.width - 80
                     let maxH: CGFloat = 600
@@ -2477,7 +2498,20 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
                         accessibleStats = ""
                     }
                 case .fileURL:
-                    if let url = entry.fileURL,
+                    if entry.isImageFile, let img = entry.loadImageFromFile() {
+                        let w = Int(img.size.width)
+                        let h = Int(img.size.height)
+                        if let url = entry.fileURL,
+                           let attrs = try? FileManager.default.attributesOfItem(atPath: url.path),
+                           let size = attrs[.size] as? UInt64 {
+                            let sizeStr = ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .file)
+                            statsText = "\(w)\u{00D7}\(h) \(sizeStr)"
+                            accessibleStats = "\(w) by \(h) pixels, \(sizeStr)"
+                        } else {
+                            statsText = "\(w)\u{00D7}\(h)"
+                            accessibleStats = "\(w) by \(h) pixels"
+                        }
+                    } else if let url = entry.fileURL,
                        let attrs = try? FileManager.default.attributesOfItem(atPath: url.path),
                        let size = attrs[.size] as? UInt64 {
                         statsText = ByteCountFormatter.string(fromByteCount: Int64(size), countStyle: .file)
@@ -2534,6 +2568,13 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
                 return max(50, imgH + 40)  // 40 for padding
             }
             return 220
+        }
+        if entry.isImageFile, let image = entry.loadImageFromFile() {
+            let maxW: CGFloat = tableView.bounds.width - 80
+            let maxH: CGFloat = 600
+            let ratio = min(maxW / image.size.width, maxH / image.size.height, 1.0)
+            let imgH = image.size.height * ratio
+            return max(50, imgH + 40)  // 40 for padding + filename label
         }
         let maxWidth = tableView.bounds.width - 140
         let text = entry.displayContent as NSString

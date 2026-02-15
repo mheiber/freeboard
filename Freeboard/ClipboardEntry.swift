@@ -133,6 +133,23 @@ struct ClipboardEntry: Identifiable, Equatable {
         return score
     }
 
+    /// Image file extensions recognized for inline preview.
+    private static let imageExtensions: Set<String> = [
+        "png", "jpg", "jpeg", "gif", "tiff", "tif", "bmp", "webp", "heic", "heif", "ico", "svg"
+    ]
+
+    /// Whether this file URL entry points to an image file (by extension).
+    var isImageFile: Bool {
+        guard entryType == .fileURL, let url = fileURL else { return false }
+        return Self.imageExtensions.contains(url.pathExtension.lowercased())
+    }
+
+    /// Load the image from a file URL entry. Returns nil for non-image files or if the file can't be read.
+    func loadImageFromFile() -> NSImage? {
+        guard isImageFile, let url = fileURL else { return nil }
+        return NSImage(contentsOf: url)
+    }
+
     /// Generate a thumbnail for image entries. Caches lazily.
     mutating func thumbnail(maxSize: CGFloat = 40) -> NSImage? {
         if let cached = _thumbnail { return cached }
