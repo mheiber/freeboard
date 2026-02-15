@@ -1,7 +1,7 @@
 import Foundation
 import AppKit
 
-enum EntryType: Equatable {
+enum EntryType: String, Equatable, Codable {
     case text
     case image
     case fileURL
@@ -9,13 +9,13 @@ enum EntryType: Equatable {
 
 /// Classification for markdown/rich text paste conversion.
 /// Determines what Shift+Enter does for a given entry.
-enum FormatCategory: Equatable {
-    case markdown   // Content is markdown → Shift+Enter pastes as rich text
-    case code(String) // Content is code in the given language → Shift+Enter pastes with syntax highlighting
-    case other      // Everything else → Shift+Enter pastes as plain text (no-op for plain text)
+enum FormatCategory: Equatable, Codable {
+    case markdown   // Content is markdown -> Shift+Enter pastes as rich text
+    case code(String) // Content is code in the given language -> Shift+Enter pastes with syntax highlighting
+    case other      // Everything else -> Shift+Enter pastes as plain text (no-op for plain text)
 }
 
-struct ClipboardEntry: Identifiable, Equatable {
+struct ClipboardEntry: Identifiable, Equatable, Codable {
     let id: UUID
     let content: String  // For text: the text. For image: OCR text or "". For fileURL: the URL string.
     let timestamp: Date
@@ -27,8 +27,56 @@ struct ClipboardEntry: Identifiable, Equatable {
     let fileURL: URL?         // File URL for file entries, nil otherwise
     let pasteboardData: [NSPasteboard.PasteboardType: Data]?  // nil for image/file entries
 
-    // Cached thumbnail -- not part of equality
+    // Cached thumbnail -- not part of equality or coding
     private var _thumbnail: NSImage?
+
+    private enum CodingKeys: String, CodingKey {
+        case id, content, timestamp, isPassword, isStarred, expirationDate
+        case entryType, imageData, fileURL, pasteboardData
+    }
+
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        id = try c.decode(UUID.self, forKey: .id)
+        content = try c.decode(String.self, forKey: .content)
+        timestamp = try c.decode(Date.self, forKey: .timestamp)
+        isPassword = try c.decode(Bool.self, forKey: .isPassword)
+        isStarred = try c.decode(Bool.self, forKey: .isStarred)
+        expirationDate = try c.decodeIfPresent(Date.self, forKey: .expirationDate)
+        entryType = try c.decode(EntryType.self, forKey: .entryType)
+        imageData = try c.decodeIfPresent(Data.self, forKey: .imageData)
+        fileURL = try c.decodeIfPresent(URL.self, forKey: .fileURL)
+        if let stringKeyed = try c.decodeIfPresent([String: Data].self, forKey: .pasteboardData) {
+            var converted: [NSPasteboard.PasteboardType: Data] = [:]
+            for (key, value) in stringKeyed {
+                converted[NSPasteboard.PasteboardType(key)] = value
+            }
+            pasteboardData = converted.isEmpty ? nil : converted
+        } else {
+            pasteboardData = nil
+        }
+        _thumbnail = nil
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var c = encoder.container(keyedBy: CodingKeys.self)
+        try c.encode(id, forKey: .id)
+        try c.encode(content, forKey: .content)
+        try c.encode(timestamp, forKey: .timestamp)
+        try c.encode(isPassword, forKey: .isPassword)
+        try c.encode(isStarred, forKey: .isStarred)
+        try c.encodeIfPresent(expirationDate, forKey: .expirationDate)
+        try c.encode(entryType, forKey: .entryType)
+        try c.encodeIfPresent(imageData, forKey: .imageData)
+        try c.encodeIfPresent(fileURL, forKey: .fileURL)
+        if let pbData = pasteboardData {
+            var stringKeyed: [String: Data] = [:]
+            for (key, value) in pbData {
+                stringKeyed[key.rawValue] = value
+            }
+            try c.encode(stringKeyed, forKey: .pasteboardData)
+        }
+    }
 
     init(content: String, isPassword: Bool = false, isStarred: Bool = false,
          timestamp: Date = Date(), id: UUID = UUID(),

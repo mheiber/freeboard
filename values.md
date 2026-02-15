@@ -21,11 +21,15 @@ we want efficient and
 
 ## 3. Instant and ephemeral
 
-The app opens fast, does its job, and gets out of the way. Everything lives in memory. No databases, no cloud, no disk writes. Data exists only while the app is running. Clipboard history is transient by nature and the app respects that. Passwords expire and vanish. This is a feature, not a limitation.
+The app opens fast, does its job, and gets out of the way. Clipboard history is transient by nature and the app respects that. Passwords expire and vanish. This is a feature, not a limitation.
+
+**Persistence as a special case:** Non-password clipboard entries are persisted across app launches so that the user's history survives a restart. This is opt-in by architecture -- only safe, non-password content is ever written to disk.
+
+**Passwords are NEVER stored to disk.** This is an absolute rule. Password entries exist only in memory and are filtered out before any write to persistent storage. Even on load, any password entry that somehow appears in the stored data is discarded.
 
 ## 4. Privacy by architecture
 
-No network calls. No telemetry. No disk persistence. Passwords are detected and masked automatically. Bitwarden integration is passive (read a pasteboard flag, nothing more). The user never has to configure privacy settings because the architecture makes data exposure impossible.
+No network calls. No telemetry. Passwords are detected and masked automatically and are NEVER written to disk. Bitwarden integration is passive (read a pasteboard flag, nothing more). Non-password clipboard data is persisted locally in the app's sandboxed container -- never sent anywhere. The user never has to configure privacy settings because the architecture makes data exposure impossible.
 
 ## 5. Simplicity over features
 

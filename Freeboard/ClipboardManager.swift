@@ -30,9 +30,20 @@ class ClipboardManager {
     private var expiryTimer: Timer?
     private let pasteboard: PasteboardProviding
 
+    /// File URL for persisted clipboard entries (Application Support directory).
+    private static let persistenceURL: URL? = {
+        guard let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+            return nil
+        }
+        let dir = appSupport.appendingPathComponent("Freeboard")
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        return dir.appendingPathComponent("clipboard_entries.json")
+    }()
+
     init(pasteboard: PasteboardProviding = NSPasteboard.general) {
         self.pasteboard = pasteboard
         self.lastChangeCount = pasteboard.changeCount
+        loadFromDisk()
     }
 
     func startMonitoring() {
@@ -77,6 +88,7 @@ class ClipboardManager {
                 performOCR(on: data, entryId: entry.id)
 
                 delegate?.clipboardManagerDidUpdateEntries(self)
+                saveToDisk()
                 return
             }
         }
@@ -93,6 +105,7 @@ class ClipboardManager {
             entries.insert(entry, at: 0)
             capEntries()
             delegate?.clipboardManagerDidUpdateEntries(self)
+            saveToDisk()
             return
         }
 
@@ -129,6 +142,7 @@ class ClipboardManager {
         entries.insert(entry, at: 0)
         capEntries()
         delegate?.clipboardManagerDidUpdateEntries(self)
+        saveToDisk()
     }
 
     func removeExpiredEntries() {
@@ -136,12 +150,14 @@ class ClipboardManager {
         entries.removeAll { $0.isExpired }
         if entries.count != before {
             delegate?.clipboardManagerDidUpdateEntries(self)
+            saveToDisk()
         }
     }
 
     func deleteEntry(id: UUID) {
         entries.removeAll { $0.id == id }
         delegate?.clipboardManagerDidUpdateEntries(self)
+        saveToDisk()
     }
 
     func updateEntryContent(id: UUID, newContent: String) {
@@ -149,6 +165,7 @@ class ClipboardManager {
         let old = entries[idx]
         entries[idx] = ClipboardEntry(content: newContent, isPassword: old.isPassword, isStarred: old.isStarred, timestamp: old.timestamp, id: old.id, pasteboardData: old.pasteboardData)
         delegate?.clipboardManagerDidUpdateEntries(self)
+        saveToDisk()
     }
 
     func toggleStar(id: UUID) {
@@ -156,6 +173,7 @@ class ClipboardManager {
         let old = entries[idx]
         entries[idx] = ClipboardEntry(content: old.content, isPassword: old.isPassword, isStarred: !old.isStarred, timestamp: old.timestamp, id: old.id, entryType: old.entryType, imageData: old.imageData, fileURL: old.fileURL, pasteboardData: old.pasteboardData)
         delegate?.clipboardManagerDidUpdateEntries(self)
+        saveToDisk()
     }
 
     func selectEntry(_ entry: ClipboardEntry) {
@@ -769,6 +787,38 @@ class ClipboardManager {
             entries = Array(entries.prefix(ClipboardManager.maxEntries))
         }
         delegate?.clipboardManagerDidUpdateEntries(self)
+        saveToDisk()
+    }
+
+    // MARK: - Persistence
+
+    /// Save non-password entries to disk as JSON.
+    /// Passwords are NEVER written to disk -- filtered out as a belt-and-suspenders measure.
+    func saveToDisk() {
+        guard let url = Self.persistenceURL else { return }
+        let nonPasswordEntries = entries.filter { !$0.isPassword }
+        do {
+            let data = try JSONEncoder().encode(nonPasswordEntries)
+            try data.write(to: url, options: [.atomic, .completeFileProtection])
+        } catch {
+            // Silently fail -- persistence is best-effort
+        }
+    }
+
+    /// Load persisted entries from disk. Called once during init.
+    /// Any password entries that somehow ended up on disk are filtered out on load.
+    private func loadFromDisk() {
+        guard let url = Self.persistenceURL,
+              FileManager.default.fileExists(atPath: url.path) else { return }
+        do {
+            let data = try Data(contentsOf: url)
+            let loaded = try JSONDecoder().decode([ClipboardEntry].self, from: data)
+            // Belt and suspenders: never load passwords from disk
+            entries = loaded.filter { !$0.isPassword }
+        } catch {
+            // Corrupted file -- start fresh
+            entries = []
+        }
     }
 
     // MARK: - Private helpers
@@ -814,5 +864,6 @@ class ClipboardManager {
             entryType: .image, imageData: old.imageData
         )
         delegate?.clipboardManagerDidUpdateEntries(self)
+        saveToDisk()
     }
 }
