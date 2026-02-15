@@ -1,0 +1,1 @@
+When something is in markdown format, put a little markdown icon on the row. don't break the color palette or theme, use imagemagick if you have to. make it subtle but legible, put it in a reasonable place

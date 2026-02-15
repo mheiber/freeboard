@@ -1,0 +1,2 @@
+Expected behavior: when in insert mode, the bar at the bottom with keyboard hints should say 'j/k switch to normal mode'. when in normal mode should say 'i switch to insert mode'
+when in other modes: do the right thing. For example, the way to get out of command mode and visual block mode etc. -- be dynamic. Clicking the hint should do the right thing. doing what the hint says should do the right thing.
