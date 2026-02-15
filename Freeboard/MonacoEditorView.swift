@@ -4,6 +4,7 @@ import WebKit
 protocol MonacoEditorDelegate: AnyObject {
     func editorDidSave(content: String)
     func editorDidClose()
+    func editorDidRequestToggleFocusMode()
 }
 
 /// Serves Monaco editor resources from the app bundle via a custom URL scheme.
@@ -179,6 +180,11 @@ class MonacoEditorView: NSView, WKScriptMessageHandler, WKNavigationDelegate {
 
     func cleanup() {}
 
+    func setFocusMode(_ enabled: Bool) {
+        let js = "if (typeof window.setFocusMode === 'function') { window.setFocusMode(\(enabled)); }"
+        webView.evaluateJavaScript(js) { _, _ in }
+    }
+
     // MARK: - WKScriptMessageHandler
 
     func userContentController(_ userContentController: WKUserContentController,
@@ -193,6 +199,8 @@ class MonacoEditorView: NSView, WKScriptMessageHandler, WKNavigationDelegate {
             }
         case "close":
             delegate?.editorDidClose()
+        case "toggleFocusMode":
+            delegate?.editorDidRequestToggleFocusMode()
         case "editorReady":
             isEditorReady = true
             if let pending = pendingContent {

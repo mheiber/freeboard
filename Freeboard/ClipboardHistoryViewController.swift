@@ -82,6 +82,8 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     private var monacoEditorView: MonacoEditorView? = nil
     private var preloadedMonacoEditor: MonacoEditorView? = nil
     private var monacoEditingIndex: Int? = nil
+    private var isFocusMode: Bool = false
+    private var preFocusModeFrame: NSRect? = nil
     private var searchQuery: String = ""
     private var hoveredRow: Int? = nil
     private var mouseInIndicatorZone: Bool = false
@@ -2562,6 +2564,13 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             monacoEditingIndex = nil
             effectsView.isHidden = false
 
+            // Restore window size if focus mode was active
+            if isFocusMode, let savedFrame = preFocusModeFrame {
+                view.window?.setFrame(savedFrame, display: true, animate: false)
+            }
+            isFocusMode = false
+            preFocusModeFrame = nil
+
             // Preload a fresh editor for next time
             if preloadedMonacoEditor == nil {
                 preloadMonacoEditor()
@@ -2613,6 +2622,29 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
 
     func editorDidClose() {
         exitEditMode()
+    }
+
+    func editorDidRequestToggleFocusMode() {
+        guard let window = view.window else { return }
+
+        if isFocusMode {
+            // Restore to pre-focus-mode size
+            if let savedFrame = preFocusModeFrame {
+                window.setFrame(savedFrame, display: true, animate: false)
+            }
+            isFocusMode = false
+            preFocusModeFrame = nil
+        } else {
+            // Save current frame and expand to screen bounds
+            preFocusModeFrame = window.frame
+            if let screen = window.screen ?? NSScreen.main {
+                let visibleFrame = screen.visibleFrame
+                window.setFrame(visibleFrame, display: true, animate: false)
+            }
+            isFocusMode = true
+        }
+
+        monacoEditorView?.setFocusMode(isFocusMode)
     }
 
     // MARK: - Keyboard handling

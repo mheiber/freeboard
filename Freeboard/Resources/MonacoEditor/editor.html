@@ -124,6 +124,7 @@
     var vimEnabled = false;
     var vimModeInstance = null;
     var originalContent = '';
+    var focusModeActive = false;
     var statusEl = document.getElementById('vim-status');
     var hintsEl = document.getElementById('editor-hints');
     var editorContainerEl = document.getElementById('editor-container');
@@ -170,8 +171,11 @@
     }
 
     function updateHints() {
+        var focusHint = focusModeActive
+            ? '<span class="hint-action" data-action="toggle-focus"><span class="key">\u2318F</span> regular size</span>'
+            : '<span class="hint-action" data-action="toggle-focus"><span class="key">\u2318F</span> focus mode</span>';
         if (!vimEnabled) {
-            hintsEl.innerHTML = '<span class="hint-action" data-action="save-close"><span class="key">Esc</span> save+close</span>';
+            hintsEl.innerHTML = '<span class="hint-action" data-action="save-close"><span class="key">Esc</span> save+close</span>&nbsp;&nbsp;' + focusHint;
             return;
         }
         var mode = getVimMode();
@@ -196,7 +200,7 @@
                 modeHint = '<span class="hint-action" data-action="insert-mode"><span class="key">i</span> insert mode</span>';
                 break;
         }
-        hintsEl.innerHTML = saveHint + '&nbsp;&nbsp;' + modeHint;
+        hintsEl.innerHTML = saveHint + '&nbsp;&nbsp;' + modeHint + '&nbsp;&nbsp;' + focusHint;
     }
 
     // Handle clicks on hint actions (event delegation)
@@ -219,6 +223,9 @@
                 break;
             case 'normal-mode':
                 switchToNormalMode();
+                break;
+            case 'toggle-focus':
+                postMessage({ type: 'toggleFocusMode' });
                 break;
         }
     });
@@ -446,6 +453,11 @@
             }
         });
 
+        // Cmd+F: toggle focus mode (override Monaco's default find widget)
+        editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyF, function() {
+            postMessage({ type: 'toggleFocusMode' });
+        });
+
         // Don't focus here — only focus when setContent is called
         postMessage({ type: 'editorReady' });
 
@@ -591,6 +603,16 @@
             saveAndClose();
         });
         Vim.mapCommand('<Esc>', 'action', 'saveAndClose', {}, { context: 'normal' });
+
+        // :set nu / :set number — show line numbers
+        Vim.defineEx('set', 'set', function(cm, params) {
+            var arg = (params.argString || '').trim();
+            if (arg === 'nu' || arg === 'number') {
+                editor.updateOptions({ lineNumbers: 'on' });
+            } else if (arg === 'nonu' || arg === 'nonumber') {
+                editor.updateOptions({ lineNumbers: 'off' });
+            }
+        });
     }
 
     function enableVim() {
@@ -808,6 +830,15 @@
 
     window.getContent = function() {
         return editor ? editor.getValue() : '';
+    };
+
+    window.setFocusMode = function(enabled) {
+        focusModeActive = enabled;
+        if (editor) {
+            // Show line numbers in focus mode, hide in regular mode
+            editor.updateOptions({ lineNumbers: enabled ? 'on' : 'off' });
+        }
+        updateHints();
     };
 
     updateHints();

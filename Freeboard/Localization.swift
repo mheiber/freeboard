@@ -192,6 +192,8 @@ struct L {
     static var contextUnstar: String { tr("contextUnstar") }
     static var contextDelete: String { tr("contextDelete") }
     static var contextRevealInFinder: String { tr("contextRevealInFinder") }
+    static var focusMode: String { tr("focusMode") }
+    static var regularSize: String { tr("regularSize") }
 
     static func accessibleMinutesAgo(_ n: Int) -> String {
         String(format: tr("accessibleMinutesAgo"), n)
@@ -907,6 +909,18 @@ struct L {
             .es: "Pegar formateado", .fr: "Coller formaté",
             .ar: "لصق منسق", .bn: "ফরম্যাটেড পেস্ট",
             .pt: "Colar formatado", .ru: "Вставить с форматированием", .ja: "整形して貼り付け"
+        ],
+        "focusMode": [
+            .en: "focus mode", .zh: "专注模式", .hi: "फोकस मोड",
+            .es: "modo enfoque", .fr: "mode focus",
+            .ar: "وضع التركيز", .bn: "ফোকাস মোড",
+            .pt: "modo foco", .ru: "режим фокуса", .ja: "フォーカスモード"
+        ],
+        "regularSize": [
+            .en: "regular size", .zh: "常规大小", .hi: "सामान्य आकार",
+            .es: "tamaño normal", .fr: "taille normale",
+            .ar: "الحجم العادي", .bn: "সাধারণ আকার",
+            .pt: "tamanho normal", .ru: "обычный размер", .ja: "通常サイズ"
         ],
     ]
 }
