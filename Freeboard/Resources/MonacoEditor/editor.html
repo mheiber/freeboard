@@ -325,11 +325,66 @@
 
     require.config({ paths: { vs: 'vs' } });
 
+    function registerCustomLanguages() {
+        // OCaml — not in the standard Monaco bundle
+        monaco.languages.register({ id: 'ocaml', extensions: ['.ml', '.mli'], aliases: ['OCaml', 'ocaml'] });
+        monaco.languages.registerTokensProviderFactory('ocaml', {
+            create: function() {
+                return new Promise(function(resolve, reject) {
+                    require(['vs/basic-languages/ocaml/ocaml'], resolve, reject);
+                }).then(function(mod) { return mod.language; });
+            }
+        });
+        monaco.languages.onLanguageEncountered('ocaml', function() {
+            new Promise(function(resolve, reject) {
+                require(['vs/basic-languages/ocaml/ocaml'], resolve, reject);
+            }).then(function(mod) {
+                monaco.languages.setLanguageConfiguration('ocaml', mod.conf);
+            });
+        });
+
+        // TOML — not in the standard Monaco bundle
+        monaco.languages.register({ id: 'toml', extensions: ['.toml'], aliases: ['TOML', 'toml'] });
+        monaco.languages.registerTokensProviderFactory('toml', {
+            create: function() {
+                return new Promise(function(resolve, reject) {
+                    require(['vs/basic-languages/toml/toml'], resolve, reject);
+                }).then(function(mod) { return mod.language; });
+            }
+        });
+        monaco.languages.onLanguageEncountered('toml', function() {
+            new Promise(function(resolve, reject) {
+                require(['vs/basic-languages/toml/toml'], resolve, reject);
+            }).then(function(mod) {
+                monaco.languages.setLanguageConfiguration('toml', mod.conf);
+            });
+        });
+
+        // jq — not in the standard Monaco bundle
+        monaco.languages.register({ id: 'jq', extensions: ['.jq'], aliases: ['jq'] });
+        monaco.languages.registerTokensProviderFactory('jq', {
+            create: function() {
+                return new Promise(function(resolve, reject) {
+                    require(['vs/basic-languages/jq/jq'], resolve, reject);
+                }).then(function(mod) { return mod.language; });
+            }
+        });
+        monaco.languages.onLanguageEncountered('jq', function() {
+            new Promise(function(resolve, reject) {
+                require(['vs/basic-languages/jq/jq'], resolve, reject);
+            }).then(function(mod) {
+                monaco.languages.setLanguageConfiguration('jq', mod.conf);
+            });
+        });
+    }
+
     function initEditor() {
         if (typeof monaco === 'undefined') {
             setTimeout(initEditor, 100);
             return;
         }
+
+        registerCustomLanguages();
 
         monaco.editor.defineTheme('freeboard-dark', {
             base: 'vs-dark',
@@ -565,7 +620,8 @@
     // Markdown has HIGHER priority than code detection because the TextMate
     // grammar was specifically set up for markdown rendering.
     // Only detects languages with tokenizers in vs/basic-languages/:
-    //   javascript, json, markdown, python, shell, sql, swift, typescript, xml
+    //   go, javascript, jq, json, markdown, ocaml, python, rust, shell, sql,
+    //   swift, toml, typescript, xml
     function detectLanguage(text) {
         var trimmed = text.replace(/^\s+|\s+$/g, '');
         if (!trimmed) return 'plaintext';
@@ -604,6 +660,13 @@
         // --- Shell: shebang or shell-specific patterns ---
         if (/^#!\/bin\//.test(trimmed) || /^#!\/usr\/bin\/env\s/.test(trimmed)) return 'shell';
 
+        // --- TOML: section headers and key = value patterns, no code constructs ---
+        var tomlSectionCount = (trimmed.match(/^\[[\w\.\-]+\]/gm) || []).length;
+        var tomlKVCount = (trimmed.match(/^[\w\.\-]+\s*=\s*.+/gm) || []).length;
+        if (tomlSectionCount >= 1 && tomlKVCount >= 2) return 'toml';
+        // Pure key=value without sections (e.g. pyproject.toml fragments)
+        if (tomlKVCount >= 3 && !/\b(function|def|class|var|const|let|import)\b/.test(trimmed)) return 'toml';
+
         // --- Markdown detection (HIGHER priority than code) ---
         var lines = trimmed.split('\n');
         var mdScore = 0;
@@ -622,6 +685,45 @@
         }
         // If there's meaningful markdown structure, use markdown
         if (mdScore >= 3) return 'markdown';
+
+        // --- Rust (check before Swift because both have `func`/`struct`/`enum`) ---
+        if (/\bfn\s+\w+\s*[\(<]/.test(trimmed) && (/\blet\s+(mut\s+)?\w+/.test(trimmed) || /->/.test(trimmed))) return 'rust';
+        if (/\buse\s+std::/.test(trimmed) || /\buse\s+crate::/.test(trimmed)) return 'rust';
+        if (/\bpub\s+fn\s/.test(trimmed) || /\bpub\s+struct\s/.test(trimmed) || /\bpub\s+enum\s/.test(trimmed)) return 'rust';
+        if (/\bimpl\s+\w+/.test(trimmed) && /\bfn\s/.test(trimmed)) return 'rust';
+        if (/\blet\s+mut\s/.test(trimmed) && /\bfn\s/.test(trimmed)) return 'rust';
+        if (/\b(println|eprintln|format|vec|panic)!\s*\(/.test(trimmed)) return 'rust';
+        if (/\bmod\s+\w+\s*\{/.test(trimmed) && /\bfn\s/.test(trimmed)) return 'rust';
+
+        // --- Go ---
+        if (/\bpackage\s+\w+/.test(trimmed) && /\bfunc\s/.test(trimmed)) return 'go';
+        if (/\bfunc\s+\w+\s*\(/.test(trimmed) && /\b:=\b/.test(trimmed)) return 'go';
+        if (/\bfunc\s+\(\w+\s+\*?\w+\)\s+\w+/.test(trimmed)) return 'go'; // method receiver
+        if (/\bimport\s+\(/.test(trimmed) && /\bfunc\s/.test(trimmed)) return 'go';
+        if (/\bgo\s+func\s*\(/.test(trimmed)) return 'go';
+        if (/\bchan\s+\w+/.test(trimmed) || /\b<-\s*chan\b/.test(trimmed)) return 'go';
+        if (/\bpackage\s+main\b/.test(trimmed)) return 'go';
+        if (/\bdefer\s+\w+/.test(trimmed) && /\bfunc\b/.test(trimmed)) return 'go';
+        if (/\bfmt\.\w+/.test(trimmed) && /\bfunc\s/.test(trimmed)) return 'go';
+
+        // --- OCaml ---
+        if (/\blet\s+\w+\s*=/.test(trimmed) && /\bmatch\b/.test(trimmed) && /\bwith\b/.test(trimmed)) return 'ocaml';
+        if (/\bmodule\s+\w+\s*=\s*struct\b/.test(trimmed)) return 'ocaml';
+        if (/\bsig\b/.test(trimmed) && /\bval\b/.test(trimmed)) return 'ocaml';
+        if (/\blet\s+rec\s+\w+/.test(trimmed)) return 'ocaml';
+        if (/\btype\s+\w+\s*=/.test(trimmed) && /\|/.test(trimmed) && !/\b(const|let|var|interface)\b/.test(trimmed)) return 'ocaml';
+        if (/\bfun\s+\w+\s*->/.test(trimmed)) return 'ocaml';
+        if (/\bopen\s+\w+/.test(trimmed) && /\blet\s/.test(trimmed) && !/\b(const|var|function)\b/.test(trimmed)) return 'ocaml';
+
+        // --- jq ---
+        if (/^\.\w+/.test(trimmed) && /\|\s*(select|map|keys|values|length|sort_by|group_by|to_entries|from_entries)\s*\(/.test(trimmed)) return 'jq';
+        if (/\|\s*\.\w+/.test(trimmed) && /\|\s*(select|map)\s*\(/.test(trimmed)) return 'jq';
+        if (/@(csv|tsv|json|text|html|base64|base64d|uri|sh)\b/.test(trimmed) && /\|/.test(trimmed)) return 'jq';
+        if (/\bdef\s+\w+\s*:/.test(trimmed) && /\.\w+/.test(trimmed) && /\|/.test(trimmed)) return 'jq';
+        // Pipe-heavy jq expressions with field access
+        var jqPipes = (trimmed.match(/\|/g) || []).length;
+        var jqFields = (trimmed.match(/\.\w+/g) || []).length;
+        if (jqPipes >= 2 && jqFields >= 2 && !/\b(function|def |class|import|from|const|let|var)\b/.test(trimmed)) return 'jq';
 
         // --- Swift ---
         // Strong indicators: Swift-specific imports

@@ -254,6 +254,17 @@ class MonacoEditorView: NSView, WKScriptMessageHandler, WKNavigationDelegate {
         // Shell: shebang
         if trimmed.hasPrefix("#!/bin/") || trimmed.hasPrefix("#!/usr/bin/env") { return "shell" }
 
+        // TOML: [section] headers and key = value patterns
+        let tomlSections = trimmed.components(separatedBy: "\n").filter {
+            $0.trimmingCharacters(in: .whitespaces).range(of: #"^\[[\w.\-]+\]$"#, options: .regularExpression) != nil
+        }.count
+        let tomlKVs = trimmed.components(separatedBy: "\n").filter {
+            $0.trimmingCharacters(in: .whitespaces).range(of: #"^[\w.\-]+\s*=\s*.+"#, options: .regularExpression) != nil
+        }.count
+        if tomlSections >= 1 && tomlKVs >= 2 { return "toml" }
+        if tomlKVs >= 3 && !trimmed.contains("function ") && !trimmed.contains("def ")
+            && !trimmed.contains("class ") && !trimmed.contains("const ") { return "toml" }
+
         // Markdown detection (HIGHER priority than code)
         let lines = trimmed.components(separatedBy: "\n")
         let sampleCount = min(lines.count, 100)
@@ -269,6 +280,40 @@ class MonacoEditorView: NSView, WKScriptMessageHandler, WKNavigationDelegate {
             if ln.contains("**") || ln.contains("__") { mdScore += 1 }
         }
         if mdScore >= 3 { return "markdown" }
+
+        // Rust: (check before Swift because both use func/struct/enum)
+        if trimmed.contains("use std::") || trimmed.contains("use crate::") { return "rust" }
+        if trimmed.contains("pub fn ") || trimmed.contains("pub struct ") || trimmed.contains("pub enum ") { return "rust" }
+        if trimmed.range(of: #"\bfn\s+\w+\s*[\(<]"#, options: .regularExpression) != nil &&
+           (trimmed.contains("let mut ") || trimmed.contains("-> ")) { return "rust" }
+        if trimmed.range(of: #"\bimpl\s+\w+"#, options: .regularExpression) != nil && trimmed.contains("fn ") { return "rust" }
+        if trimmed.contains("let mut ") && trimmed.contains("fn ") { return "rust" }
+        if trimmed.range(of: #"\b(println|eprintln|format|vec|panic)!\s*\("#, options: .regularExpression) != nil { return "rust" }
+
+        // Go: package + func, := operator, go func, chan
+        if trimmed.contains("package ") && trimmed.contains("func ") { return "go" }
+        if trimmed.contains("func ") && trimmed.contains(":=") { return "go" }
+        if trimmed.range(of: #"\bfunc\s+\(\w+\s+\*?\w+\)\s+\w+"#, options: .regularExpression) != nil { return "go" }
+        if trimmed.contains("go func(") || trimmed.contains("go func (") { return "go" }
+        if trimmed.contains("chan ") || trimmed.contains("<-chan") { return "go" }
+        if trimmed.contains("package main") { return "go" }
+        if trimmed.contains("defer ") && trimmed.contains("func ") { return "go" }
+
+        // OCaml: let rec, match...with, module...struct, sig...val
+        if trimmed.contains("let ") && trimmed.contains("match") && trimmed.contains("with") &&
+           !trimmed.contains("const ") && !trimmed.contains("var ") { return "ocaml" }
+        if trimmed.contains("module ") && trimmed.contains("struct") &&
+           trimmed.range(of: #"\bmodule\s+\w+\s*=\s*struct\b"#, options: .regularExpression) != nil { return "ocaml" }
+        if trimmed.contains("sig") && trimmed.contains("val") &&
+           !trimmed.contains("const ") && !trimmed.contains("function ") { return "ocaml" }
+        if trimmed.range(of: #"\blet\s+rec\s+\w+"#, options: .regularExpression) != nil { return "ocaml" }
+        if trimmed.range(of: #"\bfun\s+\w+\s*->"#, options: .regularExpression) != nil { return "ocaml" }
+
+        // jq: pipe-heavy with field access, select/map, @format
+        if trimmed.range(of: #"\|\s*(select|map|keys|values|length|sort_by|group_by)\s*\("#, options: .regularExpression) != nil &&
+           trimmed.contains(".") { return "jq" }
+        if trimmed.range(of: #"@(csv|tsv|json|text|html|base64|base64d|uri|sh)\b"#, options: .regularExpression) != nil &&
+           trimmed.contains("|") { return "jq" }
 
         // Swift: specific imports
         let swiftImports = ["import Foundation", "import UIKit", "import SwiftUI",

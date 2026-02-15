@@ -394,12 +394,20 @@ class ClipboardManager {
         // Build patterns in priority order
         var patterns: [(pattern: String, color: String)] = []
 
-        // 1. Multi-line comments  /* ... */
-        patterns.append((#"\/\*[\s\S]*?\*\/"#, "#6a737d"))
+        // 1. Multi-line comments  /* ... */ (and OCaml's (* ... *))
+        if language == "ocaml" {
+            patterns.append((#"\(\*[\s\S]*?\*\)"#, "#6a737d"))
+        } else {
+            patterns.append((#"\/\*[\s\S]*?\*\/"#, "#6a737d"))
+        }
 
         // 2. Single-line comments
         if language == "python" || language == "shell" || language == "ruby" {
             patterns.append((#"#[^\n]*"#, "#6a737d"))
+        } else if language == "toml" || language == "jq" {
+            patterns.append((#"#[^\n]*"#, "#6a737d"))
+        } else if language == "ocaml" {
+            // OCaml only has block comments (* ... *), no single-line comment
         } else {
             patterns.append((#"\/\/[^\n]*"#, "#6a737d"))
         }
@@ -437,6 +445,10 @@ class ClipboardManager {
         // 7. Decorators/attributes (@something)
         if language == "swift" || language == "python" || language == "java" || language == "typescript" {
             patterns.append((#"@\w+"#, "#e36209"))
+        }
+        // Rust attributes (#[...] and #![...])
+        if language == "rust" {
+            patterns.append((#"#!?\[[\w:(, )]*\]"#, "#e36209"))
         }
 
         // Combine all patterns into one regex with named groups
@@ -524,6 +536,30 @@ class ClipboardManager {
             return ["if", "then", "else", "elif", "fi", "for", "while", "do", "done", "case",
                     "esac", "function", "return", "exit", "echo", "export", "local", "readonly",
                     "source", "alias", "unalias", "set", "unset", "in", "true", "false"]
+        case "rust":
+            return ["as", "async", "await", "break", "const", "continue", "crate", "dyn",
+                    "else", "enum", "extern", "false", "fn", "for", "if", "impl", "in",
+                    "let", "loop", "match", "mod", "move", "mut", "pub", "ref", "return",
+                    "self", "Self", "static", "struct", "super", "trait", "true", "type",
+                    "unsafe", "use", "where", "while", "yield"]
+        case "go":
+            return ["break", "case", "chan", "const", "continue", "default", "defer", "else",
+                    "fallthrough", "for", "func", "go", "goto", "if", "import", "interface",
+                    "map", "package", "range", "return", "select", "struct", "switch", "type",
+                    "var", "true", "false", "nil"]
+        case "ocaml":
+            return ["and", "as", "assert", "begin", "class", "constraint", "do", "done",
+                    "downto", "else", "end", "exception", "external", "false", "for", "fun",
+                    "function", "functor", "if", "in", "include", "inherit", "initializer",
+                    "lazy", "let", "match", "method", "mod", "module", "mutable", "new",
+                    "nonrec", "object", "of", "open", "or", "private", "rec", "sig", "struct",
+                    "then", "to", "true", "try", "type", "val", "virtual", "when", "while", "with"]
+        case "toml":
+            return ["true", "false"]
+        case "jq":
+            return ["if", "then", "elif", "else", "end", "as", "def", "reduce", "foreach",
+                    "try", "catch", "import", "include", "label", "break", "null", "true",
+                    "false", "and", "or", "not"]
         case "xml":
             return []  // XML doesn't have keywords in the traditional sense
         default:
@@ -554,6 +590,18 @@ class ClipboardManager {
         case "sql":
             return ["INT", "INTEGER", "VARCHAR", "TEXT", "BOOLEAN", "DATE", "TIMESTAMP",
                     "FLOAT", "DECIMAL", "CHAR", "BLOB", "SERIAL", "BIGINT"]
+        case "rust":
+            return ["i8", "i16", "i32", "i64", "i128", "isize", "u8", "u16", "u32", "u64",
+                    "u128", "usize", "f32", "f64", "bool", "char", "str", "String", "Vec",
+                    "Option", "Result", "Box", "Rc", "Arc", "Cell", "RefCell", "HashMap",
+                    "HashSet", "BTreeMap", "BTreeSet"]
+        case "go":
+            return ["bool", "byte", "complex64", "complex128", "error", "float32", "float64",
+                    "int", "int8", "int16", "int32", "int64", "rune", "string", "uint",
+                    "uint8", "uint16", "uint32", "uint64", "uintptr", "any"]
+        case "ocaml":
+            return ["int", "float", "bool", "string", "char", "unit", "list", "array",
+                    "option", "ref", "exn", "bytes"]
         default:
             return []
         }
