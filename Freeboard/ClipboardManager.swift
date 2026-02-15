@@ -394,9 +394,11 @@ class ClipboardManager {
         // Build patterns in priority order
         var patterns: [(pattern: String, color: String)] = []
 
-        // 1. Multi-line comments  /* ... */ (and OCaml's (* ... *))
+        // 1. Multi-line comments  /* ... */ (and OCaml's (* ... *), Lua's --[[ ... ]])
         if language == "ocaml" {
             patterns.append((#"\(\*[\s\S]*?\*\)"#, "#6a737d"))
+        } else if language == "lua" {
+            patterns.append((#"--\[\[[\s\S]*?\]\]"#, "#6a737d"))
         } else {
             patterns.append((#"\/\*[\s\S]*?\*\/"#, "#6a737d"))
         }
@@ -406,6 +408,12 @@ class ClipboardManager {
             patterns.append((#"#[^\n]*"#, "#6a737d"))
         } else if language == "toml" || language == "jq" {
             patterns.append((#"#[^\n]*"#, "#6a737d"))
+        } else if language == "php" {
+            // PHP supports both // and # comments
+            patterns.append((#"\/\/[^\n]*"#, "#6a737d"))
+            patterns.append((#"#[^\n]*"#, "#6a737d"))
+        } else if language == "lua" {
+            patterns.append((#"--[^\n]*"#, "#6a737d"))
         } else if language == "ocaml" {
             // OCaml only has block comments (* ... *), no single-line comment
         } else {
@@ -443,12 +451,25 @@ class ClipboardManager {
         }
 
         // 7. Decorators/attributes (@something)
-        if language == "swift" || language == "python" || language == "java" || language == "typescript" {
+        if language == "swift" || language == "python" || language == "java" || language == "typescript"
+            || language == "csharp" || language == "kotlin" || language == "php" {
             patterns.append((#"@\w+"#, "#e36209"))
         }
         // Rust attributes (#[...] and #![...])
         if language == "rust" {
             patterns.append((#"#!?\[[\w:(, )]*\]"#, "#e36209"))
+        }
+        // C/C++ preprocessor directives (#include, #define, #ifdef, etc.)
+        if language == "c" || language == "cpp" {
+            patterns.append((#"#\s*(include|define|undef|ifdef|ifndef|if|elif|else|endif|pragma|error|warning)\b[^\n]*"#, "#e36209"))
+        }
+        // PHP variables ($variable)
+        if language == "php" {
+            patterns.append((#"\$\w+"#, "#e36209"))
+        }
+        // Ruby symbols (:symbol)
+        if language == "ruby" {
+            patterns.append((#":\w+"#, "#0086b3"))
         }
 
         // Combine all patterns into one regex with named groups
@@ -562,6 +583,81 @@ class ClipboardManager {
                     "false", "and", "or", "not"]
         case "xml":
             return []  // XML doesn't have keywords in the traditional sense
+        case "c", "cpp":
+            return ["auto", "break", "case", "char", "const", "continue", "default", "do",
+                    "double", "else", "enum", "extern", "float", "for", "goto", "if",
+                    "inline", "int", "long", "register", "return", "short", "signed",
+                    "sizeof", "static", "struct", "switch", "typedef", "union", "unsigned",
+                    "void", "volatile", "while",
+                    // C++ additions
+                    "alignas", "alignof", "and", "and_eq", "asm", "bitand", "bitor",
+                    "bool", "catch", "class", "compl", "concept", "consteval", "constexpr",
+                    "constinit", "co_await", "co_return", "co_yield", "decltype",
+                    "delete", "dynamic_cast", "explicit", "export", "false", "friend",
+                    "mutable", "namespace", "new", "noexcept", "not", "not_eq", "nullptr",
+                    "operator", "or", "or_eq", "override", "private", "protected", "public",
+                    "reinterpret_cast", "requires", "static_assert", "static_cast",
+                    "template", "this", "throw", "true", "try", "typeid", "typename",
+                    "using", "virtual", "xor", "xor_eq"]
+        case "java":
+            return ["abstract", "assert", "boolean", "break", "byte", "case", "catch",
+                    "char", "class", "const", "continue", "default", "do", "double",
+                    "else", "enum", "extends", "final", "finally", "float", "for", "goto",
+                    "if", "implements", "import", "instanceof", "int", "interface", "long",
+                    "native", "new", "package", "private", "protected", "public", "return",
+                    "short", "static", "strictfp", "super", "switch", "synchronized",
+                    "this", "throw", "throws", "transient", "try", "void", "volatile",
+                    "while", "true", "false", "null", "var", "yield", "record", "sealed",
+                    "permits", "non-sealed"]
+        case "csharp":
+            return ["abstract", "as", "base", "bool", "break", "byte", "case", "catch",
+                    "char", "checked", "class", "const", "continue", "decimal", "default",
+                    "delegate", "do", "double", "else", "enum", "event", "explicit",
+                    "extern", "false", "finally", "fixed", "float", "for", "foreach",
+                    "goto", "if", "implicit", "in", "int", "interface", "internal", "is",
+                    "lock", "long", "namespace", "new", "null", "object", "operator",
+                    "out", "override", "params", "private", "protected", "public",
+                    "readonly", "ref", "return", "sbyte", "sealed", "short", "sizeof",
+                    "stackalloc", "static", "string", "struct", "switch", "this", "throw",
+                    "true", "try", "typeof", "uint", "ulong", "unchecked", "unsafe",
+                    "ushort", "using", "var", "virtual", "void", "volatile", "while",
+                    "async", "await", "yield", "dynamic", "partial", "where", "when",
+                    "record", "init", "required"]
+        case "ruby":
+            return ["alias", "and", "begin", "break", "case", "class", "def", "defined?",
+                    "do", "else", "elsif", "end", "ensure", "false", "for", "if", "in",
+                    "module", "next", "nil", "not", "or", "redo", "rescue", "retry",
+                    "return", "self", "super", "then", "true", "undef", "unless", "until",
+                    "when", "while", "yield", "require", "require_relative", "include",
+                    "extend", "prepend", "attr_reader", "attr_writer", "attr_accessor",
+                    "puts", "print", "raise", "lambda", "proc"]
+        case "php":
+            return ["abstract", "and", "as", "break", "callable", "case", "catch", "class",
+                    "clone", "const", "continue", "declare", "default", "do", "echo",
+                    "else", "elseif", "empty", "enddeclare", "endfor", "endforeach",
+                    "endif", "endswitch", "endwhile", "enum", "extends", "false", "final",
+                    "finally", "fn", "for", "foreach", "function", "global", "goto", "if",
+                    "implements", "include", "include_once", "instanceof", "insteadof",
+                    "interface", "isset", "list", "match", "namespace", "new", "null",
+                    "or", "print", "private", "protected", "public", "readonly", "require",
+                    "require_once", "return", "static", "switch", "this", "throw", "trait",
+                    "true", "try", "unset", "use", "var", "while", "xor", "yield"]
+        case "kotlin":
+            return ["as", "break", "class", "continue", "do", "else", "false", "for",
+                    "fun", "if", "in", "interface", "is", "null", "object", "package",
+                    "return", "super", "this", "throw", "true", "try", "typealias",
+                    "typeof", "val", "var", "when", "while", "by", "catch", "constructor",
+                    "delegate", "dynamic", "field", "file", "finally", "get", "import",
+                    "init", "param", "property", "receiver", "set", "setparam", "where",
+                    "actual", "abstract", "annotation", "companion", "const", "crossinline",
+                    "data", "enum", "expect", "external", "final", "infix", "inline",
+                    "inner", "internal", "lateinit", "noinline", "open", "operator", "out",
+                    "override", "private", "protected", "public", "reified", "sealed",
+                    "suspend", "tailrec", "vararg"]
+        case "lua":
+            return ["and", "break", "do", "else", "elseif", "end", "false", "for",
+                    "function", "goto", "if", "in", "local", "nil", "not", "or",
+                    "repeat", "return", "then", "true", "until", "while"]
         default:
             // Fallback: common C-family keywords
             return ["if", "else", "for", "while", "return", "class", "struct", "enum",
@@ -602,6 +698,55 @@ class ClipboardManager {
         case "ocaml":
             return ["int", "float", "bool", "string", "char", "unit", "list", "array",
                     "option", "ref", "exn", "bytes"]
+        case "c", "cpp":
+            return ["size_t", "ptrdiff_t", "intptr_t", "uintptr_t",
+                    "int8_t", "int16_t", "int32_t", "int64_t",
+                    "uint8_t", "uint16_t", "uint32_t", "uint64_t",
+                    "FILE", "NULL", "EOF",
+                    // C++ standard library types
+                    "string", "wstring", "vector", "map", "set", "list", "deque",
+                    "array", "pair", "tuple", "optional", "variant", "any",
+                    "unique_ptr", "shared_ptr", "weak_ptr",
+                    "unordered_map", "unordered_set", "multimap", "multiset",
+                    "function", "thread", "mutex", "future", "promise",
+                    "iostream", "istream", "ostream", "ifstream", "ofstream"]
+        case "java":
+            return ["String", "Integer", "Long", "Double", "Float", "Boolean", "Character",
+                    "Byte", "Short", "Object", "Class", "Void",
+                    "List", "ArrayList", "LinkedList", "Map", "HashMap", "TreeMap",
+                    "Set", "HashSet", "TreeSet", "Queue", "Deque", "Stack",
+                    "Iterator", "Iterable", "Collection", "Collections", "Arrays",
+                    "Optional", "Stream", "Comparable", "Comparator",
+                    "Exception", "RuntimeException", "Thread", "Runnable",
+                    "System", "Math", "StringBuilder", "StringBuffer"]
+        case "csharp":
+            return ["String", "Int32", "Int64", "Double", "Float", "Boolean", "Decimal",
+                    "Object", "Byte", "Char", "DateTime", "TimeSpan", "Guid",
+                    "List", "Dictionary", "HashSet", "Queue", "Stack", "Array",
+                    "Task", "Action", "Func", "Predicate", "IEnumerable",
+                    "ICollection", "IList", "IDictionary", "IDisposable",
+                    "Console", "Math", "Convert", "Nullable", "Tuple",
+                    "Exception", "EventHandler", "StringBuilder"]
+        case "ruby":
+            return ["String", "Integer", "Float", "Array", "Hash", "Symbol", "Regexp",
+                    "Range", "NilClass", "TrueClass", "FalseClass", "Proc", "Lambda",
+                    "IO", "File", "Dir", "Time", "Date", "Exception", "Struct",
+                    "Enumerable", "Comparable", "Kernel", "Object", "Class", "Module",
+                    "Numeric", "Fixnum", "Bignum", "Complex", "Rational"]
+        case "php":
+            return ["string", "int", "float", "bool", "array", "object", "null", "void",
+                    "mixed", "callable", "iterable", "never", "self", "static", "parent",
+                    "stdClass", "Exception", "Error", "Closure", "Generator",
+                    "ArrayObject", "DateTime", "SplStack", "SplQueue"]
+        case "kotlin":
+            return ["Any", "Unit", "Nothing", "String", "Int", "Long", "Double", "Float",
+                    "Boolean", "Char", "Byte", "Short", "Array", "IntArray", "LongArray",
+                    "List", "MutableList", "Map", "MutableMap", "Set", "MutableSet",
+                    "Pair", "Triple", "Sequence", "Iterable", "Iterator",
+                    "Comparable", "Lazy", "Result", "Regex", "Exception"]
+        case "lua":
+            return ["io", "os", "math", "string", "table", "coroutine", "debug",
+                    "package", "utf8"]
         default:
             return []
         }

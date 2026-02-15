@@ -317,6 +317,76 @@ class MonacoEditorView: NSView, WKScriptMessageHandler, WKNavigationDelegate {
         if trimmed.range(of: #"\blet\s+rec\s+\w+"#, options: .regularExpression) != nil { return "ocaml" }
         if trimmed.range(of: #"\bfun\s+\w+\s*->"#, options: .regularExpression) != nil { return "ocaml" }
 
+        // PHP: <?php, $variable, function/$this->
+        if trimmed.hasPrefix("<?php") || trimmed.hasPrefix("<?=") { return "php" }
+        if trimmed.contains("$") && trimmed.contains("function ") &&
+           trimmed.range(of: #"\$\w+\s*="#, options: .regularExpression) != nil { return "php" }
+        if trimmed.contains("$this->") { return "php" }
+        if trimmed.range(of: #"\bnamespace\s+[\w\\]+;"#, options: .regularExpression) != nil &&
+           trimmed.contains("use ") { return "php" }
+        if trimmed.contains("echo ") && trimmed.contains("$") { return "php" }
+
+        // C#: using System, namespace + class, Console.WriteLine
+        if trimmed.contains("using System") { return "csharp" }
+        if trimmed.contains("namespace ") && trimmed.contains("class ") && trimmed.contains("{") &&
+           trimmed.range(of: #"\b(public|private|internal)\s+"#, options: .regularExpression) != nil { return "csharp" }
+        if trimmed.contains("Console.WriteLine") || trimmed.contains("Console.ReadLine") { return "csharp" }
+        if trimmed.contains("var ") && trimmed.contains("namespace ") { return "csharp" }
+
+        // Java: import java., public class + void, System.out
+        if trimmed.contains("import java.") || trimmed.contains("import javax.") { return "java" }
+        if trimmed.contains("import org.springframework") || trimmed.contains("import org.junit") { return "java" }
+        if trimmed.contains("public class ") && trimmed.contains("void ") { return "java" }
+        if trimmed.contains("System.out.println") || trimmed.contains("System.out.print(") { return "java" }
+        if trimmed.contains("public static void main") { return "java" }
+        if trimmed.range(of: #"\bpackage\s+[\w.]+;"#, options: .regularExpression) != nil &&
+           trimmed.contains("class ") { return "java" }
+
+        // Kotlin: import kotlin., fun + val/var, data class, suspend fun
+        if trimmed.contains("import kotlin.") || trimmed.contains("import kotlinx.") { return "kotlin" }
+        if trimmed.contains("fun ") && trimmed.contains("val ") &&
+           trimmed.range(of: #"\bfun\s+\w+\s*\("#, options: .regularExpression) != nil { return "kotlin" }
+        if trimmed.contains("fun ") && trimmed.contains("var ") &&
+           trimmed.range(of: #"\bfun\s+\w+\s*\("#, options: .regularExpression) != nil { return "kotlin" }
+        if trimmed.contains("fun main") && trimmed.contains("println") { return "kotlin" }
+        if trimmed.range(of: #"\bdata\s+class\s+\w+"#, options: .regularExpression) != nil { return "kotlin" }
+        if trimmed.range(of: #"\bsealed\s+class\s+\w+"#, options: .regularExpression) != nil { return "kotlin" }
+        if trimmed.contains("suspend fun") { return "kotlin" }
+
+        // C / C++: #include, int main, std::, cout/cin, printf, template, virtual
+        if trimmed.range(of: #"^#include\s*[<"]"#, options: .regularExpression) != nil { return "cpp" }
+        if trimmed.contains("int main(") && !trimmed.contains("package ") { return "cpp" }
+        if trimmed.contains("std::") { return "cpp" }
+        if (trimmed.contains("cout") || trimmed.contains("cin") || trimmed.contains("endl")) &&
+           trimmed.contains("<<") { return "cpp" }
+        if trimmed.contains("template<") || trimmed.contains("template <") { return "cpp" }
+        if trimmed.contains("virtual ") &&
+           trimmed.range(of: #"\bvirtual\s+(void|int|bool|~)"#, options: .regularExpression) != nil { return "cpp" }
+        if trimmed.contains("printf(") &&
+           trimmed.range(of: #"\b(int|void|char|float|double)\s+\w+"#, options: .regularExpression) != nil { return "c" }
+
+        // Ruby: require '...', def...end, attr_*, puts, class < , do |
+        if trimmed.range(of: #"^require\s+['\"]"#, options: .regularExpression) != nil ||
+           trimmed.range(of: #"^require_relative\s+['\"]"#, options: .regularExpression) != nil { return "ruby" }
+        if trimmed.contains("def ") && trimmed.contains("end") &&
+           !trimmed.contains(": ") { return "ruby" }
+        if trimmed.contains("attr_reader") || trimmed.contains("attr_writer") || trimmed.contains("attr_accessor") { return "ruby" }
+        if trimmed.contains("puts ") && trimmed.contains("def ") { return "ruby" }
+        if trimmed.range(of: #"\bclass\s+\w+\s*<\s*\w+"#, options: .regularExpression) != nil &&
+           trimmed.contains("def ") { return "ruby" }
+        if trimmed.contains(".each") && trimmed.contains("do |") { return "ruby" }
+
+        // Lua: local + function + end, local function, if...then...end
+        if trimmed.contains("local ") && trimmed.contains("function") && trimmed.contains("end") { return "lua" }
+        if trimmed.range(of: #"\blocal\s+function\s+\w+"#, options: .regularExpression) != nil { return "lua" }
+        if trimmed.contains("function ") && trimmed.contains("end") &&
+           !trimmed.contains("const ") && !trimmed.contains("let ") && !trimmed.contains("var ") &&
+           !trimmed.contains("class ") { return "lua" }
+        if trimmed.contains("then") && trimmed.contains("end") &&
+           !trimmed.contains("const ") && !trimmed.contains("let ") { return "lua" }
+        if trimmed.contains("require") && trimmed.contains("local ") &&
+           trimmed.range(of: #"\brequire\s*\(?\s*['\"]"#, options: .regularExpression) != nil { return "lua" }
+
         // jq: pipe-heavy with field access, select/map, @format
         if trimmed.range(of: #"\|\s*(select|map|keys|values|length|sort_by|group_by)\s*\("#, options: .regularExpression) != nil &&
            trimmed.contains(".") { return "jq" }

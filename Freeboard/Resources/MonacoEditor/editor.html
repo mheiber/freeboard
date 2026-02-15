@@ -642,8 +642,8 @@
     // Markdown has HIGHER priority than code detection because the TextMate
     // grammar was specifically set up for markdown rendering.
     // Only detects languages with tokenizers in vs/basic-languages/:
-    //   go, javascript, jq, json, markdown, ocaml, python, rust, shell, sql,
-    //   swift, toml, typescript, xml
+    //   c, cpp, csharp, go, java, javascript, jq, json, kotlin, lua, markdown,
+    //   ocaml, php, python, ruby, rust, shell, sql, swift, toml, typescript, xml
     function detectLanguage(text) {
         var trimmed = text.replace(/^\s+|\s+$/g, '');
         if (!trimmed) return 'plaintext';
@@ -736,6 +736,65 @@
         if (/\btype\s+\w+\s*=/.test(trimmed) && /\|/.test(trimmed) && !/\b(const|let|var|interface)\b/.test(trimmed)) return 'ocaml';
         if (/\bfun\s+\w+\s*->/.test(trimmed)) return 'ocaml';
         if (/\bopen\s+\w+/.test(trimmed) && /\blet\s/.test(trimmed) && !/\b(const|var|function)\b/.test(trimmed)) return 'ocaml';
+
+        // --- PHP ---
+        if (/^<\?php\b/.test(trimmed) || /^<\?=/.test(trimmed)) return 'php';
+        if (/\$\w+\s*=/.test(trimmed) && /\bfunction\b/.test(trimmed)) return 'php';
+        if (/\$\w+\s*->/.test(trimmed) || /\$this\s*->/.test(trimmed)) return 'php';
+        if (/\bnamespace\s+[\w\\]+;/.test(trimmed) && /\buse\s+[\w\\]+/.test(trimmed)) return 'php';
+        if (/\becho\s+/.test(trimmed) && /\$\w+/.test(trimmed)) return 'php';
+
+        // --- C# ---
+        if (/\busing\s+System\b/.test(trimmed)) return 'csharp';
+        if (/\bnamespace\s+\w+/.test(trimmed) && /\bclass\s+\w+/.test(trimmed) && /\{/.test(trimmed)) return 'csharp';
+        if (/\b(public|private|protected|internal)\s+(static\s+)?(void|int|string|bool|class|async)\s/.test(trimmed) && /\bnamespace\b/.test(trimmed)) return 'csharp';
+        if (/\bConsole\.(WriteLine|ReadLine|Write)\s*\(/.test(trimmed)) return 'csharp';
+        if (/\bvar\s+\w+\s*=/.test(trimmed) && /\bnamespace\b/.test(trimmed)) return 'csharp';
+
+        // --- Java ---
+        if (/\bimport\s+java\./.test(trimmed) || /\bimport\s+javax\./.test(trimmed)) return 'java';
+        if (/\bimport\s+org\.(springframework|apache|junit)/.test(trimmed)) return 'java';
+        if (/\bpublic\s+class\s+\w+/.test(trimmed) && /\bvoid\s+\w+\s*\(/.test(trimmed)) return 'java';
+        if (/\bSystem\.out\.(println|print|printf)\s*\(/.test(trimmed)) return 'java';
+        if (/\bpublic\s+static\s+void\s+main\s*\(/.test(trimmed)) return 'java';
+        if (/\bpackage\s+[\w.]+;/.test(trimmed) && /\bclass\s/.test(trimmed)) return 'java';
+
+        // --- Kotlin ---
+        if (/\bimport\s+kotlin\./.test(trimmed) || /\bimport\s+kotlinx\./.test(trimmed)) return 'kotlin';
+        if (/\bfun\s+\w+\s*\(/.test(trimmed) && /\bval\s+\w+/.test(trimmed)) return 'kotlin';
+        if (/\bfun\s+\w+\s*\(/.test(trimmed) && /\bvar\s+\w+/.test(trimmed)) return 'kotlin';
+        if (/\bfun\s+main\s*\(/.test(trimmed) && /\bprintln\s*\(/.test(trimmed)) return 'kotlin';
+        if (/\bdata\s+class\s+\w+/.test(trimmed)) return 'kotlin';
+        if (/\bsealed\s+class\s+\w+/.test(trimmed)) return 'kotlin';
+        if (/\bobject\s+\w+\s*:/.test(trimmed) && /\bfun\b/.test(trimmed)) return 'kotlin';
+        if (/\bsuspend\s+fun\b/.test(trimmed)) return 'kotlin';
+
+        // --- C / C++ ---
+        if (/^#include\s*[<"]/.test(trimmed)) return 'cpp';
+        if (/\bint\s+main\s*\(/.test(trimmed) && !/\bpackage\b/.test(trimmed)) return 'cpp';
+        if (/\bstd::/.test(trimmed)) return 'cpp';
+        if (/\b(cout|cin|cerr|endl)\b/.test(trimmed) && /<</.test(trimmed)) return 'cpp';
+        if (/\bprintf\s*\(/.test(trimmed) && /^#/.test(trimmed)) return 'c';
+        if (/\btemplate\s*</.test(trimmed) && /\bclass\b/.test(trimmed)) return 'cpp';
+        if (/\bnamespace\s+\w+\s*\{/.test(trimmed) && /\bclass\b/.test(trimmed) && !/\busing\s+System/.test(trimmed)) return 'cpp';
+        if (/\bvirtual\s+(void|int|bool|~)/.test(trimmed)) return 'cpp';
+        if (/\bprintf\s*\(/.test(trimmed) && /\b(int|void|char|float|double)\s+\w+/.test(trimmed)) return 'c';
+
+        // --- Ruby ---
+        if (/^require\s+['"]/.test(trimmed) || /^require_relative\s+['"]/.test(trimmed)) return 'ruby';
+        if (/\bdef\s+\w+/.test(trimmed) && /\bend\b/.test(trimmed) && !/:\s*$/.test(trimmed.split('\n')[0])) return 'ruby';
+        if (/\battr_(reader|writer|accessor)\s+:/.test(trimmed)) return 'ruby';
+        if (/\bputs\s+/.test(trimmed) && /\bdef\s/.test(trimmed)) return 'ruby';
+        if (/\bclass\s+\w+\s*<\s*\w+/.test(trimmed) && /\bdef\b/.test(trimmed)) return 'ruby';
+        if (/\bdo\s*\|/.test(trimmed) && /\.each\b/.test(trimmed)) return 'ruby';
+        if (/\bmodule\s+\w+/.test(trimmed) && /\bdef\b/.test(trimmed) && /\bend\b/.test(trimmed)) return 'ruby';
+
+        // --- Lua ---
+        if (/\blocal\s+\w+\s*=/.test(trimmed) && /\bfunction\b/.test(trimmed) && /\bend\b/.test(trimmed)) return 'lua';
+        if (/\blocal\s+function\s+\w+/.test(trimmed)) return 'lua';
+        if (/\bfunction\s+\w+\s*\(/.test(trimmed) && /\bend\b/.test(trimmed) && !/\b(const|let|var|class)\b/.test(trimmed)) return 'lua';
+        if (/\bif\b.*\bthen\b/.test(trimmed) && /\bend\b/.test(trimmed) && !/\b(const|let|var|function\s*\()\b/.test(trimmed)) return 'lua';
+        if (/\brequire\s*\(?\s*['"]/.test(trimmed) && /\blocal\b/.test(trimmed)) return 'lua';
 
         // --- jq ---
         if (/^\.\w+/.test(trimmed) && /\|\s*(select|map|keys|values|length|sort_by|group_by|to_entries|from_entries)\s*\(/.test(trimmed)) return 'jq';
