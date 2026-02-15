@@ -198,6 +198,10 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
               let pattern = CrackPattern(rawValue: rawValue) else { return }
         CrackPattern.current = pattern
         recreateOverlayWindow()
+        // Open the popup window so the user can preview the crack pattern
+        if !popupWindow.isVisible {
+            showPopup()
+        }
     }
 
     private func recreateOverlayWindow() {

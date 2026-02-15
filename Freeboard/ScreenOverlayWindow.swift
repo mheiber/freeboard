@@ -69,29 +69,32 @@ enum CrackPattern: String, CaseIterable {
             )
 
         case .x3A7F2B:
-            // "Shattered Star" — many fine radial cracks from a single center point,
-            // high density, thin delicate lines, minimal branching
+            // "Corner Shatter" — impacts at the four corners with cracks radiating
+            // inward along the edges, visible framing effect without obscuring content
             return CrackConfig(
                 seed: 0x3A7F2B,
                 impactPoints: [
-                    CGPoint(x: 0.50, y: 0.50),
+                    CGPoint(x: 0.02, y: 0.02),
+                    CGPoint(x: 0.98, y: 0.02),
+                    CGPoint(x: 0.02, y: 0.98),
+                    CGPoint(x: 0.98, y: 0.98),
                 ],
-                mainCracksRange: (12, 6),
-                mainLengthRange: (120, 500),
-                mainWidthRange: (0.6, 0.8),
-                mainAlphaRange: (0.2, 0.3),
-                branchCountRange: (0, 2),
-                branchAngleSpread: 0.8,
-                branchLengthRange: (20, 80),
-                branchWidthRange: (0.3, 0.5),
-                branchAlphaRange: (0.1, 0.2),
-                microBranchChance: 0.3,
-                microAngleSpread: 1.0,
-                microLengthRange: (10, 30),
+                mainCracksRange: (4, 3),
+                mainLengthRange: (80, 200),
+                mainWidthRange: (0.9, 0.7),
+                mainAlphaRange: (0.25, 0.25),
+                branchCountRange: (1, 3),
+                branchAngleSpread: 1.0,
+                branchLengthRange: (25, 90),
+                branchWidthRange: (0.4, 0.5),
+                branchAlphaRange: (0.12, 0.18),
+                microBranchChance: 0.5,
+                microAngleSpread: 1.2,
+                microLengthRange: (10, 35),
                 microWidthRange: (0.2, 0.3),
                 microAlphaRange: (0.08, 0.12),
-                segmentLength: 4,
-                curvature: 0.25
+                segmentLength: 5,
+                curvature: 0.35
             )
 
         case .xD41E9C:
@@ -261,34 +264,34 @@ enum CrackPattern: String, CaseIterable {
             )
 
         case .x5E8D61:
-            // "Cobweb" — many impacts in a ring pattern around the center,
-            // short cracks that create an intricate web
+            // "Edge Fracture" — impacts along all four edges, cracks run parallel
+            // to borders creating a cracked-frame effect around content
             return CrackConfig(
                 seed: 0x5E8D61,
                 impactPoints: [
-                    CGPoint(x: 0.35, y: 0.30),
-                    CGPoint(x: 0.65, y: 0.30),
-                    CGPoint(x: 0.75, y: 0.55),
-                    CGPoint(x: 0.60, y: 0.75),
-                    CGPoint(x: 0.35, y: 0.75),
-                    CGPoint(x: 0.25, y: 0.55),
+                    CGPoint(x: 0.50, y: 0.01),
+                    CGPoint(x: 0.50, y: 0.99),
+                    CGPoint(x: 0.01, y: 0.50),
+                    CGPoint(x: 0.99, y: 0.50),
+                    CGPoint(x: 0.15, y: 0.01),
+                    CGPoint(x: 0.85, y: 0.99),
                 ],
                 mainCracksRange: (3, 3),
-                mainLengthRange: (50, 150),
-                mainWidthRange: (0.7, 0.6),
-                mainAlphaRange: (0.25, 0.25),
-                branchCountRange: (2, 3),
-                branchAngleSpread: 1.3,
-                branchLengthRange: (20, 70),
-                branchWidthRange: (0.3, 0.5),
-                branchAlphaRange: (0.12, 0.18),
-                microBranchChance: 0.65,
-                microAngleSpread: 1.4,
-                microLengthRange: (10, 35),
+                mainLengthRange: (100, 250),
+                mainWidthRange: (0.8, 0.6),
+                mainAlphaRange: (0.25, 0.2),
+                branchCountRange: (1, 3),
+                branchAngleSpread: 1.1,
+                branchLengthRange: (25, 80),
+                branchWidthRange: (0.4, 0.4),
+                branchAlphaRange: (0.12, 0.15),
+                microBranchChance: 0.5,
+                microAngleSpread: 1.2,
+                microLengthRange: (10, 40),
                 microWidthRange: (0.2, 0.3),
                 microAlphaRange: (0.08, 0.12),
-                segmentLength: 4,
-                curvature: 0.45
+                segmentLength: 5,
+                curvature: 0.4
             )
 
         case .xC7190F:
