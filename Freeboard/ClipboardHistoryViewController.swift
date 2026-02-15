@@ -50,6 +50,15 @@ private class HoverUnderlineButton: NSButton {
     }
 }
 
+/// An NSView subclass that swallows mouse-down events so that clicks on the
+/// help overlay do not propagate to the window and cause it to resign key
+/// status (which would close the entire popup).
+private class MouseBlockingView: NSView {
+    override func mouseDown(with event: NSEvent) {
+        // Intentionally empty — consume the click so it does not propagate.
+    }
+}
+
 class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, NSTableViewDelegate, NSTextFieldDelegate, NSTextViewDelegate, NSGestureRecognizerDelegate, MonacoEditorDelegate, NSMenuDelegate {
 
     weak var historyDelegate: ClipboardHistoryDelegate?
@@ -434,7 +443,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     }
 
     private func showHelp() {
-        let overlay = NSView(frame: containerView.bounds)
+        let overlay = MouseBlockingView(frame: containerView.bounds)
         overlay.autoresizingMask = [.width, .height]
         overlay.wantsLayer = true
         overlay.layer?.backgroundColor = NSColor(red: 0.01, green: 0.01, blue: 0.01, alpha: 0.95).cgColor
@@ -735,7 +744,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     }
 
     private func showSettingsHelp() {
-        let overlay = NSView(frame: containerView.bounds)
+        let overlay = MouseBlockingView(frame: containerView.bounds)
         overlay.autoresizingMask = [.width, .height]
         overlay.wantsLayer = true
         overlay.layer?.backgroundColor = NSColor(red: 0.01, green: 0.01, blue: 0.01, alpha: 0.95).cgColor
@@ -945,7 +954,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     }
 
     private func showMarkdownHelp() {
-        let overlay = NSView(frame: containerView.bounds)
+        let overlay = MouseBlockingView(frame: containerView.bounds)
         overlay.autoresizingMask = [.width, .height]
         overlay.wantsLayer = true
         overlay.layer?.backgroundColor = NSColor(red: 0.01, green: 0.01, blue: 0.01, alpha: 0.95).cgColor
@@ -1107,7 +1116,7 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
     }
 
     private func showEditingHelp() {
-        let overlay = NSView(frame: containerView.bounds)
+        let overlay = MouseBlockingView(frame: containerView.bounds)
         overlay.autoresizingMask = [.width, .height]
         overlay.wantsLayer = true
         overlay.layer?.backgroundColor = NSColor(red: 0.01, green: 0.01, blue: 0.01, alpha: 0.95).cgColor
