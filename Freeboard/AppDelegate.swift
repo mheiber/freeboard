@@ -146,6 +146,19 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
         vimItem.state = UserDefaults.standard.bool(forKey: "vimModeEnabled") ? .on : .off
         menu.addItem(vimItem)
 
+        // Screen Cracks submenu
+        let cracksItem = NSMenuItem(title: "Screen Cracks", action: nil, keyEquivalent: "")
+        let cracksMenu = NSMenu()
+        for pattern in CrackPattern.allCases {
+            let item = NSMenuItem(title: pattern.displayName, action: #selector(switchCrackPattern(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = pattern.rawValue
+            if pattern == CrackPattern.current { item.state = .on }
+            cracksMenu.addItem(item)
+        }
+        cracksItem.submenu = cracksMenu
+        menu.addItem(cracksItem)
+
         menu.addItem(NSMenuItem.separator())
         let helpItem = NSMenuItem(title: L.help, action: #selector(showHelp), keyEquivalent: "")
         helpItem.target = self
@@ -178,6 +191,22 @@ class AppDelegate: NSObject, NSApplicationDelegate, ClipboardManagerDelegate, Cl
         HotkeyChoice.current = choice
         hotkeyManager.register(keyCode: choice.keyCode)
         historyVC.refreshLocalization()
+    }
+
+    @objc private func switchCrackPattern(_ sender: NSMenuItem) {
+        guard let rawValue = sender.representedObject as? String,
+              let pattern = CrackPattern(rawValue: rawValue) else { return }
+        CrackPattern.current = pattern
+        recreateOverlayWindow()
+    }
+
+    private func recreateOverlayWindow() {
+        let wasVisible = overlayWindow.isVisible
+        overlayWindow.orderOut(nil)
+        overlayWindow = ScreenOverlayWindow(screen: NSScreen.main ?? NSScreen.screens[0])
+        if wasVisible {
+            overlayWindow.orderFront(nil)
+        }
     }
 
     @objc private func openApp() {
