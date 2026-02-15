@@ -196,9 +196,14 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
 
     override func viewDidAppear() {
         super.viewDidAppear()
-        searchField.stringValue = ""
-        searchQuery = ""
-        selectedIndex = 0
+        // Reset view state unless the user is in the middle of editing
+        let isEditing = editingIndex != nil || monacoEditorView != nil
+        if !isEditing {
+            searchField.stringValue = ""
+            searchQuery = ""
+            selectedIndex = 0
+            expandedIndex = nil
+        }
         refreshLocalization()
         reloadEntries()
         updateAccessibilityHint()
