@@ -489,7 +489,7 @@ class ClipboardManager {
     }
 
     /// Return keyword list for a given language.
-    private static func keywordsForLanguage(_ language: String) -> [String] {
+    static func keywordsForLanguage(_ language: String) -> [String] {
         switch language {
         case "swift":
             return ["func", "var", "let", "if", "else", "guard", "return", "import", "class", "struct",
@@ -573,7 +573,7 @@ class ClipboardManager {
     }
 
     /// Return built-in type names for a given language.
-    private static func builtinTypesForLanguage(_ language: String) -> [String] {
+    static func builtinTypesForLanguage(_ language: String) -> [String] {
         switch language {
         case "swift":
             return ["String", "Int", "Double", "Float", "Bool", "Array", "Dictionary", "Set",

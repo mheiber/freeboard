@@ -1839,6 +1839,126 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         }
     }
 
+    // MARK: - Preview Syntax Highlighting
+
+    /// Retro-themed colors for syntax highlighting in preview cells.
+    /// These are tuned for the green-on-black terminal aesthetic.
+    private var syntaxKeywordColor: NSColor {
+        // Bright green for keywords
+        NSColor(red: 0.2, green: 1.0, blue: 0.4, alpha: 1.0)
+    }
+    private var syntaxStringColor: NSColor {
+        // Cyan for strings
+        NSColor(red: 0.0, green: 0.85, blue: 0.85, alpha: 1.0)
+    }
+    private var syntaxCommentColor: NSColor {
+        // Dim green for comments
+        NSColor(red: 0.0, green: 0.5, blue: 0.15, alpha: 0.8)
+    }
+    private var syntaxNumberColor: NSColor {
+        // Yellow-green for numbers
+        NSColor(red: 0.7, green: 0.9, blue: 0.2, alpha: 1.0)
+    }
+    private var syntaxTypeColor: NSColor {
+        // Amber for types
+        NSColor(red: 0.9, green: 0.7, blue: 0.2, alpha: 1.0)
+    }
+    private var syntaxDecoratorColor: NSColor {
+        // Orange for decorators/attributes
+        NSColor(red: 0.9, green: 0.5, blue: 0.1, alpha: 1.0)
+    }
+
+    /// Create a syntax-highlighted NSAttributedString for a code preview.
+    /// Returns nil if no highlighting was applied (caller should fall back to plain text).
+    private func syntaxHighlightedString(text: String, language: String, baseColor: NSColor, font: NSFont) -> NSAttributedString? {
+        // Build regex patterns in priority order (same order as ClipboardManager.highlightTokens)
+        var patterns: [(pattern: String, color: NSColor)] = []
+
+        // 1. Multi-line comments
+        if language == "ocaml" {
+            patterns.append((#"\(\*[\s\S]*?\*\)"#, syntaxCommentColor))
+        } else {
+            patterns.append((#"/\*[\s\S]*?\*/"#, syntaxCommentColor))
+        }
+
+        // 2. Single-line comments
+        if language == "python" || language == "shell" || language == "ruby"
+            || language == "toml" || language == "jq" {
+            patterns.append((#"#[^\n]*"#, syntaxCommentColor))
+        } else if language == "ocaml" {
+            // OCaml only has block comments
+        } else {
+            patterns.append((#"//[^\n]*"#, syntaxCommentColor))
+        }
+        if language == "sql" {
+            patterns.append((#"--[^\n]*"#, syntaxCommentColor))
+        }
+
+        // 3. Strings (double-quoted and single-quoted)
+        patterns.append((#""(?:[^"\\]|\\.)*""#, syntaxStringColor))
+        patterns.append((#"'(?:[^'\\]|\\.)*'"#, syntaxStringColor))
+        if language == "javascript" || language == "typescript" {
+            patterns.append((#"`[^`]*`"#, syntaxStringColor))
+        }
+
+        // 4. Numbers
+        patterns.append((#"\b0x[0-9a-fA-F]+\b"#, syntaxNumberColor))
+        patterns.append((#"\b\d+\.?\d*\b"#, syntaxNumberColor))
+
+        // 5. Keywords
+        let keywords = ClipboardManager.keywordsForLanguage(language)
+        if !keywords.isEmpty {
+            let joined = keywords.joined(separator: "|")
+            patterns.append((#"\b(?:"# + joined + #")\b"#, syntaxKeywordColor))
+        }
+
+        // 6. Built-in types
+        let builtinTypes = ClipboardManager.builtinTypesForLanguage(language)
+        if !builtinTypes.isEmpty {
+            let joined = builtinTypes.joined(separator: "|")
+            patterns.append((#"\b(?:"# + joined + #")\b"#, syntaxTypeColor))
+        }
+
+        // 7. Decorators/attributes
+        if language == "swift" || language == "python" || language == "java" || language == "typescript" {
+            patterns.append((#"@\w+"#, syntaxDecoratorColor))
+        }
+        if language == "rust" {
+            patterns.append((#"#!?\[[\w:(, )]*\]"#, syntaxDecoratorColor))
+        }
+
+        // Combine into one regex
+        let combinedPattern = patterns.map { "(\($0.pattern))" }.joined(separator: "|")
+        guard let regex = try? NSRegularExpression(pattern: combinedPattern, options: [.dotMatchesLineSeparators]) else {
+            return nil
+        }
+
+        let nsString = text as NSString
+        let fullRange = NSRange(location: 0, length: nsString.length)
+        let matches = regex.matches(in: text, range: fullRange)
+
+        guard !matches.isEmpty else { return nil }
+
+        let attributed = NSMutableAttributedString(string: text, attributes: [
+            .foregroundColor: baseColor,
+            .font: font
+        ])
+
+        for match in matches {
+            let matchRange = match.range
+            // Find which group matched
+            for i in 0..<patterns.count {
+                let groupRange = match.range(at: i + 1)
+                if groupRange.location != NSNotFound {
+                    attributed.addAttribute(.foregroundColor, value: patterns[i].color, range: matchRange)
+                    break
+                }
+            }
+        }
+
+        return attributed
+    }
+
     // MARK: - Data
 
     func reloadEntries() {
@@ -2079,14 +2199,37 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             if isExpanded {
                 contentLabel.lineBreakMode = .byWordWrapping
                 contentLabel.maximumNumberOfLines = 0
-                contentLabel.stringValue = entry.displayContent
+                let displayText = entry.displayContent
+                // Apply syntax highlighting for code entries (not markdown, not passwords)
+                if case .code(let lang) = entry.formatCategory,
+                   !entry.isPassword,
+                   let highlighted = syntaxHighlightedString(
+                       text: displayText,
+                       language: lang,
+                       baseColor: isSelected ? retroGreen : retroDimGreen,
+                       font: retroFont) {
+                    contentLabel.attributedStringValue = highlighted
+                } else {
+                    contentLabel.stringValue = displayText
+                }
             } else {
                 contentLabel.lineBreakMode = .byTruncatingTail
                 contentLabel.maximumNumberOfLines = 1
                 let displayText = entry.displayContent
                     .replacingOccurrences(of: "\n", with: "\u{21B5} ")
                     .replacingOccurrences(of: "\t", with: "\u{2192} ")
-                contentLabel.stringValue = displayText
+                // Apply syntax highlighting for code entries (not markdown, not passwords)
+                if case .code(let lang) = entry.formatCategory,
+                   !entry.isPassword,
+                   let highlighted = syntaxHighlightedString(
+                       text: displayText,
+                       language: lang,
+                       baseColor: isSelected ? retroGreen : retroDimGreen,
+                       font: retroFont) {
+                    contentLabel.attributedStringValue = highlighted
+                } else {
+                    contentLabel.stringValue = displayText
+                }
             }
 
             if entry.entryType == .image {
