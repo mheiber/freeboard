@@ -739,28 +739,28 @@ struct L {
             .ar: "→ تحرير", .bn: "সম্পাদনা →", .pt: "Edição →", .ru: "Редактирование →", .ja: "編集 →"
         ],
         "editingHelpCtrlEText": [
-            .en: "Ctrl+E  Edit text items",
-            .zh: "Ctrl+E  编辑文本条目",
-            .hi: "Ctrl+E  टेक्स्ट आइटम संपादित करें",
-            .es: "Ctrl+E  Editar elementos de texto",
-            .fr: "Ctrl+E  Modifier les éléments texte",
-            .ar: "Ctrl+E  تحرير العناصر النصية",
-            .bn: "Ctrl+E  টেক্সট আইটেম সম্পাদনা করুন",
-            .pt: "Ctrl+E  Editar itens de texto",
-            .ru: "Ctrl+E  Редактировать текстовые элементы",
-            .ja: "Ctrl+E  テキスト項目を編集"
+            .en: "Ctrl+e  Edit text items",
+            .zh: "Ctrl+e  编辑文本条目",
+            .hi: "Ctrl+e  टेक्स्ट आइटम संपादित करें",
+            .es: "Ctrl+e  Editar elementos de texto",
+            .fr: "Ctrl+e  Modifier les éléments texte",
+            .ar: "Ctrl+e  تحرير العناصر النصية",
+            .bn: "Ctrl+e  টেক্সট আইটেম সম্পাদনা করুন",
+            .pt: "Ctrl+e  Editar itens de texto",
+            .ru: "Ctrl+e  Редактировать текстовые элементы",
+            .ja: "Ctrl+e  テキスト項目を編集"
         ],
         "editingHelpCtrlEMultimedia": [
-            .en: "Ctrl+E  View images and file URLs",
-            .zh: "Ctrl+E  查看图片和文件 URL",
-            .hi: "Ctrl+E  चित्र और फ़ाइल URL देखें",
-            .es: "Ctrl+E  Ver imágenes y URL de archivos",
-            .fr: "Ctrl+E  Afficher les images et URL de fichiers",
-            .ar: "Ctrl+E  عرض الصور وعناوين الملفات",
-            .bn: "Ctrl+E  ছবি এবং ফাইল URL দেখুন",
-            .pt: "Ctrl+E  Ver imagens e URLs de arquivos",
-            .ru: "Ctrl+E  Просмотр изображений и URL файлов",
-            .ja: "Ctrl+E  画像とファイルURLを表示"
+            .en: "Ctrl+e  View images and file URLs",
+            .zh: "Ctrl+e  查看图片和文件 URL",
+            .hi: "Ctrl+e  चित्र और फ़ाइल URL देखें",
+            .es: "Ctrl+e  Ver imágenes y URL de archivos",
+            .fr: "Ctrl+e  Afficher les images et URL de fichiers",
+            .ar: "Ctrl+e  عرض الصور وعناوين الملفات",
+            .bn: "Ctrl+e  ছবি এবং ফাইল URL দেখুন",
+            .pt: "Ctrl+e  Ver imagens e URLs de arquivos",
+            .ru: "Ctrl+e  Просмотр изображений и URL файлов",
+            .ja: "Ctrl+e  画像とファイルURLを表示"
         ],
         "editingHelpSeeAlsoMarkdown": [
             .en: "See also: Markdown Support →",

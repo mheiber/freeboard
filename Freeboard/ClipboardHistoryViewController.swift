@@ -1697,23 +1697,65 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
             }
         }
 
-        // "^N next" and "^P prev" — navigate the clipboard list
-        helpLabel.addArrangedSubview(makeHintButton(shortcut: "^N", label: L.select + "↓", tag: Self.hintTagNextItem))
-        helpLabel.addArrangedSubview(makeHintButton(shortcut: "^P", label: L.select + "↑", tag: Self.hintTagPrevItem))
+        // "^n/^p select" — navigate the clipboard list, displayed as a single
+        // visual unit but with individually-clickable halves.
+        do {
+            let keyAttrs: [NSAttributedString.Key: Any] = [
+                .foregroundColor: retroGreen.withAlphaComponent(0.6),
+                .font: retroFontSmall
+            ]
+            let dimAttrs: [NSAttributedString.Key: Any] = [
+                .foregroundColor: retroDimGreen.withAlphaComponent(0.6),
+                .font: retroFontSmall
+            ]
+
+            // "^n" button (select next)
+            let nTitle = NSMutableAttributedString()
+            nTitle.append(NSAttributedString(string: "^n", attributes: keyAttrs))
+            let nBtn = HoverUnderlineButton(title: "", target: self, action: #selector(helpHintClicked(_:)))
+            nBtn.translatesAutoresizingMaskIntoConstraints = false
+            nBtn.isBordered = false
+            nBtn.attributedTitle = nTitle
+            nBtn.tag = Self.hintTagNextItem
+            nBtn.setAccessibilityLabel("^n \(L.select)")
+            helpLabel.addArrangedSubview(nBtn)
+
+            // "/" separator (non-clickable, no spacing)
+            let slashLabel = NSTextField(labelWithString: "/")
+            slashLabel.translatesAutoresizingMaskIntoConstraints = false
+            slashLabel.font = retroFontSmall
+            slashLabel.textColor = retroGreen.withAlphaComponent(0.6)
+            slashLabel.backgroundColor = .clear
+            slashLabel.isEditable = false
+            slashLabel.isBezeled = false
+            helpLabel.addArrangedSubview(slashLabel)
+
+            // "^p select" button (select previous, carries the shared label)
+            let pTitle = NSMutableAttributedString()
+            pTitle.append(NSAttributedString(string: "^p ", attributes: keyAttrs))
+            pTitle.append(NSAttributedString(string: L.select, attributes: dimAttrs))
+            let pBtn = HoverUnderlineButton(title: "", target: self, action: #selector(helpHintClicked(_:)))
+            pBtn.translatesAutoresizingMaskIntoConstraints = false
+            pBtn.isBordered = false
+            pBtn.attributedTitle = pTitle
+            pBtn.tag = Self.hintTagPrevItem
+            pBtn.setAccessibilityLabel("^p \(L.select)")
+            helpLabel.addArrangedSubview(pBtn)
+        }
         helpLabel.addArrangedSubview(makeHintSpacer())
 
         // "Tab expand"
         helpLabel.addArrangedSubview(makeHintButton(shortcut: "Tab", label: L.expand, tag: Self.hintTagExpand))
         helpLabel.addArrangedSubview(makeHintSpacer())
 
-        // "^E edit/view"
+        // "^e edit/view"
         let editOrView: String
         if let entry = entry, entry.entryType != .text {
             editOrView = L.view
         } else {
             editOrView = L.edit
         }
-        helpLabel.addArrangedSubview(makeHintButton(shortcut: "^E", label: editOrView, tag: Self.hintTagEdit))
+        helpLabel.addArrangedSubview(makeHintButton(shortcut: "^e", label: editOrView, tag: Self.hintTagEdit))
         helpLabel.addArrangedSubview(makeHintSpacer())
 
         // "⌘S star/unstar"
@@ -2392,9 +2434,9 @@ class ClipboardHistoryViewController: NSViewController, NSTableViewDataSource, N
         menu.addItem(NSMenuItem.separator())
 
         if entry.entryType == .text && !entry.isPassword {
-            addItem(L.contextEdit, hint: "^E", action: #selector(contextMenuEdit(_:)))
+            addItem(L.contextEdit, hint: "^e", action: #selector(contextMenuEdit(_:)))
         } else if entry.entryType == .image || entry.entryType == .fileURL {
-            addItem(L.contextView, hint: "^E", action: #selector(contextMenuEdit(_:)))
+            addItem(L.contextView, hint: "^e", action: #selector(contextMenuEdit(_:)))
         }
 
         let expandTitle = expandedIndex == row ? L.contextCollapse : L.contextExpand
