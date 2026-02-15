@@ -259,7 +259,7 @@ struct L {
             .ar: "إغلاق", .bn: "বন্ধ", .pt: "fechar", .ru: "закрыть", .ja: "閉じる"
         ],
         "expand": [
-            .en: "expand", .zh: "展开", .hi: "विस्तार करें", .es: "ampliar", .fr: "étendre",
+            .en: "expand", .zh: "展开", .hi: "विस्तार करें", .es: "expandir", .fr: "développer",
             .ar: "توسيع", .bn: "প্রসারিত", .pt: "expandir", .ru: "развернуть", .ja: "展開"
         ],
         "edit": [
@@ -323,7 +323,7 @@ struct L {
             .es: "No se encontraron coincidencias.", .fr: "Aucun résultat trouvé.",
             .ar: "لا توجد نتائج.", .bn: "কোনো মিল পাওয়া যায়নি।",
             .pt: "Nenhum resultado encontrado.", .ru: "Совпадений не найдено.",
-            .ja: "一致する項目がありません"
+            .ja: "一致する項目がありません。"
         ],
         "clearSearch": [
             .en: "Clear Search (Esc)", .zh: "清除搜索 (Esc)", .hi: "खोज साफ़ करें (Esc)",
@@ -563,16 +563,16 @@ struct L {
             .pt: "voltar", .ru: "назад", .ja: "戻る"
         ],
         "move": [
-            .en: "move", .zh: "移动", .hi: "चलाएं",
+            .en: "move", .zh: "移动", .hi: "ले जाएं",
             .es: "mover", .fr: "déplacer",
             .ar: "تحريك", .bn: "সরান",
-            .pt: "mover", .ru: "двигаться", .ja: "移動"
+            .pt: "mover", .ru: "перемещение", .ja: "移動"
         ],
         "richPaste": [
             .en: "rich paste", .zh: "富文本粘贴", .hi: "रिच पेस्ट",
             .es: "pegar formato", .fr: "coller riche",
             .ar: "لصق منسق", .bn: "রিচ পেস্ট",
-            .pt: "colar formatado", .ru: "вставить формат", .ja: "リッチ貼り付け"
+            .pt: "colar formatado", .ru: "форм. вставка", .ja: "リッチ貼り付け"
         ],
         "accessibilityMarkdownText": [
             .en: "Markdown text, Shift Enter to paste as formatted text",
@@ -904,7 +904,7 @@ struct L {
             .en: "formatted", .zh: "格式化", .hi: "स्वरूपित",
             .es: "formateado", .fr: "formaté",
             .ar: "منسق", .bn: "ফরম্যাটেড",
-            .pt: "formatado", .ru: "формат", .ja: "整形"
+            .pt: "formatado", .ru: "формат.", .ja: "整形"
         ],
         "accessibilityCodeText": [
             .en: "Code text, Shift Enter to paste with syntax highlighting",
@@ -1014,9 +1014,9 @@ struct L {
             .ja: "アクセシビリティの許可が必要"
         ],
         "accessibilityEntryPosition": [
-            .en: "Item %d of %d", .zh: "第 %d 项，共 %d 项", .hi: "%d में से %d आइटम",
+            .en: "Item %d of %d", .zh: "第 %d 项，共 %d 项", .hi: "आइटम %d / %d",
             .es: "Elemento %d de %d", .fr: "Élément %d sur %d",
-            .ar: "العنصر %d من %d", .bn: "%d এর মধ্যে %d আইটেম",
+            .ar: "العنصر %d من %d", .bn: "আইটেম %d / %d",
             .pt: "Item %d de %d", .ru: "Элемент %d из %d",
             .ja: "%d / %d 項目"
         ],
